@@ -1,0 +1,1 @@
+SUBDIRS = c208 NI6602 uxtimer DGG2
