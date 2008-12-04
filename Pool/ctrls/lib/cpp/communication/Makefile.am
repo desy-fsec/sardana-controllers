@@ -1,1 +1,1 @@
-SUBDIRS = echo fake serial
+SUBDIRS = fake serial
