@@ -4,4 +4,4 @@
  * 
  */
 
-const char *PseudoMotor_Ctrl_class_name[] = {"Diffrac2C", "Diffrac4C", 0};
+const char *PseudoMotor_Ctrl_class_name[] = {"Diffrac2C", "Diffrac4C", "Diffrac6C", 0};
