@@ -21,6 +21,27 @@ class IcepapController(MotorController):
                              'InfoB':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
                              'InfoC':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
                              'EnableEncoder_5V':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
+                             ## Fulvio requires this closed loop boolean attribute
+                             'ClosedLoop':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
+                             ## Julio Lidon points out that this info is very useful:
+                             ## ?POS : AXIS INDEXER POSERR SHFTENC TGTENC ENCIN INPOS ABSENC
+                             ## ?ENC : AXIS INDEXER EXTERR SHFTENC TGTENC ENCIN INPOS ABSENC
+                             'PosAxis':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'PosIndexer':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             #'PosPosErr':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
+                             'PosShftEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'PosTgtEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'PosEncIn':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'PosInPos':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'PosAbsEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'EncAxis':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'EncIndexer':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             #'EncExtErr':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
+                             'EncShftEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'EncTgtEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'EncEncIn':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'EncInPos':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'EncAbsEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
                              ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
                              'Pulses_per_unit':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'}
                              }
@@ -41,91 +62,33 @@ class IcepapController(MotorController):
         
         MotorController.__init__(self,inst,props)
         
-        self.iPAP = None
         
-        self.__getConnection()
-        
+        self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
+        self.iPAP.connect()
         self.attributes = {}
-        
-    def __getConnection(self):
-        #
-        # Connect to the icepap
-        #
-        
-        #print "IcePap on",self.Host," and port",self.Port," with timeout = ",self.Timeout
-        if self.iPAP and self.iPAP.connected:
-            return self.iPAP
-        try:
-            self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
-            
-            if self.iPAP.connect() == 0:
-                #print "IcePAP -> Connected to", self.Host, " on port", self.Port
-                self.state=PyTango.DevState.ON
-                self.status="Device is ON"
-
-            else:
-                #print "IcePAP -> Error Connecting to IcePAP host", self.Host
-                self.state=PyTango.DevState.FAULT
-                self.status="Ethernet connection to the IcePAP failed"
-        except:
-            print "IcePAP -> Error Initializing the IcePAP, try block failed"        
-            self.state=PyTango.DevState.FAULT
-            self.status="IcePAP object could not be initialized"
-        return self.iPAP
-    
-    def getConnection(self):
-        iPAP = self.__getConnection()
-        if iPAP == None:
-            PyTango.Except.throw_exception("IcepapController_AddDevice", "Error adding axis, Icepap not available", "AddDevice()")
-        return iPAP
+        self.moveMultipleValues = []
 
     def AddDevice(self,axis):
-        #Check Axis
-
         #print "[IcepapController]",self.inst_name,": In AddDevice method for axis",axis
+        self.attributes[axis] = {}
+        self.attributes[axis]["pos_sel"] = ""
+        self.attributes[axis]["step_per_unit"] = 1  
+        ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
+        self.attributes[axis]["pulses_per_unit"] = 1
 
-        iPAP = self.getConnection()
-        if iPAP.connected==0:
-            if iPAP.connect()==0:
-                #print "New connection to IcePap ", self.Host, " on port ", self.Port, "\n"
-                self.state=PyTango.DevState.ON
-                self.status="Device is ON"
-            else:
-                #print "Could not connect to IcePap ", self.Host, "\n"
-                PyTango.Except.throw_exception("IcepapController_AddDevice", "Error adding axis, axis not available", "AddDevice()")
+        if self.iPAP.connected:
             addr = axis % 10
             cratenr = axis / 10
-            cratespresent = iPAP.getSysStatus()
+            cratespresent = self.iPAP.getSysStatus()
             cratespresent = int(cratespresent, 16)
             if ((cratespresent >> cratenr) & 1) == 1:
-                driversalive = iPAP.getRackStatus(cratenr)[1]
+                driversalive = self.iPAP.getRackStatus(cratenr)[1]
                 driversalive = int(driversalive, 16)
                 if ((driversalive >> (addr-1)) & 1) == 1:
-                    #print "[IcepapController]",self.inst_name,": Axis added"
-                    self.attributes[axis] = {}
-                    self.attributes[axis]["pos_sel"] = ""
-                    self.attributes[axis]["step_per_unit"] = 1  
-                    ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
-                    self.attributes[axis]["pulses_per_unit"] = 1
+                    print "[IcepapController]",self.inst_name,": Axis %d added"%axis
                 else:
-                    PyTango.Except.throw_exception("IcepapController_AddDevice", "Error adding axis, axis not available", "AddDevice()")
-        else:
-            addr = axis % 10
-            cratenr = axis / 10
-            cratespresent = iPAP.getSysStatus()
-            cratespresent = int(cratespresent, 16)
-            if ((cratespresent >> cratenr) & 1) == 1:
-                driversalive =  iPAP.getRackStatus(cratenr)[1]
-                driversalive = int(driversalive, 16)
-                if ((driversalive >> (addr-1)) & 1) == 1:
-                    #print "[IcepapController]",self.inst_name,": Axis added"
-                    self.attributes[axis] = {}
-                    self.attributes[axis]["pos_sel"] = ""
-                    self.attributes[axis]["step_per_unit"] = 1  
-                    ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
-                    self.attributes[axis]["pulses_per_unit"] = 1
-                else:
-                    PyTango.Except.throw_exception("IcepapController_AddDevice", "Error adding axis, axis not available", "AddDevice()")
+                    print "[IcepapController]",self.inst_name,": Axis %d not alive"%axis
+                    #PyTango.Except.throw_exception("IcepapController_AddDevice", "Error adding axis, axis not available", "AddDevice()")
 
         
     def DeleteDevice(self,axis):
@@ -135,29 +98,29 @@ class IcepapController(MotorController):
     
     def StateOne(self,axis):
         #print "PYTHON -> IcePapController/",self.inst_name,": In StateOne method for axis",axis
-        iPAP = self.__getConnection()
-        if (not iPAP == None ) and iPAP.connected:
+        if self.iPAP.connected:
             try:
-                register = iPAP.getStatus(axis)
+                register = self.iPAP.getStatus(axis)
                 if "x" in register:
                     register = int(register,16)
                 else:
                     register = int(register)
-                stat = IcepapStatus.isDisabled(register)
-                if int(stat) == 1:
-                    stat = PyTango.DevState.OFF
+                state = IcepapStatus.isDisabled(register)
+                if int(state) == 1:
+                    state = PyTango.DevState.ALARM
                 else:
-                    power = iPAP.getPower(axis)
+                    power = self.iPAP.getPower(axis)
                     power = (power == IcepapAnswers.ON)
                     if power:
-                        stat = PyTango.DevState.ON
+                        state = PyTango.DevState.ON
                     else:
-                        stat = PyTango.DevState.OFF
-                    mov = IcepapStatus.isMoving(register)
-                    if int(mov) == 1:
-                        stat = PyTango.DevState.MOVING
+                        state = PyTango.DevState.ALARM
+                    moving = IcepapStatus.isMoving(register)
+                    if int(moving) == 1:
+                        state = PyTango.DevState.MOVING
                 if self.iPAP.getMode(axis) == IcepapMode.CONFIG:
-                    stat = PyTango.DevState.OFF
+                    state = PyTango.DevState.ALARM
+
                 lower = IcepapStatus.getLimitNegative(register) 
                 upper = IcepapStatus.getLimitPositive(register) 
                 switchstate = 0
@@ -167,20 +130,17 @@ class IcepapController(MotorController):
                     switchstate = 4
                 elif int(upper) == 1:
                     switchstate = 2
-                self.state = (int(stat), switchstate)
-                return self.state
+                return (int(state),switchstate)
             except Exception,e:
                 print "[IcepapController]",self.inst_name,": ERROR in StateOne for axis",axis
                 print "[IcepapController]",self.inst_name,":",e
-                raise
-        else:
-            self.state=(int(PyTango.DevState.FAULT),0)
-            self.status="Ethernet connection to the IcePAP is dead"
-            return self.state
+
+        return (int(PyTango.DevState.ALARM),0)
 
     def PreReadAll(self):
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreReadAll method"
-        pass
+        if not self.iPAP.connected:
+            return False
 
     def PreReadOne(self,axis):
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreReadOne method for axis",axis
@@ -192,11 +152,10 @@ class IcepapController(MotorController):
 
     def ReadOne(self,axis):
         #print "PYTHON -> IcePapController/",self.inst_name,": In ReadOne method for axis",axis
-        iPAP = self.getConnection()
-        if iPAP.connected:
+        if self.iPAP.connected:
             try:
                 pos_sel = self.attributes[axis]["pos_sel"]
-                pos = float(iPAP.getPosition(axis, pos_sel))
+                pos = float(self.iPAP.getPosition(axis, pos_sel))
                 if pos_sel == "" or pos_sel == "AXIS":
                     return pos / self.attributes[axis]["step_per_unit"]
                 else:
@@ -209,39 +168,43 @@ class IcepapController(MotorController):
 
     def PreStartAll(self):
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreStartAll method"
-        pass
+        if not self.iPAP.connected:
+            return False
 
     def PreStartOne(self,axis,pos):
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreStartOne method for axis",axis," with pos",pos
-        iPAP = self.getConnection()
-        if iPAP.connected:
-            return True
-        else:
-            return -1
+        if self.iPAP.connected:
+            pos = int(pos * self.attributes[axis]["step_per_unit"])
+            try:
+                self.moveMultipleValues.append((axis,int(pos)))
+                return True
+            except Exception,e:
+                print "[IcepapController]",self.inst_name,": ERROR in PreStartOne for axis",axis,"and pos",pos
+                print "[IcepapController]",self.inst_name,":",e
+                raise
+        return False
 
     def StartOne(self,axis,pos):
         #print "PYTHON -> IcePapController/",self.inst_name,": In StartOne method for axis",axis," with pos",pos
-        iPAP = self.getConnection()
-        if iPAP.connected:
-            try:
-                pos = int(pos * self.attributes[axis]["step_per_unit"])
-                self.GOAbsolute(axis, pos)
-            except Exception,e:
-                print "[IcepapController]",self.inst_name,": ERROR in StartOne for axis",axis,"and pos",pos
-                print "[IcepapController]",self.inst_name,":",e
-                raise
+        pass
             
     def StartAll(self):
         #print "PYTHON -> IcePapController/",self.inst_name,": In StartAll method"
-        pass
+        if self.iPAP.connected:
+            try:
+                self.iPAP.moveMultiple(self.moveMultipleValues)
+                self.moveMultipleValues = []
+            except Exception,e:
+                print "[IcepapController]",self.inst_name,": ERROR in StartAll",self.moveMultipleValues
+                print "[IcepapController]",self.inst_name,":",e
+                raise
 
     def SetPar(self,axis,name,value):
         #print "[IcepapController]",self.inst_name,": In SetPar method for axis",axis," name=",name," value=",value
-        iPAP = self.getConnection()
-        if iPAP.connected:
+        if self.iPAP.connected:
             try:
                 if name.lower() == "velocity":
-                    iPAP.setSpeed(axis, value)
+                    self.iPAP.setSpeed(axis, value)
                 elif name.lower() == "base_rate":
                     pass
                 elif name.lower() == "acceleration" or name == "deceleration":
@@ -258,20 +221,28 @@ class IcepapController(MotorController):
 
     def GetPar(self,axis,name):
         #print "[IcepapController]",self.inst_name,": In GetPar method for axis",axis," name=",name
-        iPAP = self.getConnection()
-        if iPAP.connected:
+        if self.iPAP.connected:
+            register = self.iPAP.getStatus(axis)
+            if "x" in register:
+                register = int(register,16)
+            else:
+                register = int(register)
+            if IcepapStatus.isDisabled(register):
+                return None
+
             try:
                 if name.lower() == "velocity":
-                    return float(iPAP.getSpeed(axis))
+                    return float(self.iPAP.getSpeed(axis))
                 elif name.lower() == "base_rate":
-                    return float(iPAP.getCfgParameter(axis, "DEFIVEL"))
+                    #return float(self.iPAP.getCfgParameter(axis, "DEFIVEL"))
+                    return float(self.iPAP.getCfgParameter(axis, "STRTVEL"))
                 elif name.lower() == "acceleration" or name.lower() == "deceleration":
-                    return float(iPAP.getAcceleration(axis))
+                    return float(self.iPAP.getAcceleration(axis))
                 elif name.lower() == "backlash":
                     PyTango.Except.throw_exception("IcepapController_GetPar", "Error getting backlash, not implemented", "GetPar()")
                 elif name.lower() == "step_per_unit":
                     return float(self.attributes[axis]["step_per_unit"]) 
-                return 0
+                return None
             except Exception,e:
                 print "[IcepapController]",self.inst_name,": ERROR in GetPar for axis",axis,"name",name
                 print "[IcepapController]",self.inst_name,":",e
@@ -280,12 +251,11 @@ class IcepapController(MotorController):
             return -1
 
     def GetExtraAttributePar(self,axis,name):
-        iPAP = self.getConnection()
-        if iPAP.connected:
+        if self.iPAP.connected:
             name = name.lower()
             try:
                 if name == "indexer":
-                    return iPAP.getIndexerSource(axis)
+                    return self.iPAP.getIndexerSource(axis)
                 elif name == "position_register":
                     return self.attributes[axis]["pos_sel"]
                 elif name == "enableencoder_5v":
@@ -293,25 +263,84 @@ class IcepapController(MotorController):
                     return ans == IcepapAnswers.ON
                 elif name.startswith("info"):
                     name = name.upper()
-                    result = iPAP.getInfoSource(axis, name)
+                    result = self.iPAP.getInfoSource(axis, name)
                     return result
                 elif name == "poweron":
-                    ans = iPAP.getPower(axis)
+                    ans = self.iPAP.getPower(axis)
                     return ans == IcepapAnswers.ON
+                ## Fulvio requires this closed loop boolean attribute
+                elif name == "closedloop":
+                    ans = self.iPAP.getClosedLoop(axis)
+                    if ans.count("OFF") > 0:
+                        return False
+                    return True
+                ## Julio Lidon points out that this info is very useful:
+                ## ?POS : AXIS INDEXER POSERR SHFTENC TGTENC ENCIN INPOS ABSENC
+                ## ?ENC : AXIS INDEXER EXTERR SHFTENC TGTENC ENCIN INPOS ABSENC
+                elif name == "posaxis":
+                    ans = self.iPAP.getPosition(axis,"AXIS")
+                    return float(ans)
+                elif name == "posindexer":
+                    ans = self.iPAP.getPosition(axis,"INDEXER")
+                    return float(ans)
+                ##elif name == "posposerr":
+                ##    ans = self.iPAP.getPosition(axis,"POSERR")
+                ##    return ans
+                elif name == "posshftenc":
+                    ans = self.iPAP.getPosition(axis,"SHFTENC")
+                    return float(ans)
+                elif name == "postgtenc":
+                    ans = self.iPAP.getPosition(axis,"TGTENC")
+                    return float(ans)
+                elif name == "posencin":
+                    ans = self.iPAP.getPosition(axis,"ENCIN")
+                    return float(ans)
+                elif name == "posinpos":
+                    ans = self.iPAP.getPosition(axis,"INPOS")
+                    return float(ans)
+                elif name == "posabsenc":
+                    ans = self.iPAP.getPosition(axis,"ABSENC")
+                    return float(ans)
+                elif name == "encaxis":
+                    ans = self.iPAP.getEncoder(axis,"AXIS")
+                    return float(ans)
+                elif name == "encindexer":
+                    ans = self.iPAP.getEncoder(axis,"INDEXER")
+                    return float(ans)
+                ##elif name == "encexterr":
+                ##    ans = self.iPAP.getEncoder(axis,"EXTERR")
+                ##    return ans
+                elif name == "encshftenc":
+                    ans = self.iPAP.getEncoder(axis,"SHFTENC")
+                    return float(ans)
+                elif name == "enctgtenc":
+                    ans = self.iPAP.getEncoder(axis,"TGTENC")
+                    return float(ans)
+                elif name == "encencin":
+                    ans = self.iPAP.getEncoder(axis,"ENCIN")
+                    return float(ans)
+                elif name == "encinpos":
+                    ans = self.iPAP.getEncoder(axis,"INPOS")
+                    return float(ans)
+                elif name == "encabsenc":
+                    ans = self.iPAP.getEncoder(axis,"ABSENC")
+                    return float(ans)
                 ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
                 elif name == "pulses_per_unit":
                     return float(self.attributes[axis]["pulses_per_unit"])
                 else:
                     PyTango.Except.throw_exception("IcepapController_GetExtraAttributePar()r", "Error getting " + name + ", not implemented", "GetExtraAttributePar()")
             except Exception,e:
+                if name == "encshftenc" or name == "enctgtenc" or name == "posshftenc" or name == "postgtenc":
+                    #SORRY, IN SOME CASES THIS VALUES ARE NOT ACCESSIBLE
+                    return
                 print "[IcepapController]",self.inst_name,": ERROR in GetExtraAttributePar for axis",axis,"name",name
                 print "[IcepapController]",self.inst_name,":",e
                 raise
 
     def SetExtraAttributePar(self,axis,name,value):
         #print "PYTHON -> IcePapController/",self.inst_name,": In SetExtraAttributePar method for axis",axis," name=",name," value=",value
-        iPAP = self.getConnection()
-        if iPAP.connected:
+        if self.iPAP.connected:
             name = name.lower()
             try:
                 if name == "indexer":
@@ -326,14 +355,20 @@ class IcepapController(MotorController):
                         PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()", "Error setting " + name + ", wrong value", "SetExtraAttributePar()")                
                 elif name == "enableencoder_5v":
                     if value:
-                        iPAP.setAuxPS(axis, IcepapAnswers.ON)
+                        self.iPAP.setAuxPS(axis, IcepapAnswers.ON)
                     else:
-                        iPAP.setAuxPS(axis, IcepapAnswers.OFF)
+                        self.iPAP.setAuxPS(axis, IcepapAnswers.OFF)
                 elif name == "poweron":
                     if value:
-                        iPAP.setPower(axis, IcepapAnswers.ON)
+                        self.iPAP.setPower(axis, IcepapAnswers.ON)
                     else:
-                        iPAP.setPower(axis, IcepapAnswers.OFF)
+                        self.iPAP.setPower(axis, IcepapAnswers.OFF)
+                ## Fulvio requires this closed loop boolean attribute
+                elif name == "closedloop":
+                    if value:
+                        self.iPAP.setClosedLoop(axis,"TGTENC")
+                    else:
+                        self.iPAP.setClosedLoop(axis,"OFF")
                 ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
                 elif name == "pulses_per_unit":
                     self.attributes[axis]["pulses_per_unit"] = float(value)
@@ -351,7 +386,7 @@ class IcepapController(MotorController):
                             PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar(r", "Error setting " + name + ", [Source = ("+str(IcepapInfo.Sources) + "), Polarity= ("+str(IcepapInfo.Polarity)+")]", "SetExtraAttributePar()")
                     
                     
-                    iPAP.setInfoSource(axis, name, src, polarity)                            
+                    self.iPAP.setInfoSource(axis, name, src, polarity)                            
                 else:
                     PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()r", "Error setting " + name + ", not implemented", "SetExtraAttributePar()")
             except Exception,e:
@@ -362,51 +397,44 @@ class IcepapController(MotorController):
 
     def AbortOne(self,axis):
         #print "IcePAP-->before abortone"
-        iPAP = self.getConnection()
-        if iPAP.connected:
-            iPAP.abortMotor(axis)
+        if self.iPAP.connected:
+            self.iPAP.abortMotor(axis)
             time.sleep(0.050)
             #print "IcePAP-->Abort"
 
     def StopOne(self,axis):
-        iPAP = self.getConnection()
-        if iPAP.connected:
-            iPAP.stopMotor(axis)
+        if self.iPAP.connected:
+            self.iPAP.stopMotor(axis)
             #print "IcePAP-->Stop"
 
 
     def DefinePosition(self, axis, position):
         #print "IcePAP-->Set Position %d in axis %d" % (axis, position)
-        iPAP = self.getConnection()
-        if iPAP.connected:
+        if self.iPAP.connected:
             position = int(position * self.attributes[axis]["step_per_unit"])
-            iPAP.setPosition(axis, position, self.attributes[axis]["pos_sel"])
+            self.iPAP.setPosition(axis, position, self.attributes[axis]["pos_sel"])
 
     def GOAbsolute(self, axis, finalpos):
-        iPAP = self.getConnection()
-        if iPAP.connected:
-            ret = iPAP.move(axis, finalpos)
+        if self.iPAP.connected:
+            ret = self.iPAP.move(axis, finalpos)
 
     def SendToCtrl(self,cmd):
         #print "IcePAP-->SendToCtrl with data '%s'" % cmd
         # determine if the command has an answer
-        iPAP = self.getConnection()
-        if iPAP.connected:
+        if self.iPAP.connected:
             cmd = cmd.upper()
             if cmd.find("?") >= 0 or cmd.find("#")>= 0:
                 res = self.iPAP.sendWriteReadCommand(cmd)
             elif cmd.find("HELP")>=0:
-                res = iPAP.sendWriteReadCommand(cmd)
+                res = self.iPAP.sendWriteReadCommand(cmd)
             else:
-                res = iPAP.sendWriteCommand(cmd)
+                res = self.iPAP.sendWriteCommand(cmd)
             return res 
 
     def __del__(self):
         #print "[IcepapController]",self.inst_name,": Exiting"
-        iPAP = self.getConnection()
-        if iPAP.connected:
-            iPAP.disconnect()
-            iPAP.connected=0
+        if self.iPAP.connected:
+            self.iPAP.disconnect()
         
         
 if __name__ == "__main__":
