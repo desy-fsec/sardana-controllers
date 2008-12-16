@@ -100,26 +100,27 @@ class IcepapController(MotorController):
         #print "PYTHON -> IcePapController/",self.inst_name,": In StateOne method for axis",axis
         if self.iPAP.connected:
             try:
+                state = PyTango.DevState.UNKNOWN
                 register = self.iPAP.getStatus(axis)
                 if "x" in register:
                     register = int(register,16)
                 else:
                     register = int(register)
-                state = IcepapStatus.isDisabled(register)
-                if int(state) == 1:
-                    state = PyTango.DevState.ALARM
+                statereg = IcepapStatus.isDisabled(register)
+                if int(statereg) == 1:
+                    state = PyTango.DevState.OFF
                 else:
                     power = self.iPAP.getPower(axis)
                     power = (power == IcepapAnswers.ON)
                     if power:
                         state = PyTango.DevState.ON
                     else:
-                        state = PyTango.DevState.ALARM
+                        state = PyTango.DevState.OFF
                     moving = IcepapStatus.isMoving(register)
                     if int(moving) == 1:
                         state = PyTango.DevState.MOVING
                 if self.iPAP.getMode(axis) == IcepapMode.CONFIG:
-                    state = PyTango.DevState.ALARM
+                    state = PyTango.DevState.OFF
 
                 lower = IcepapStatus.getLimitNegative(register) 
                 upper = IcepapStatus.getLimitPositive(register) 
@@ -130,12 +131,14 @@ class IcepapController(MotorController):
                     switchstate = 4
                 elif int(upper) == 1:
                     switchstate = 2
+                if switchstate != 0:
+                    state = PyTango.DevState.ALARM
                 return (int(state),switchstate)
             except Exception,e:
                 print "[IcepapController]",self.inst_name,": ERROR in StateOne for axis",axis
                 print "[IcepapController]",self.inst_name,":",e
 
-        return (int(PyTango.DevState.ALARM),0)
+        return (int(PyTango.DevState.OFF),0)
 
     def PreReadAll(self):
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreReadAll method"
