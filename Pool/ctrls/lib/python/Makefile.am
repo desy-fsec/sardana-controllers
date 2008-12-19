@@ -9,4 +9,7 @@ install-data-local:
 	rsync $(RSYNC_OPTS) $(srcdir)/motor/* $(pythondir)
 	rsync $(RSYNC_OPTS) $(srcdir)/pseudomotor/* $(pythondir)
 	rsync $(RSYNC_OPTS) $(srcdir)/pseudocounter/* $(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/ioregister/* $(pythondir)
 	rsync $(RSYNC_OPTS) $(srcdir)/zerod/* $(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/oned/* $(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/twod/* $(pythondir)		

@@ -205,17 +205,15 @@ AC_CONFIG_FILES([Makefile
                  lib/Makefile
                  lib/cpp/Makefile
                  lib/cpp/communication/Makefile
-                 lib/cpp/communication/echo/Makefile
                  lib/cpp/communication/fake/Makefile
                  lib/cpp/communication/serial/Makefile
                  lib/cpp/countertimer/Makefile
                  lib/cpp/countertimer/c208/Makefile
                  lib/cpp/countertimer/NI6602/Makefile
-                 lib/cpp/countertimer/uxtimer/Makefile
-		 lib/cpp/countertimer/DGG2/Makefile
+                 lib/cpp/countertimer/DGG2/Makefile
                  lib/cpp/motor/Makefile
                  lib/cpp/motor/simulator/Makefile
-		 lib/cpp/motor/OmsVme58/Makefile
+                 lib/cpp/motor/OmsVme58/Makefile
                  lib/cpp/pseudocounter/Makefile
                  lib/cpp/pseudocounter/current/Makefile
                  lib/cpp/pseudomotor/Makefile
@@ -223,15 +221,14 @@ AC_CONFIG_FILES([Makefile
                  lib/cpp/pseudomotor/slit/Makefile
                  lib/cpp/zerod/Makefile
                  lib/cpp/zerod/simulator/Makefile
-		 lib/cpp/zerod/IK220/Makefile
-		 lib/cpp/zerod/TIP830u20/Makefile
+                 lib/cpp/zerod/IK220/Makefile
+                 lib/cpp/zerod/TIP830u20/Makefile
                  lib/cpp/oned/Makefile
                  lib/cpp/oned/MCA8715/Makefile
-		 lib/cpp/ioregister/Makefile
-		 lib/cpp/ioregister/fake/Makefile
-		 lib/cpp/ioregister/SIS3610/Makefile
-         lib/cpp/twod/Makefile
-         lib/cpp/twod/CCDPVCAM/Makefile
+                 lib/cpp/ioregister/Makefile
+                 lib/cpp/ioregister/SIS3610/Makefile
+                 lib/cpp/twod/Makefile
+                 lib/cpp/twod/CCDPVCAM/Makefile
                  lib/python/Makefile])
 
 AC_OUTPUT

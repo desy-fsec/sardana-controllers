@@ -26,16 +26,16 @@ class SimuMotorController(MotorController):
 
     MaxDevice = 1024
     
-    def _getMotorCtrl(self):
-        if not self._dp:
-            self._dp = pool.PoolUtil().get_device(self.inst_name, self.DevName)
-        return self._dp
-    
     def __init__(self, inst, props):
         MotorController.__init__(self, inst, props)
         self.m = {}
         self._dp = None
         self._mvBuff = None
+
+    def _getMotorCtrl(self):
+        if not self._dp:
+            self._dp = pool.PoolUtil().get_device(self.inst_name, self.DevName)
+        return self._dp
 
     def AddDevice(self,axis):
         if axis > self.MaxDevice:
@@ -54,7 +54,11 @@ class SimuMotorController(MotorController):
             
     def StateAll(self):
         for m in self.m.values():
-            m.state, m.switchstate = self._getMotorCtrl().command_inout("GetAxeStatus",m.axis)
+            try:
+                self._getMotorCtrl().ping()
+                m.state, m.switchstate = self._getMotorCtrl().command_inout("GetAxeStatus",m.axis)
+            except:
+                m.state, m.switchstate = PyTango.DevState.OFF, 0
             
     def StateOne(self,axis):
         m = self.m[axis]
