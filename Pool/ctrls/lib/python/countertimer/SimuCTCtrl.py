@@ -1,16 +1,20 @@
 import PyTango
+import pool
 from pool import CounterTimerController
 import time
 import datetime
 import sys
 
+class Counter:
+    def __init__(self, axis):
+        self.axis = axis
+        self.value = None
+        self.state = None
+        self.status = None
+
 class SimuCoTiController(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SimuCoTiCtrl tango device"
-
-    ctrl_extra_attributes = {'PyCT_extra_1':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-                 'PyCT_extra_2':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
-                 'PyCT_extra_3':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
-                 
+              
     class_prop = {'DevName':{'Type':'PyTango.DevString','Description':'The ctrl simulator Tango device name'}}
                  
     gender = "Simulation"
@@ -22,109 +26,83 @@ class SimuCoTiController(CounterTimerController):
                      
     MaxDevice = 1024
 
-    def __init__(self,inst,props):
-        CounterTimerController.__init__(self,inst,props)
+    def __init__(self, inst, props):
+        CounterTimerController.__init__(self, inst, props)
 
-        self.simu_ctrl = None
-        self.simu_ctrl = PyTango.DeviceProxy(self.DevName)
-        self.started = False
+        self._counters = {}
+        self._dp = None
+        self._started = False
 
-        self.dft_PyCT_extra_1 = 88.99
-        self.dft_PyCT_extra_2 = 33
-        self.dft_PyCT_extra_3 = True
+    def _getCTCtrl(self):
+        if not self._dp:
+            self._dp = pool.PoolUtil().get_device(self.inst_name, self.DevName)
+        return self._dp
 
-        self.PyCT_extra_1 = []
-        self.PyCT_extra_2 = []
-        self.PyCT_extra_3 = []
-
-        try:
-            self.simu_ctrl.ping()
-        except:
-            self.simu_ctrl = None
-            raise
-
-    def AddDevice(self, ind):
-        self.PyCT_extra_1.append(self.dft_PyCT_extra_1)
-        self.PyCT_extra_2.append(self.dft_PyCT_extra_2)
-        self.PyCT_extra_3.append(self.dft_PyCT_extra_3)
+    def AddDevice(self, axis):
+        if axis > self.MaxDevice:
+            raise Exception("Invalid axis %d" % axis)
+        self._counters[axis] = Counter(axis)
+            
+    def DeleteDevice(self, axis):
+        if not self._counters.has_key(axis):
+            raise Exception("Invalid axis %d" % axis)
+        del self._counters[axis]
         
-    def DeleteDevice(self,ind):
-        pass
-        
-    def StateOne(self,ind):
-        if self.simu_ctrl != None:
-            if self.started == True:
-                now = time.time()
-                delta_t = now - self.start_time
-                if delta_t > 4.0:
-                    for index in self.wantedCT:
-                        self.simu_ctrl.command_inout("Stop",index)
-                    self.started = False
-            sta = self.simu_ctrl.command_inout("GetCounterState",ind)
-            #print "State in controller =",sta
-            tup = (sta,"OK")
-        else:
-            raise RuntimeError,"Ctrl Tango's proxy null!!!"
-        return tup
+    def PreStateAll(self):
+        for c in self._counters.values():
+            c.state, c.switchstate = None, None
+            
+    def StateAll(self):
+        for c in self._counters.values():
+            try:
+                self._getCTCtrl().ping()
+                c.state, c.status = self._getCTCtrl().command_inout("GetCounterState",c.axis), "OK"
+            except:
+                c.state, c.status = PyTango.DevState.OFF, "Offline"
+            
+    def StateOne(self, axis):
+        c = self._counters[axis]
+        return (int(c.state), c.status)
 
     def PreReadAll(self):
         pass
         
-    def PreReadOne(self,ind):
+    def PreReadOne(self, axis):
         pass
 
     def ReadAll(self):
         pass
 
-    def ReadOne(self,ind):
-        if self.simu_ctrl != None:
-            return self.simu_ctrl.command_inout("GetCounterValue",ind)
-        else:
-            raise RuntimeError("Ctrl Tango's proxy null!!!")
+    def ReadOne(self, axis):
+        return self._getCTCtrl().command_inout("GetCounterValue", axis)
     
-    def AbortOne(self,ind):
-        if self.simu_ctrl != None:
-            self.simu_ctrl.command_inout("Stop",ind)
-            self.started = False
-        else:
-            raise RuntimeError("Ctrl Tango's proxy null!!!")
+    def AbortOne(self, axis):
+        self._getCTCtrl().command_inout("Stop", axis);
+        self._started = False
         
     def PreStartAllCT(self):
-        self.wantedCT = []
+        self._wantedCT = []
     
-    def StartOneCT(self,ind):
-        self.wantedCT.append(ind)
+    def StartOneCT(self, axis):
+        self._wantedCT.append(axis)
     
     def StartAllCT(self):
-        for index in self.wantedCT:
-            self.simu_ctrl.command_inout("Start",index)
-        self.started = True
-        self.start_time = time.time()
+        for axis in self._wantedCT:
+            self._getCTCtrl().command_inout("Start", axis)
+        self._started = True
+        self._start_time = time.time()
                  
-    def LoadOne(self,ind,value):
-        if self.simu_ctrl != None:
-            self.simu_ctrl.command_inout("Clear",ind)
-        else:
-            raise RuntimeError("Ctrl Tango's proxy null!!!")
+    def LoadOne(self, axis, value):
+        self._getCTCtrl().command_inout("Clear", axis)
     
-    def GetExtraAttributePar(self,ind,name):
-        if name == "PyCT_extra_1":
-            return self.PyCT_extra_1[ind]
-        if name == "PyCT_extra_2":
-            return self.PyCT_extra_2[ind]
-        return self.PyCT_extra_3[ind]
+    def GetExtraAttributePar(self, axis, name):
+        pass
 
     def SetExtraAttributePar(self,ind,name,value):
-        if name == "PyCT_extra_1":
-            self.PyCT_extra_1[ind] = value
-        elif name == "PyCT_extra_2":
-            self.PyCT_extra_2[ind] = value
-        else:
-            self.PyCT_extra_3[ind] = value
+        pass
         
     def SendToCtrl(self,in_data):
         return "Adios"
-
 
         
 if __name__ == "__main__":
