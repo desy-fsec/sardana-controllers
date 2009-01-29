@@ -81,7 +81,7 @@ ScanServer::~ScanServer()
 //
 //-----------------------------------------------------------------------------
 
-void ScanServer::AddDevice(long idx)
+void ScanServer::AddDevice(int32_t idx)
 {
         //cout << "[ScanServer] Creating a new IORegister with index " << idx << " on controller ScanServer/" << inst_name << endl;
 }
@@ -96,7 +96,7 @@ void ScanServer::AddDevice(long idx)
 //
 //-----------------------------------------------------------------------------
 
-void ScanServer::DeleteDevice(long idx)
+void ScanServer::DeleteDevice(int32_t idx)
 {
         //cout << "[ScanServer] Deleting IORegister with index " << idx << " on controller ScanServer/" << inst_name << endl;
 }
@@ -104,14 +104,14 @@ void ScanServer::DeleteDevice(long idx)
 
 
 
-long ScanServer::ReadOne(long idx)
+int32_t ScanServer::ReadOne(int32_t idx)
 {
 	return 1;
 }
 
 
 
-void ScanServer::WriteOne(long idx, long write_value)
+void ScanServer::WriteOne(int32_t idx, int32_t write_value)
 {
 
 }
@@ -130,7 +130,7 @@ void ScanServer::WriteOne(long idx, long write_value)
 //
 //-----------------------------------------------------------------------------
 
-void ScanServer::StateOne(long idx,Controller::CtrlState *ior_info_ptr)
+void ScanServer::StateOne(int32_t idx,Controller::CtrlState *ior_info_ptr)
 {
 	Tango::DevState state_tmp;
 	

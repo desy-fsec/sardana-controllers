@@ -36,14 +36,14 @@ public:
 	 * 
 	 * @param idx the device index to be added (starts with 1).
 	 */
-	virtual void AddDevice(long idx);
+	virtual void AddDevice(int32_t idx);
 	
 	/**
 	 * @brief removes a device in the controller given by the index.
 	 * 
 	 * @param idx the device index to be removed (starts with 1).
 	 */
-	virtual void DeleteDevice(long idx);
+	virtual void DeleteDevice(int32_t idx);
 	//@}
 	
 
@@ -55,7 +55,7 @@ public:
      * return the readout value
 	 */
 
-	virtual long ReadOne(long); 
+	virtual int32_t ReadOne(int32_t); 
 	
 		
 	/**
@@ -64,7 +64,7 @@ public:
      * @param data  - write value
 	 *
 	 */
-	virtual void WriteOne(long, long); 
+	virtual void WriteOne(int32_t, int32_t); 
 	
 
 	/**
@@ -79,8 +79,7 @@ public:
 	 * @param ctrl_state [out] pointer to the state object that will contain the
 	 *                         controller state.  
 	 */	
-	virtual void StateOne(long, Controller::CtrlState *);
-	//@}
+	virtual void StateOne(int32_t, Controller::CtrlState *);
 
 	/**
 	 * @brief Sends the given string to the controller.
@@ -90,8 +89,9 @@ public:
 	 * @return a string with the controller response.
 	 */
 	virtual string SendToCtrl(string &);
+	
 	string ToString(double);
-    double ToDouble(string);
+        double ToDouble(string);
 					
 protected:
 
