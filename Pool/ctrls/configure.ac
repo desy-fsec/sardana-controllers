@@ -227,6 +227,7 @@ AC_CONFIG_FILES([Makefile
                  lib/cpp/oned/MCA8715/Makefile
                  lib/cpp/ioregister/Makefile
                  lib/cpp/ioregister/SIS3610/Makefile
+                 lib/cpp/ioregister/ScanServer/Makefile
                  lib/cpp/twod/Makefile
                  lib/cpp/twod/CCDPVCAM/Makefile
                  lib/python/Makefile])
