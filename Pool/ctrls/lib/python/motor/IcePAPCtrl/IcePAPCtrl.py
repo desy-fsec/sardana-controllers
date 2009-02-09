@@ -64,7 +64,6 @@ class IcepapController(MotorController):
         
         
         self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
-        self.iPAP.connect()
         self.attributes = {}
         self.moveMultipleValues = []
 
@@ -108,19 +107,19 @@ class IcepapController(MotorController):
                     register = int(register)
                 statereg = IcepapStatus.isDisabled(register)
                 if int(statereg) == 1:
-                    state = PyTango.DevState.OFF
+                    state = PyTango.DevState.ALARM
                 else:
                     power = self.iPAP.getPower(axis)
                     power = (power == IcepapAnswers.ON)
                     if power:
                         state = PyTango.DevState.ON
                     else:
-                        state = PyTango.DevState.OFF
+                        state = PyTango.DevState.ALARM
                     moving = IcepapStatus.isMoving(register)
                     if int(moving) == 1:
                         state = PyTango.DevState.MOVING
                 if self.iPAP.getMode(axis) == IcepapMode.CONFIG:
-                    state = PyTango.DevState.OFF
+                    state = PyTango.DevState.ALARM
 
                 lower = IcepapStatus.getLimitNegative(register) 
                 upper = IcepapStatus.getLimitPositive(register) 
@@ -138,7 +137,7 @@ class IcepapController(MotorController):
                 print "[IcepapController]",self.inst_name,": ERROR in StateOne for axis",axis
                 print "[IcepapController]",self.inst_name,":",e
 
-        return (int(PyTango.DevState.OFF),0)
+        return (int(PyTango.DevState.ALARM),0)
 
     def PreReadAll(self):
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreReadAll method"
