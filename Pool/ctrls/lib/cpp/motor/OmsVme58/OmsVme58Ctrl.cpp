@@ -636,10 +636,8 @@ Controller::CtrlData OmsVme58Ctrl::GetExtraAttributePar(int32_t idx,string &par_
     }
 	else if ( ( par_name == "Calibrate") || ( par_name == "UserCalibrate"))
 	{
-		TangoSys_OMemStream o;
-		o << "Extra attribute " << par_name << " in controller OmsVme58Ctrl/" << get_name() << " can be only written " << ends;
-		Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"OmsVme58Ctrl::GetExtraAttributePar()");
+		par_value.lo_data = 0;
+		par_value.data_type = Controller::DOUBLE;
 	}
 	else
 	{
