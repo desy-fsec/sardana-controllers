@@ -636,7 +636,7 @@ Controller::CtrlData OmsVme58Ctrl::GetExtraAttributePar(int32_t idx,string &par_
     }
 	else if ( ( par_name == "Calibrate") || ( par_name == "UserCalibrate"))
 	{
-		par_value.lo_data = 0;
+		par_value.db_data = 0;
 		par_value.data_type = Controller::DOUBLE;
 	}
 	else
