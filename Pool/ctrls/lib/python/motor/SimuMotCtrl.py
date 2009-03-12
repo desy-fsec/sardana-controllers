@@ -1,4 +1,5 @@
 import pool
+import PyTango
 from pool import MotorController
 
 class Motor:
