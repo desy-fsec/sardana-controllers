@@ -3,9 +3,6 @@ from pool import ZeroDController
 import pool
 
 class Channel0D:
-    dft_Py0D_extra_1 = 88.99
-    dft_Py0D_extra_2 = 33
-    dft_Py0D_extra_3 = True    
     
     def __init__(self, axis):
         self.axis = axis
@@ -15,20 +12,12 @@ class Channel0D:
         self.attr_name = None
         self.dev = None
         self.value = None
-        self.Py0D_extra_1 = Channel0D.dft_Py0D_extra_1
-        self.Py0D_extra_2 = Channel0D.dft_Py0D_extra_2
-        self.Py0D_extra_3 = Channel0D.dft_Py0D_extra_3
 
 class Simu0DController(ZeroDController):
     "A simulation 0D controller. It connects to a PySignalSimulator device."
     
     class_prop = { 
         'AttributeNames' : {'Type':'PyTango.DevVarStringArray','Description':'the attribute names (full tango names). One for each channel)'}}
-
-    ctrl_extra_attributes = {
-        'Py0D_extra_1' : {'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-        'Py0D_extra_2' : {'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
-        'Py0D_extra_3' : {'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
 
     gender = "Simulation"
     model  = "Best"
