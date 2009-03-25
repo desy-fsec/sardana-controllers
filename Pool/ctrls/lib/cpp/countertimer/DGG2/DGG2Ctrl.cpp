@@ -59,7 +59,6 @@ nb_ms(0),stop_time_ms(0),remain_ms(0),start_th(0)
     }
   catch (Tango::DevFailed &e)
     {
-      delete dgg2timer_ctrl;
       throw;
     }
 }
@@ -73,9 +72,6 @@ nb_ms(0),stop_time_ms(0),remain_ms(0),start_th(0)
 
 DGG2::~DGG2()
 {
-  //cout << "[DGG2] class dtor" << endl;
-  if(dgg2timer_ctrl != NULL)
-    delete dgg2timer_ctrl;
 }
 
 //-----------------------------------------------------------------------------

@@ -54,7 +54,6 @@ IK220Ctrl::IK220Ctrl(const char *inst,vector<Controller::Properties> &prop):Zero
 	}
 	catch (Tango::DevFailed &e)
 	{
-		delete encoder_ctrl;
 		throw;
 	}
 	
@@ -70,9 +69,6 @@ IK220Ctrl::IK220Ctrl(const char *inst,vector<Controller::Properties> &prop):Zero
 
 IK220Ctrl::~IK220Ctrl()
 {
-	//cout << "[IK220Ctrl] class dtor" << endl;
-	if (encoder_ctrl != NULL)
-		delete encoder_ctrl;
 }
 
 //-----------------------------------------------------------------------------

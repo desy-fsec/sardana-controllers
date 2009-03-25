@@ -53,7 +53,6 @@ IORegisterController(inst)
     }
 	catch (Tango::DevFailed &e)
     {
-		delete sis3610_ctrl;
 		throw;
     }
 	
@@ -69,9 +68,6 @@ IORegisterController(inst)
 
 SIS3610::~SIS3610()
 {
-	//cout << "[SIS3610] class dtor" << endl;
-	if(sis3610_ctrl != NULL)
-		delete sis3610_ctrl;
 }
 
 //-----------------------------------------------------------------------------

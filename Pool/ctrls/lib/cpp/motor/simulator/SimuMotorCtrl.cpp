@@ -54,7 +54,6 @@ SimuMotorController::SimuMotorController(const char *inst,vector<Controller::Pro
 	}
 	catch (Tango::DevFailed &e)
 	{
-		delete simu_ctrl;
 		throw;
 	}
 }
@@ -69,9 +68,6 @@ SimuMotorController::SimuMotorController(const char *inst,vector<Controller::Pro
 
 SimuMotorController::~SimuMotorController()
 {
-	//cout << "[SimuMotorController] class dtor" << endl;
-	//if (simu_ctrl != NULL)
-	//	delete simu_ctrl;
 }
 
 //-----------------------------------------------------------------------------

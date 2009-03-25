@@ -116,7 +116,6 @@ void Diffrac::init(const char *inst,vector<Controller::Properties> &prop)
 					}
 					catch (Tango::DevFailed &e)
 					{
-						delete diffrac_device;
 						throw;
 					}
 				}

@@ -51,7 +51,6 @@ OneDController(inst)
     }
 	catch (Tango::DevFailed &e)
     {
-		delete mca8715_ctrl;
 		throw;
     }
 	
@@ -67,9 +66,6 @@ OneDController(inst)
 
 MCA8715::~MCA8715()
 {
-	//cout << "[MCA8715] class dtor" << endl;
-	if(mca8715_ctrl != NULL)
-		delete mca8715_ctrl;
 }
 
 //-----------------------------------------------------------------------------

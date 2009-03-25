@@ -51,7 +51,6 @@ TwoDController(inst)
     }
 	catch (Tango::DevFailed &e)
     {
-		delete ccdpvcam_ctrl;
 		throw;
     }
 	
@@ -67,9 +66,6 @@ TwoDController(inst)
 
 CCDPVCAM::~CCDPVCAM()
 {
-	//cout << "[CCDPVCAM] class dtor" << endl;
-	if(ccdpvcam_ctrl != NULL)
-		delete ccdpvcam_ctrl;
 }
 
 //-----------------------------------------------------------------------------

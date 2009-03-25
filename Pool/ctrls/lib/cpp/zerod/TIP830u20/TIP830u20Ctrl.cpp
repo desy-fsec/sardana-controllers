@@ -54,7 +54,6 @@ TIP830u20Ctrl::TIP830u20Ctrl(const char *inst,vector<Controller::Properties> &pr
     }
   catch (Tango::DevFailed &e)
     {
-      delete adc_ctrl;
       throw;
     }
 	
@@ -70,9 +69,6 @@ TIP830u20Ctrl::TIP830u20Ctrl(const char *inst,vector<Controller::Properties> &pr
 
 TIP830u20Ctrl::~TIP830u20Ctrl()
 {
-  //cout << "[TIP830u20Ctrl] class dtor" << endl;
-  if (adc_ctrl != NULL)
-    delete adc_ctrl;
 }
 
 //-----------------------------------------------------------------------------

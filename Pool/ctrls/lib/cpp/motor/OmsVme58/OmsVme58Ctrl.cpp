@@ -54,7 +54,6 @@ OmsVme58Ctrl::OmsVme58Ctrl(const char *inst,vector<Controller::Properties> &prop
     }
   catch (Tango::DevFailed &e)
     {
-      delete simu_ctrl;
       throw;
     }
 }
