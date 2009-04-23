@@ -6,14 +6,19 @@ from pyIcePAP import *
 import time
 
 class IcepapController(MotorController):
-    "This class is the Tango Sardana motor controller for the ICEPAP with properties"
+    """This class is the Tango Sardana motor controller for the ICEPAP motor controller.
+    Appart from the standard Pool motor interface per axis, it provides extra attributes for some
+    firmware attributes of the driver.
+    """
 
     #ctrl_features = ['Encoder','Home_speed','Home_acceleration']
 
+    ## The properties used to connect to the ICEPAP motor controller
     class_prop = {'Host':{'Type':'PyTango.DevString','Description':'The host name'},
                  'Port':{'Type':'PyTango.DevLong','Description':'The port number','DefaultValue':5000},
                   'Timeout':{'Type':'PyTango.DevLong','Description':'Connection timeout','DefaultValue':3}}
 
+    ## The axis extra attributes that correspond to extra features from the Icepap drivers
     ctrl_extra_attributes = {'Indexer':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
                              'Position_Register':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
                              'PowerOn':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
@@ -49,7 +54,7 @@ class IcepapController(MotorController):
     
     gender = "Motor"
     model = "Icepap"
-    organization = "Esrf Alba"
+    organization = "ALBA"
     image = "icepaphw.png"
     logo = "icepap.png"
     icon = "icepapicon.png"
@@ -59,15 +64,20 @@ class IcepapController(MotorController):
     MaxDevice = 128
     
     def __init__(self,inst,props):
-        
+        """ Do the default init plus the icepap connection
+        @param inst instance name of the controller
+        @param properties of the controller
+        """
         MotorController.__init__(self,inst,props)
-        
         
         self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
         self.attributes = {}
         self.moveMultipleValues = []
 
     def AddDevice(self,axis):
+        """ Set default values for the axis and try to connect to it
+        @param axis to be added
+        """
         #print "[IcepapController]",self.inst_name,": In AddDevice method for axis",axis
         self.attributes[axis] = {}
         self.attributes[axis]["pos_sel"] = ""
@@ -75,6 +85,7 @@ class IcepapController(MotorController):
         ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
         self.attributes[axis]["pulses_per_unit"] = 1
 
+        # THIS CODE WILL BE REPLACED WHEN THE pyIcePAP library provide a better way to check if one axis is alive
         if self.iPAP.connected:
             addr = axis % 10
             cratenr = axis / 10
@@ -88,14 +99,21 @@ class IcepapController(MotorController):
                 else:
                     print "[IcepapController]",self.inst_name,": Axis %d not alive"%axis
                     #PyTango.Except.throw_exception("IcepapController_AddDevice", "Error adding axis, axis not available", "AddDevice()")
+        else:
+            print "IcepapController]",self.inst_name,": Could not connect to the Icepap",self.Host,"system."
 
         
     def DeleteDevice(self,axis):
+        """ Nothing special to do. """
         pass
         #print "[IcepapController]",self.inst_name,": In DeleteDevice method for axis",axis
     
     
     def StateOne(self,axis):
+        """ Connect to the hardware and check the state. If no connection available, return ALARM.
+        @param axis to read the state
+        @return the state value: {ALARM|ON|MOVING}
+        """
         #print "PYTHON -> IcePapController/",self.inst_name,": In StateOne method for axis",axis
         if self.iPAP.connected:
             try:
@@ -140,6 +158,7 @@ class IcepapController(MotorController):
         return (int(PyTango.DevState.ALARM),0)
 
     def PreReadAll(self):
+        """ If there is no connection, to the Icepap system, return False"""
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreReadAll method"
         if not self.iPAP.connected:
             return False
@@ -149,10 +168,15 @@ class IcepapController(MotorController):
         pass
 
     def ReadAll(self):
+        """ We connect to the Icepap system for each axis. """
         #print "PYTHON -> IcePapController/",self.inst_name,": In ReadAll method"
         pass
 
     def ReadOne(self,axis):
+        """ Depending on which is the position register selected (pos_sel) return one or another value.
+        @param axis to read the position
+        @return the current axis position
+        """
         #print "PYTHON -> IcePapController/",self.inst_name,": In ReadOne method for axis",axis
         if self.iPAP.connected:
             try:
@@ -164,16 +188,21 @@ class IcepapController(MotorController):
                     ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
                     return  pos / self.attributes[axis]["pulses_per_unit"]
             except Exception,e:
-                print "[IcepapController]",self.inst_name,": ERROR in ReadOne for axis",axis
                 print "[IcepapController]",self.inst_name,":",e
+                print "[IcepapController]",self.inst_name,": ERROR in ReadOne for axis",axis
                 raise
 
     def PreStartAll(self):
+        """ If there is no connection, to the Icepap system, return False"""
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreStartAll method"
         if not self.iPAP.connected:
             return False
 
     def PreStartOne(self,axis,pos):
+        """ Store all positions in a variable and then react on the StartAll method.
+        @param axis to start
+        @param pos to move to
+        """
         #print "PYTHON -> IcePapController/",self.inst_name,": In PreStartOne method for axis",axis," with pos",pos
         if self.iPAP.connected:
             pos = int(pos * self.attributes[axis]["step_per_unit"])
@@ -184,13 +213,13 @@ class IcepapController(MotorController):
                 print "[IcepapController]",self.inst_name,": ERROR in PreStartOne for axis",axis,"and pos",pos
                 print "[IcepapController]",self.inst_name,":",e
                 raise
-        return False
 
     def StartOne(self,axis,pos):
         #print "PYTHON -> IcePapController/",self.inst_name,": In StartOne method for axis",axis," with pos",pos
         pass
             
     def StartAll(self):
+        """ Move all axis at all position with just one command to the Icepap Controller. """
         #print "PYTHON -> IcePapController/",self.inst_name,": In StartAll method"
         if self.iPAP.connected:
             try:
@@ -202,6 +231,11 @@ class IcepapController(MotorController):
                 raise
 
     def SetPar(self,axis,name,value):
+        """ Set the standard pool motor parameters.
+        @param axis to set the parameter
+        @param name of the parameter
+        @param value to be set
+        """
         #print "[IcepapController]",self.inst_name,": In SetPar method for axis",axis," name=",name," value=",value
         if self.iPAP.connected:
             try:
@@ -222,6 +256,11 @@ class IcepapController(MotorController):
         
 
     def GetPar(self,axis,name):
+        """ Get the standard pool motor parameters.
+        @param axis to get the parameter
+        @param name of the parameter to get the value
+        @return the value of the parameter
+        """
         #print "[IcepapController]",self.inst_name,": In GetPar method for axis",axis," name=",name
         if self.iPAP.connected:
             register = self.iPAP.getStatus(axis)
@@ -253,6 +292,11 @@ class IcepapController(MotorController):
             return -1
 
     def GetExtraAttributePar(self,axis,name):
+        """ Get Icepap driver particular parameters.
+        @param axis to get the parameter
+        @param name of the parameter to retrive
+        @return the value of the parameter
+        """
         if self.iPAP.connected:
             name = name.lower()
             try:
@@ -341,6 +385,11 @@ class IcepapController(MotorController):
                 raise
 
     def SetExtraAttributePar(self,axis,name,value):
+        """ Set Icepap driver particular parameters.
+        @param axis to set the parameter
+        @param name of the parameter
+        @param value to be set
+        """
         #print "PYTHON -> IcePapController/",self.inst_name,": In SetExtraAttributePar method for axis",axis," name=",name," value=",value
         if self.iPAP.connected:
             name = name.lower()
@@ -421,6 +470,10 @@ class IcepapController(MotorController):
             ret = self.iPAP.move(axis, finalpos)
 
     def SendToCtrl(self,cmd):
+        """ Send the icepap native commands.
+        @param command to send to the Icepap controller
+        @return the result received
+        """
         #print "IcePAP-->SendToCtrl with data '%s'" % cmd
         # determine if the command has an answer
         if self.iPAP.connected:
