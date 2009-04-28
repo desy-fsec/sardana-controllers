@@ -283,22 +283,7 @@ void OmsVme58Ctrl::StartAll()
 	  convert_stream << wanted_mot[loop];
 	  v_str.push_back(convert_stream.str());
 	  convert_stream.str("");
-	  
-	  //
-	  // For test purpose
-	  //
-	  
-	  if (wanted_mot[loop] == 9)
-	    {
-	      Tango::Except::throw_exception((const char *)"Aaaaaa",
-					     (const char *)"Bbbbbb",
-					     (const char *)"Cccccc");
-	    }
-	  
-	  if (wanted_mot[loop] == 10)
-	    {
-	      mot_10_fault = true;
-	    }
+
 	  
 	  d_in.insert(v_db,v_str);	
 	  simu_ctrl->command_inout("SetAxePosition",d_in);
