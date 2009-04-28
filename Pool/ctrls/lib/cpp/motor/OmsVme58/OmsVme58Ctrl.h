@@ -46,10 +46,7 @@ protected:
 	
 	vector<double> 		wanted_mot_pos;
 	vector<int32_t>		wanted_mot;
-	
-	int32_t				ctr_11;
-	bool				mot_10_fault;
-	
+
 	double				home_acc;
 };
 

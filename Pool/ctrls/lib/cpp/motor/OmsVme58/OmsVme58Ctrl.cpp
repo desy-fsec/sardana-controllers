@@ -27,8 +27,6 @@ OmsVme58Ctrl::OmsVme58Ctrl(const char *inst,vector<Controller::Properties> &prop
     }
   
   simu_ctrl = NULL;
-  ctr_11 = 0;
-  mot_10_fault = false;
   home_acc = 1.0;
   
   //
@@ -329,29 +327,7 @@ void OmsVme58Ctrl::StateOne(int32_t idx,Controller::CtrlState *info_ptr)
 		d_out >> dvla;
 		mot_info_ptr->state = (*dvla)[0];
 		mot_info_ptr->switches = (*dvla)[1];
-		
-		if ((idx == 10) && (mot_10_fault == true))
-		{
-			mot_info_ptr->state = Tango::FAULT;
-			mot_info_ptr->status = "Testing FAULT state in movement";
-		}
-		
-		if (idx == 11)
-		{
-			Tango::Util *tg = Tango::Util::instance();
-			int th_id = omni_thread::self()->id();
-			int poll_th_id = tg->get_polling_thread_id();
-			if (th_id != poll_th_id)
-			{
-				ctr_11++;
-				if (ctr_11 >= 20)
-				{
-					Tango::Except::throw_exception((const char *)"XXXXXXXX",
-											 	  (const char *)"YYYYYYYY",
-							       			   	(const char *)"ZZZZZZZZZ");	
-				}
-			}
-		}
+
 	}
 	else
 	{
