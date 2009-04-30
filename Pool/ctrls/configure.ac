@@ -214,6 +214,7 @@ AC_CONFIG_FILES([Makefile
                  lib/cpp/motor/Makefile
                  lib/cpp/motor/simulator/Makefile
                  lib/cpp/motor/OmsVme58/Makefile
+                 lib/cpp/motor/MotorViaADS/Makefile
                  lib/cpp/pseudocounter/Makefile
                  lib/cpp/pseudocounter/current/Makefile
                  lib/cpp/pseudomotor/Makefile
