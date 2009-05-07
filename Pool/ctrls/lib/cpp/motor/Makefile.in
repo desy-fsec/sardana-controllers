@@ -190,8 +190,8 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = simulator OmsVme58 MotorViaADS
-DIST_SUBDIRS = simulator OmsVme58 MotorViaADS
+SUBDIRS = simulator OmsVme58 MotorViaADS Hexapod
+DIST_SUBDIRS = simulator OmsVme58 MotorViaADS Hexapod
 all: all-recursive
 
 .SUFFIXES:
