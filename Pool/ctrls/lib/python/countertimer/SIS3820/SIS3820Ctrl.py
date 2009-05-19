@@ -12,7 +12,7 @@ class SIS3820Ctrl(CounterTimerController):
 	
     def __init__(self,inst,props):
         CounterTimerController.__init__(self,inst,props)
-        print "PYTHON -> SIS3820Ctrl ctor for instance",inst
+#        print "PYTHON -> SIS3820Ctrl ctor for instance",inst
 		#	raise NameError,"Ouuups"
 		
         self.ct_name = "SIS3820Ctrl/" + self.inst_name
@@ -30,7 +30,7 @@ class SIS3820Ctrl(CounterTimerController):
 
 
     def AddDevice(self,ind):
-		print "PYTHON -> SIS3820Ctrl/",self.inst_name,": In AddDevice method for index",ind
+#		print "PYTHON -> SIS3820Ctrl/",self.inst_name,": In AddDevice method for index",ind
 		self.Offset.append(self.dft_Offset)
 		
         
@@ -57,7 +57,7 @@ class SIS3820Ctrl(CounterTimerController):
         pass
 
     def ReadOne(self,ind):
-        print "PYTHON -> SIS3820Ctrl/",self.inst_name,": In ReadOne method for index",ind
+#        print "PYTHON -> SIS3820Ctrl/",self.inst_name,": In ReadOne method for index",ind
         if self.sis3820_ctrl != None:
             return self.sis3820_ctrl.command_inout("GetAxeCounts",ind)
         else:
@@ -101,7 +101,7 @@ class SIS3820Ctrl(CounterTimerController):
             self.sis3820_ctrl.command_inout("SetAxeOffset",ind)
 			
     def SendToCtrl(self,in_data):
-        print "Received value =",in_data
+#        print "Received value =",in_data
         return "Adios"
 
     def __del__(self):
