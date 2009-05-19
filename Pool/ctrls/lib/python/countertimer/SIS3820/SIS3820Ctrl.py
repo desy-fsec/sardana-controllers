@@ -72,9 +72,11 @@ class SIS3820Ctrl(CounterTimerController):
 
     def PreStartOneCT(self,ind):	
 		if self.sis3820_ctrl != None:
-			self.sis3820_ctrl.command_inout("ResetAxe",ind)	
+			self.sis3820_ctrl.command_inout("ResetAxe",ind)
+			return True	
 		else:
 			raise RuntimeError,"Ctrl Tango's proxy null!!!"
+			return False
 		
     def StartOneCT(self,ind):
         #print "PYTHON -> SIS3820Ctrl/",self.inst_name,": In StartOneCT method for index",ind
@@ -91,9 +93,8 @@ class SIS3820Ctrl(CounterTimerController):
 	
     def GetExtraAttributePar(self,ind,name):
         if name == "Offset":
-			print "hallo"
-			return self.Offset[ind]
- #           return self.sis3820_ctrl.command_inout("GetAxeOffset",ind)
+			par_value = self.sis3820_ctrl.command_inout("GetAxeOffset",ind)
+			return float(par_value)
             
     def SetExtraAttributePar(self,ind,name,value):
         if name == "Offset":
