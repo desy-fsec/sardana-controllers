@@ -467,7 +467,7 @@ void OmsVme58Ctrl::SetPar(int32_t idx,string &par_name,Controller::CtrlData &new
 		}
 		else if (par_name == "Step_per_unit")
 		{
-			cout << "[OmsVme58Ctrl] New Step_per_unit feature is " << new_value.db_data << endl;
+		  //			cout << "[OmsVme58Ctrl] New Step_per_unit feature is " << new_value.db_data << endl;
 		}
 		else if (par_name == "Backlash")
 		{
@@ -596,8 +596,42 @@ Controller::CtrlData OmsVme58Ctrl::GetExtraAttributePar(int32_t idx,string &par_
     }
 	else if ( ( par_name == "Calibrate") || ( par_name == "UserCalibrate"))
 	{
-		par_value.db_data = 0;
+	        par_value.db_data = 0;
 		par_value.data_type = Controller::DOUBLE;
+	}
+	else if (par_name == "PositionEncoder")
+	{
+
+	  Tango::DeviceData d_in,d_out;
+	  
+	  d_in << (Tango::DevLong)idx;
+	  d_out = simu_ctrl->command_inout("GetAxisPositionEncoder",d_in);
+	  d_out >> par_tmp_db;
+	  par_value.db_data = par_tmp_db;
+	  par_value.data_type = Controller::DOUBLE;
+	}
+	else if (par_name == "HomePosition")
+	{
+
+	  Tango::DeviceData d_in,d_out;
+	  
+	  d_in << (Tango::DevLong)idx;
+	  d_out = simu_ctrl->command_inout("GetAxisHomePosition",d_in);
+	  d_out >> par_tmp_db;
+	  par_value.db_data = par_tmp_db;
+	  par_value.data_type = Controller::DOUBLE;
+	}
+	else if (par_name == "FlagUseEncoderPosition")
+	{
+	  
+	  Tango::DeviceData d_in,d_out;
+	  
+	  d_in << (Tango::DevLong)idx;
+	  d_out = simu_ctrl->command_inout("GetAxisFlagUseEncoderPosition",d_in);
+	  d_out >> par_tmp_l;
+	  
+	  par_value.int32_data = (int32_t)par_tmp_l;
+	  par_value.data_type = Controller::INT32;
 	}
 	else
 	{
@@ -735,103 +769,159 @@ void OmsVme58Ctrl::SetExtraAttributePar(int32_t idx,string &par_name,Controller:
             simu_ctrl->command_inout("SetAxeVelocityMin",d_in);		
 		}
 	}
-	else if (par_name == "StepBacklash")
+  else if (par_name == "StepBacklash")
+    {
+      if(simu_ctrl != NULL)
 	{
-		if(simu_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<Tango::DevLong> v_db;
-			if (new_value.data_type == INT32){
-				cout << "[OmsVme58Ctrl] New value for StepBacklash extra attribute is " << new_value.int32_data << endl;
-				v_db.push_back((Tango::DevLong)new_value.int32_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            simu_ctrl->command_inout("SetAxeStepBacklash",d_in);		
-		}
+	  Tango::DeviceData d_in;
+	  
+	  vector<Tango::DevLong> v_db;
+	  if (new_value.data_type == INT32){
+	    cout << "[OmsVme58Ctrl] New value for StepBacklash extra attribute is " << new_value.int32_data << endl;
+	    v_db.push_back((Tango::DevLong)new_value.int32_data);
+	    
+	  }else
+	    bad_data_type(par_name);
+	  
+	  vector<string> v_str;
+	  convert_stream << (Tango::DevLong)idx;
+	  v_str.push_back(convert_stream.str());
+	  convert_stream.str("");
+	  d_in.insert(v_db,v_str);
+	  simu_ctrl->command_inout("SetAxeStepBacklash",d_in);		
 	}
-	else if (par_name == "StepPosition")
+    }
+  else if (par_name == "StepPosition")
+    {
+      if(simu_ctrl != NULL)
 	{
-		if(simu_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<Tango::DevLong> v_db;
-
-			if (new_value.data_type == INT32){
-				cout << "[OmsVme58Ctrl] New value for StepPosition extra attribute is " << new_value.int32_data << endl;
-				v_db.push_back((Tango::DevLong)new_value.int32_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            simu_ctrl->command_inout("SetAxeStepPosition",d_in);		
-		}
+	  Tango::DeviceData d_in;
+	  
+	  vector<Tango::DevLong> v_db;
+	  
+	  if (new_value.data_type == INT32){
+	    cout << "[OmsVme58Ctrl] New value for StepPosition extra attribute is " << new_value.int32_data << endl;
+	    v_db.push_back((Tango::DevLong)new_value.int32_data);
+	    
+	  }else
+	    bad_data_type(par_name);
+	  
+	  vector<string> v_str;
+	  convert_stream << (Tango::DevLong)idx;
+	  v_str.push_back(convert_stream.str());
+	  convert_stream.str("");
+	  d_in.insert(v_db,v_str);
+	  simu_ctrl->command_inout("SetAxeStepPosition",d_in);		
 	}
-	else if (par_name == "Calibrate")
+    }
+  else if (par_name == "Calibrate")
+    {
+      if(simu_ctrl != NULL)
 	{
-		if(simu_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<double> v_db;
-			if (new_value.data_type == DOUBLE){
-				cout << "[OmsVme58Ctrl] New value for Calibrate extra attribute is " << new_value.db_data << endl;
-				v_db.push_back(new_value.db_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            simu_ctrl->command_inout("AxeCalibrate",d_in);		
-		}
+	  Tango::DeviceData d_in;
+	  
+	  vector<double> v_db;
+	  if (new_value.data_type == DOUBLE){
+	    cout << "[OmsVme58Ctrl] New value for Calibrate extra attribute is " << new_value.db_data << endl;
+	    v_db.push_back(new_value.db_data);
+	    
+	  }else
+	    bad_data_type(par_name);
+	  
+	  vector<string> v_str;
+	  convert_stream << (Tango::DevLong)idx;
+	  v_str.push_back(convert_stream.str());
+	  convert_stream.str("");
+	  d_in.insert(v_db,v_str);
+	  simu_ctrl->command_inout("AxeCalibrate",d_in);		
 	}
-	else if (par_name == "UserCalibrate")
+    }
+  else if (par_name == "UserCalibrate")
+    {
+      if(simu_ctrl != NULL)
 	{
-		if(simu_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<double> v_db;
-			if (new_value.data_type == DOUBLE){
-				cout << "[OmsVme58Ctrl] New value for UserCalibrate extra attribute is " << new_value.db_data << endl;
-				v_db.push_back(new_value.db_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
+	  Tango::DeviceData d_in;
+	  
+	  vector<double> v_db;
+	  if (new_value.data_type == DOUBLE){
+	    cout << "[OmsVme58Ctrl] New value for UserCalibrate extra attribute is " << new_value.db_data << endl;
+	    v_db.push_back(new_value.db_data);
+	    
+	  }else
+	    bad_data_type(par_name);
+	  
+	  vector<string> v_str;
+	  convert_stream << (Tango::DevLong)idx;
+	  v_str.push_back(convert_stream.str());
+	  convert_stream.str("");
+	  d_in.insert(v_db,v_str);
             simu_ctrl->command_inout("AxeUserCalibrate",d_in);		
-		}
 	}
-	else
+    }
+  if (par_name == "HomePosition")
+    {
+      if(simu_ctrl != NULL)
 	{
-		TangoSys_OMemStream o;
-		o << "Extra attribute " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
-			
-		Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-						       			   (const char *)"OmsVme58Ctrl::SetExtraAttributePar()");
+	  Tango::DeviceData d_in;
+	  
+	  vector<double> v_db;
+	  if (new_value.data_type == DOUBLE){
+	    cout << "[OmsVme58Ctrl] New value for Conversion extra attribute is " << new_value.db_data << endl;
+	    v_db.push_back(new_value.db_data);
+	    
+	  }else
+	    bad_data_type(par_name);
+	  
+	  vector<string> v_str;
+	  convert_stream << (Tango::DevLong)idx;
+	  v_str.push_back(convert_stream.str());
+	  convert_stream.str("");
+	  d_in.insert(v_db,v_str);
+	  simu_ctrl->command_inout("SetAxisHomePosition",d_in);		
 	}
+    }
+  else if (par_name == "MoveHome")
+    {
+      if(simu_ctrl != NULL)
+	{
+	  Tango::DeviceData d_in;
+
+	  d_in << (Tango::DevLong)idx;
+
+	  simu_ctrl->command_inout("AxisMoveHome",d_in);		
+	}
+    }
+  else if (par_name == "FlagUseEncoderPosition")
+    {
+      if(simu_ctrl != NULL)
+	{
+	  Tango::DeviceData d_in;
+	  
+	  vector<Tango::DevLong> v_db;
+	  
+	  if (new_value.data_type == INT32){
+	    cout << "[OmsVme58Ctrl] New value FlagUseEncoderPosition extra attribute is " << new_value.int32_data << endl;
+	    v_db.push_back((Tango::DevLong)new_value.int32_data);
+	    
+	  }else
+	    bad_data_type(par_name);
+	  
+	  vector<string> v_str;
+	  convert_stream << (Tango::DevLong)idx;
+	  v_str.push_back(convert_stream.str());
+	  convert_stream.str("");
+	  d_in.insert(v_db,v_str);
+	  simu_ctrl->command_inout("SetAxisFlagUseEncoderPosition",d_in);		
+	}
+    }
+  else
+    {
+      TangoSys_OMemStream o;
+      o << "Extra attribute " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
+      
+      Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
+				     (const char *)"OmsVme58Ctrl::SetExtraAttributePar()");
+    }
 }
 
 
@@ -880,16 +970,23 @@ void OmsVme58Ctrl::bad_data_type(string &par_name)
 const char *Motor_Ctrl_class_name[] = {"OmsVme58Ctrl","Toto","Bidule",NULL};
 const char *OmsVme58Ctrl_doc = "This is the C++ controller for the OmsVme58Ctrl class";
 		
-Controller::ExtraAttrInfo OmsVme58Ctrl_ctrl_extra_attributes[] = {{"Conversion","DevDouble","Read_Write"},
-                 {"SettleTime","DevDouble","Read_Write"},
-                 {"UnitBacklash","DevDouble","Read_Write"},
-                 {"VelocityMax","DevLong","Read_Write"},
-                 {"VelocityMin","DevLong","Read_Write"},
-                 {"StepBacklash","DevLong","Read_Write"},
-				 {"Calibrate","DevDouble","Read_Write"},
-				 {"UserCalibrate","DevDouble","Read_Write"},
-				 {"StepPosition","DevLong","Read_Write"},
-												 NULL};
+Controller::ExtraAttrInfo OmsVme58Ctrl_ctrl_extra_attributes[] = {
+  {"Conversion","DevDouble","Read_Write"},
+  {"SettleTime","DevDouble","Read_Write"},
+  {"UnitBacklash","DevDouble","Read_Write"},
+  {"VelocityMax","DevLong","Read_Write"},
+  {"VelocityMin","DevLong","Read_Write"},
+  {"StepBacklash","DevLong","Read_Write"},
+  {"Calibrate","DevDouble","Read_Write"},
+  {"UserCalibrate","DevDouble","Read_Write"},
+  {"StepPosition","DevLong","Read_Write"},
+  {"PositionEncoder","DevDouble","Read_Write"},
+  {"HomePosition","DevDouble","Read_Write"},
+  {"MoveHome","DevLong","Read_Write"},
+  {"FlagUseEncoderPosition","DevLong","Read_Write"},
+  NULL};
+
+
 //char *OmsVme58Ctrl_ctrl_features[] = {"Backlash","Rounding","Encoder","Home_acceleration",NULL};
 const char *OmsVme58Ctrl_ctrl_features[] = {"WantRounding","Encoder","Home_acceleration",NULL};
 
