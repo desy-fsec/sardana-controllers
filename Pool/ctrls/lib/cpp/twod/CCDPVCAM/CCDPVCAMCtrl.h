@@ -46,11 +46,11 @@ public:
 	virtual void DeleteDevice(int32_t );
 	//@}
 	
-    virtual void PreReadOne(int32_t) ;
+    virtual void PreReadOne(int32_t );
 	/**
-	 * Read data from oned experimental channel. 
+	 * Read data from twod experimental channel. 
 	 * 
-	 * @param idx - oned id
+	 * @param idx - twod id
 	 *
      * return the readout value
 	 */
@@ -118,12 +118,20 @@ public:
 					
 protected:
 	void bad_data_type(string &);
-	
-	long read_nb;          ///< number of reads invoked on this object
-	long write_nb;         ///< number of writes invoked on this object
 
-	Tango::DeviceProxy      *ccdpvcam_ctrl;
-    string          DevName;
+	struct CCDPVCAMData 
+	{
+	  Tango::DeviceProxy	*proxy;
+	  bool			device_available;
+	  std::string		tango_device;
+	};
+	
+	int32_t max_device;
+	int32_t *acq_mode;
+	
+	std::map<int32_t, CCDPVCAMData*> ccdpvcam_data; 
+	
+
     stringstream            convert_stream;
 };
 
