@@ -18,42 +18,26 @@ using namespace std;
 MCA8715::MCA8715(const char *inst,vector<Controller::Properties> &prop):
 OneDController(inst)
 {
-	read_nb = 0;
-	write_nb = 0;
-	
-    for (unsigned long loop = 0;loop < prop.size();loop++)
-    {
-		if( prop[loop].name == "DevName" )
-        {
-			DevName = prop[loop].value.string_prop[0];
-        }
+  max_device = 0;
+  vector<Controller::Properties>::iterator prop_it;
+  for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
+    if(prop_it->name == "TangoDevices"){
+      int index = 1;
+      vector<string> &str_vec = prop_it->value.string_prop;
+      
+      for(unsigned long l = 0; l < str_vec.size(); l++){
+	// all possible serial lines will be defined here
+	MCA8715Data *mca_data_elem = new MCA8715Data;
+	mca_data_elem->tango_device = str_vec[l];
+	mca_data_elem->device_available = false;
+	mca_data_elem->proxy = NULL;
+	mca_data.insert(make_pair(index, mca_data_elem));
+	max_device++;
+	index++;
+      }
     }
-	
-	//
-	// Create a DeviceProxy on the mca8715 controller and set
-	// it in automatic reconnection mode
-	//
-	mca8715_ctrl = Pool_ns::PoolUtil::instance()->get_device(inst_name, DevName);
-	//
-	// Ping the device to be sure that it is present
-	//
-	if(mca8715_ctrl == NULL)
-    {
-		TangoSys_OMemStream o;
-		o << "The PoolAPI did not provide a valid mca8715 device" << ends;
-		Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadPoolAPI",o.str(),
-									   (const char *)"MCA8715::MCA8715()");
-    }
-	
-	try
-    {
-		mca8715_ctrl->ping();
-    }
-	catch (Tango::DevFailed &e)
-    {
-		throw;
-    }
-	
+  }
+  
 }
 
 //-----------------------------------------------------------------------------
@@ -66,6 +50,15 @@ OneDController(inst)
 
 MCA8715::~MCA8715()
 {
+  //cout << "[MCA8715] class dtor" << endl;	
+  map<int32_t, MCA8715Data*>::iterator ite = mca_data.begin();
+  for(;ite != mca_data.end();ite++)
+    {
+      if(ite->second->proxy != NULL)
+	delete ite->second->proxy;
+      delete ite->second;		
+    }		
+  mca_data.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -80,7 +73,27 @@ MCA8715::~MCA8715()
 
 void MCA8715::AddDevice(int32_t idx)
 {
-	//cout << "[MCA8715] Creating a new OneD with index " << idx << " on controller MCA8715/" << inst_name << endl;
+	//cout << "[MCA8715] Creating a new OneD with index " << idx << " on controller MCA8715/" << inst_name << endl;	
+  cout << " Teresa en AddDevice: idx " << idx << endl;
+  if(idx > max_device){
+    TangoSys_OMemStream o;
+    o << "The property 'TangoDevices' has no value for index " << idx << ".";
+    o << " Please define a valid tango device before adding a new element to this controller"<< ends;
+    
+    Tango::Except::throw_exception((const char *)"MCA8715_BadIndex",o.str(),
+				   (const char *)"MCA8715::AddDevice()");
+  }
+  if(mca_data[idx]->device_available == false){
+    if(mca_data[idx]->proxy == NULL)
+      mca_data[idx]->proxy = new Tango::DeviceProxy(mca_data[idx]->tango_device);
+    try{
+      mca_data[idx]->proxy->ping();
+      mca_data[idx]->device_available = true;	
+    }
+    catch(Tango::DevFailed &e){
+      mca_data[idx]->device_available = false;
+    }
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -95,97 +108,151 @@ void MCA8715::AddDevice(int32_t idx)
 
 void MCA8715::DeleteDevice(int32_t idx)
 {
-	//cout << "[MCA8715] Deleting OneD with index " << idx << " on controller MCA8715/" << inst_name << endl;
+  //cout << "[MCA8715] Deleting OneD with index " << idx << " on controller MCA8715/" << inst_name << endl;
+  if(idx > max_device){
+    TangoSys_OMemStream o;
+    o << "Trying to delete an inexisting element(" << idx << ") from the controller." << ends;
+    
+    Tango::Except::throw_exception((const char *)"MCA8715_BadIndex",o.str(),
+				   (const char *)"MCA8715::DeleteDevice()");
+  }	
+	
+  if(mca_data[idx]->proxy != NULL){
+    delete mca_data[idx]->proxy;
+    mca_data[idx]->proxy = NULL;  
+  }
+  mca_data[idx]->device_available = false;
 }
 
 void MCA8715::PreReadOne(int32_t idx)
 {
-
-	if (mca8715_ctrl != NULL)
-    {
-		Tango::DeviceData d_in;
-		d_in << (Tango::DevLong)idx;
-		mca8715_ctrl->command_inout("ReadAxis",d_in);
-	}
-	else
-    { 
-		TangoSys_OMemStream o;
-		o << "MCA8715 Controller for controller MCA8715Ctrl/" << get_name() << " is NULL" << ends;	
-		Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"MCA8715::PreReadOne()");
+  cout << "[MCA8715] In PreReadOne" << endl;
+  
+  if(mca_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "MCA8715 Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::PreReadOne()");  
+  }
+	
+  if(mca_data[idx]->device_available == false){
+    try{
+      mca_data[idx]->proxy->ping();
+      mca_data[idx]->device_available = true;	
     }
+    catch(Tango::DevFailed &e){
+      mca_data[idx]->device_available = false;
+      TangoSys_OMemStream o;
+      o << "MCA8715 Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				     (const char *)"MCA8715::PreReadOne()"); 
+    }
+  }
 
+  mca_data[idx]->proxy->command_inout("Read");
 
 }
 
 double *MCA8715::ReadOne(int32_t idx)
 {
-    double *read_value;
-    vector<Tango::DevLong> vector_data;
-
-    read_nb++;
-	
-	if (mca8715_ctrl != NULL)
-    {
-		Tango::DeviceData d_out, d_in;
-		d_in << (Tango::DevLong)idx;
-		d_out = mca8715_ctrl->command_inout("GetAxisData",d_in);
-        d_out >> vector_data;
-		read_value =  new double[vector_data.size()];
-        for(int i = 0; i < vector_data.size(); i++)
-			read_value[i] = (double)vector_data[i];
-	   
+  double *read_value;
+  vector<Tango::DevLong> vector_data;
   
-	}
-	else
-    { 
-		TangoSys_OMemStream o;
-		o << "MCA8715 Controller for controller MCA8715Ctrl/" << get_name() << " is NULL" << ends;	
-		Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"MCA8715::ReadOne()");
+  cout << "[MCA8715] In ReadOne" << endl;
+  
+  if(mca_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "MCA8715 Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::ReadOne()");  
+  }
+	
+  if(mca_data[idx]->device_available == false){
+    try{
+      mca_data[idx]->proxy->ping();
+      mca_data[idx]->device_available = true;	
     }
+    catch(Tango::DevFailed &e){
+      mca_data[idx]->device_available = false;
+      TangoSys_OMemStream o;
+      o << "MCA8715 Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				     (const char *)"MCA8715::ReadOne()"); 
+    }
+  }
 
-	 return read_value;
+  Tango::DeviceAttribute d_out;
+
+  d_out = mca_data[idx]->proxy->read_attribute("Data");
+  d_out >> vector_data;
+  read_value =  new double[vector_data.size()];
+  for(int i = 0; i < vector_data.size(); i++)
+    read_value[i] = (double)vector_data[i];
+ 
+  return read_value;
     
 }
 
 void  MCA8715::StartOne(int32_t idx)
 {
-
-	if (mca8715_ctrl != NULL)
-    {
-		Tango::DeviceData d_in;
-		d_in << (Tango::DevLong)idx;
-		mca8715_ctrl->command_inout("StartAxis",d_in);
+  
+  cout << "[MCA8715] In StartOne" << endl;
+  
+  if(mca_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "MCA8715 Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::StartOne()");  
+  }
+	
+  if(mca_data[idx]->device_available == false){
+    try{
+      mca_data[idx]->proxy->ping();
+      mca_data[idx]->device_available = true;	
     }
-	else
-    {
-		TangoSys_OMemStream o;
-		o << "MCA8715 Controller for controller MCA8715Ctrl/" << get_name() << " is NULL" << ends;	
-		Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"MCA8715::StartOne()");
+    catch(Tango::DevFailed &e){
+      mca_data[idx]->device_available = false;
+      TangoSys_OMemStream o;
+      o << "MCA8715 Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				     (const char *)"MCA8715::StartOne()"); 
     }
+  }
 
+  mca_data[idx]->proxy->command_inout("Start");
 
 }
 
 void  MCA8715::AbortOne(int32_t idx)
 {
-
-	if (mca8715_ctrl != NULL)
-    {
-		Tango::DeviceData d_in;
-		d_in << (Tango::DevLong)idx;
-		mca8715_ctrl->command_inout("StopAxis",d_in);
-    }
-	else
-    {
-		TangoSys_OMemStream o;
-		o << "MCA8715 Controller for controller MCA8715Ctrl/" << get_name() << " is NULL" << ends;	
-		Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"MCA8715::AbortOne()");
-    }
+  
+  cout << "[MCA8715] In AbortOne" << endl;
+  
+  if(mca_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "MCA8715 Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::AbortOne()");  
+  }
 	
+  if(mca_data[idx]->device_available == false){
+    try{
+      mca_data[idx]->proxy->ping();
+      mca_data[idx]->device_available = true;	
+    }
+    catch(Tango::DevFailed &e){
+      mca_data[idx]->device_available = false;
+      TangoSys_OMemStream o;
+      o << "MCA8715 Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
+				     (const char *)"MCA8715::AbortOne()"); 
+    }
+  }
+
+  mca_data[idx]->proxy->command_inout("Stop");
+
+
+
 }
 
 //-----------------------------------------------------------------------------
@@ -203,34 +270,32 @@ void  MCA8715::AbortOne(int32_t idx)
 
 void MCA8715::StateOne(int32_t idx,Controller::CtrlState *ior_info_ptr)
 {
-	Tango::DevLong state_tmp;
-
-
-	if (mca8715_ctrl != NULL)
-    {
-		Tango::DeviceData d_in,d_out;
-		d_in << (Tango::DevLong)idx;
-		d_out = mca8715_ctrl->command_inout("GetAxisStatus",d_in);
-		
-		d_out >> state_tmp;
-		
-		ior_info_ptr->state = state_tmp;
-		if(state_tmp == Tango::ON){
-			ior_info_ptr->status = "OneD is in ON state";
-		} else if (state_tmp == Tango::FAULT){
-			ior_info_ptr->status = "OneD is in FAULT state";
-		}
-		
-    }
-	else
-    {
-		TangoSys_OMemStream o;
-		o << "MCA8715 Controller for controller MCA8715Ctrl/" << get_name() << " is NULL" << ends;
-		
-		Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"MCA8715::GetStatus()");
-    }
-	
+  if(mca_data[idx]->proxy == NULL){
+    ior_info_ptr->state = Tango::FAULT;
+    return;
+  }
+  
+  if(mca_data[idx]->device_available == false){
+    try
+      {
+	mca_data[idx]->proxy->ping();
+	mca_data[idx]->device_available = true;	
+      }
+    catch(Tango::DevFailed &e)
+      {
+	mca_data[idx]->device_available = false;
+	ior_info_ptr->state = Tango::FAULT;
+	return;
+      }
+  }
+  
+  Tango::DevState s = mca_data[idx]->proxy->state();
+  
+  if(s == Tango::ON){
+    ior_info_ptr->state = Tango::ON;
+    ior_info_ptr->status = "The MCA is ready";
+  }
+  
 }
 
 //-----------------------------------------------------------------------------
@@ -250,39 +315,51 @@ Controller::CtrlData MCA8715::GetPar(int32_t idx, string &par_name)
 {
 	//cout << "[MCA8715] Getting parameter " << par_name << " for oned exp channel with index " << idx << " on controller MCA8715/" << inst_name << " (" << DevName << ")" << endl;
 
-	Controller::CtrlData par_value;	
-	if (mca8715_ctrl != NULL)
-	{
-		Tango::DeviceData d_in,d_out;
 
-		d_in << (Tango::DevLong)idx;		
-		if (par_name == "DataLength")
-		{
-			d_out = mca8715_ctrl->command_inout("GetAxisDataLength",d_in);
-            Tango::DevLong tmp_v;
-			d_out >> tmp_v;
-            par_value.int32_data = (int32_t)tmp_v;
-			par_value.data_type = Controller::INT32;		
-		}
-		else
-		{
-			TangoSys_OMemStream o;
-			o << "Parameter " << par_name << " is unknown for controller MCA8715/" << get_name() << ends;
-			
-			Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
-						       			   (const char *)"MCA8715::GetPar()");
-		}
-	}
-	else
+  Controller::CtrlData par_value;	
+  
+  
+  string par_name_lower(par_name);
+  transform(par_name_lower.begin(),par_name_lower.end(),par_name_lower.begin(),::tolower);
+  
+  if(mca_data[idx]->proxy == NULL)
+    return par_value;
+  
+  if(mca_data[idx]->device_available == false)
+    {
+      try
 	{
-		TangoSys_OMemStream o;
-		o << "Simulated controller for controller MCA8715/" << get_name() << " is NULL" << ends;
-		
-		Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
-					       			   (const char *)"MCA8715::GetPar()");
+	  mca_data[idx]->proxy->ping();
+	  mca_data[idx]->device_available = true;	
 	}
-	
-	return par_value;
+      catch(Tango::DevFailed &e)
+	{
+	  mca_data[idx]->device_available = false;
+	  return par_value;
+	}
+    }
+  
+  Tango::DeviceAttribute in;
+  in = mca_data[idx]->proxy->read_attribute(par_name);
+  
+  if (par_name_lower == "datalength")
+    {
+      Tango::DevLong value;
+      in >> value;
+      par_value.int32_data = (int32_t)value;
+      par_value.data_type = Controller::INT32;		
+    }  
+  else
+    {
+      TangoSys_OMemStream o;
+      o << "Parameter " << par_name << " is unknown for controller MCA8715/" << get_name() << ends;
+      
+      Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
+				     (const char *)"MCA8715::GetPar()");
+    }
+  
+  return par_value;
+
 }
 
 //-----------------------------------------------------------------------------
@@ -300,52 +377,27 @@ Controller::CtrlData MCA8715::GetPar(int32_t idx, string &par_name)
 
 void MCA8715::SetPar(int32_t idx, string &par_name, Controller::CtrlData &new_value)
 {
-	//cout << "[MCA8715Controller] Setting parameter " << par_name << " for oned channel with index " << idx << " on controller MCA8715Controller/" << inst_name << " (" << DevName << ")" << endl;
-
-	if (mca8715_ctrl != NULL)
-	{
-		Tango::DeviceData d_in;
-
-		vector<Tango::DevLong> v_dl;
-	   
-		if (new_value.data_type == Controller::INT32)	
-			v_dl.push_back((Tango::DevLong)new_value.int32_data);
-		else
-			bad_data_type(par_name);
-
-
-
-		vector<string> v_str;
-		convert_stream << (Tango::DevLong)idx;
-		v_str.push_back(convert_stream.str());
-		convert_stream.str("");
-	
-		d_in.insert(v_dl,v_str);	
-				
-		if (par_name == "DataLength")
-		{
-			mca8715_ctrl->command_inout("SetAxisDataLength",d_in);
-		}
-		else
-		{
-			TangoSys_OMemStream o;
-			o << "Parameter " << par_name << " is unknown for controller MCA8715/" << get_name() << ends;
-			
-			Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
-						       			   (const char *)"MCA8715::GetPar()");
-		}
-	}
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "Simulated controller for controller MCA8715/" << get_name() << " is NULL" << ends;
-		
-		Tango::Except::throw_exception((const char *)"MCA8715Ctrl_BadCtrlPtr",o.str(),
-					       			   (const char *)"MCA8715::SetPar()");
-	}
+  //cout << "[MCA8715] Setting parameter " << par_name << " for oned channel with index " << idx << " on controller MCA8715/" << inst_name << " (" << DevName << ")" << endl;
+  
+  
+  string par_name_lower(par_name);
+  
+  transform(par_name_lower.begin(),par_name_lower.end(),par_name_lower.begin(),::tolower);
+  
+  if (par_name_lower == "datalength"){
+    Tango::DevLong value = (Tango::DevLong)new_value.int32_data;
+    Tango::DeviceAttribute out(par_name,value);
+    mca_data[idx]->proxy->write_attribute(out);
+  }
+  else{
+    TangoSys_OMemStream o;
+    o << "Parameter " << par_name << " is unknown for controller MC8715Controller/" << get_name() << ends;
+    
+    Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::SetPar()");
+  }
+  
 }
-
-
 
 
 //-----------------------------------------------------------------------------
@@ -362,41 +414,55 @@ void MCA8715::SetPar(int32_t idx, string &par_name, Controller::CtrlData &new_va
 
 Controller::CtrlData MCA8715::GetExtraAttributePar(int32_t idx, string &par_name)
 {
-	Controller::CtrlData par_value;	
 
-	Tango::DevLong par_tmp_l;
 
-	if(par_name == "Clear")
-	{
-		TangoSys_OMemStream o;
-		o << "Parameter " << par_name << " can not be readout" << ends;
-		
-		Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
-									   (const char *)"MCA8715::GetExtraAttributePar()");
-		
-	} 
-	else if (par_name == "BankId")
-	{
-		
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = mca8715_ctrl->command_inout("GetAxisBankId",d_in);
-		d_out >> par_tmp_l;
-        
-		par_value.int32_data = (int32_t)par_tmp_l;
-		par_value.data_type = Controller::INT32;
-    }
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "Parameter " << par_name << " is unknown for controller MCA8715/" << get_name() << ends;
-		
-		Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
-					       			   (const char *)"MCA8715::GetExtraAttributePar()");
-	}
-	
+  Controller::CtrlData par_value;	
+  
+  string par_name_lower(par_name);
+  transform(par_name_lower.begin(),par_name_lower.end(),par_name_lower.begin(),::tolower);
+  
+  if(mca_data[idx]->proxy == NULL)
+    return par_value;
+  
+ 		
+  if(mca_data[idx]->device_available == false){
+    try
+      {
+	mca_data[idx]->proxy->ping();
+	mca_data[idx]->device_available = true;	
+      }
+    catch(Tango::DevFailed &e)
+      {
+	mca_data[idx]->device_available = false;
 	return par_value;
+      }
+  }
+  
+  Tango::DeviceAttribute in;
+  in = mca_data[idx]->proxy->read_attribute(par_name);
+  
+  		
+  if (par_name_lower == "bankid"){
+    Tango::DevLong value;
+    in >> value;
+    par_value.int32_data = value;
+    par_value.data_type = Controller::INT32;
+  } else if( par_name_lower == "clear"){ 
+    TangoSys_OMemStream o;
+    o << "Parameter " << par_name << " can not be readout" << ends;
+    
+    Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::GetExtraAttributePar()");    
+  } else {
+    TangoSys_OMemStream o;
+    o << "Parameter " << par_name << " is unknown for controller RemotePyTangoSerialController/" << get_name() << ends;
+    
+    Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::GetPar()");
+  }
+  
+  return par_value;
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -412,54 +478,24 @@ Controller::CtrlData MCA8715::GetExtraAttributePar(int32_t idx, string &par_name
 //-----------------------------------------------------------------------------
 
 void MCA8715::SetExtraAttributePar(int32_t idx, string &par_name, Controller::CtrlData &new_value)
-{
-	if (par_name == "Clear")
-	{
-		if (mca8715_ctrl != NULL)
-		{
-		
-			Tango::DeviceData d_in;
-		   
-			Tango::DevLong dlo = (Tango::DevLong)idx;
-			d_in << dlo;
-			mca8715_ctrl->command_inout("ClearAxis",d_in);		
-		}	
-	}
-	else if(par_name == "BankId")
-	{
-
-       if (mca8715_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-			
-			vector<Tango::DevLong> v_db;
-			
-			if (new_value.data_type == Controller::INT32) {
-				cout << "[MCA8715Ctrl] New value for BankId extra attribute is " << new_value.int32_data << endl;
-				v_db.push_back((Tango::DevLong)new_value.int32_data);
-				
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            mca8715_ctrl->command_inout("SetAxisBankId",d_in);	
-		}
-	}
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "Parameter " << par_name << " is unknown for controller MCA8715/" << get_name() << ends;
-		
-		Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
-					       			   (const char *)"MCA8715::SetExtraAttribute()");
-	}
+{  
+  string par_name_lower(par_name);
+  
+  transform(par_name_lower.begin(),par_name_lower.end(),par_name_lower.begin(),::tolower);
+  
+  if (par_name_lower == "bankid"){
+    Tango::DevLong value = (Tango::DevLong)new_value.int32_data;
+    Tango::DeviceAttribute out(par_name,value);
+    mca_data[idx]->proxy->write_attribute(out);
+  } else if (par_name_lower == "clear"){    
+    mca_data[idx]->proxy->command_inout(par_name);
+  }else{
+    TangoSys_OMemStream o;
+    o << "Parameter " << par_name << " is unknown for controller MC8715Controller/" << get_name() << ends;
     
-
-    
+    Tango::Except::throw_exception((const char *)"MCA8715_BadCtrlPtr",o.str(),
+				   (const char *)"MCA8715::SetExtraAttributePars()");
+  }
 
 }
 
@@ -519,7 +555,7 @@ Controller::ExtraAttrInfo MCA8715_ctrl_extra_attributes[] = {
 	NULL};
 
 Controller::PropInfo MCA8715_class_prop[] = {
-	{"DevName","The tango device name of the MCA8715Ctrl","DevString"},
+	{"TangoDevices","MCA8715 device names","DevVarStringArray",NULL},
 	NULL};
 							  			 
 int32_t MCA8715_MaxDevice = 97;

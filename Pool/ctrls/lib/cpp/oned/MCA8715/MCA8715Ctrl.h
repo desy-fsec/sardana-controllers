@@ -118,12 +118,19 @@ public:
 					
 protected:
 	void bad_data_type(string &);
-	
-	int32_t read_nb;          ///< number of reads invoked on this object
-	int32_t write_nb;         ///< number of writes invoked on this object
 
-	Tango::DeviceProxy      *mca8715_ctrl;
-    string                  DevName;
+	struct MCA8715Data 
+	{
+	  Tango::DeviceProxy	*proxy;
+	  bool			device_available;
+	  std::string		tango_device;
+	};
+	
+	int32_t max_device;
+	
+	std::map<int32_t, MCA8715Data*> mca_data; 
+	
+
     stringstream            convert_stream;
 };
 
