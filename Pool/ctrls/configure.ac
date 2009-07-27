@@ -216,6 +216,7 @@ AC_CONFIG_FILES([Makefile
                  lib/cpp/motor/OmsVme58/Makefile
                  lib/cpp/motor/MotorViaADS/Makefile
                  lib/cpp/motor/Hexapod/Makefile
+                 lib/cpp/motor/KohzuSCAxis/Makefile
                  lib/cpp/pseudocounter/Makefile
                  lib/cpp/pseudocounter/current/Makefile
                  lib/cpp/pseudomotor/Makefile
