@@ -1,2 +1,2 @@
-SUBDIRS = simulator OmsVme58 MotorViaADS Hexapod
-DIST_SUBDIRS = simulator OmsVme58 MotorViaADS Hexapod
+SUBDIRS = simulator OmsVme58 MotorViaADS Hexapod KohzuSCAxis
+DIST_SUBDIRS = simulator OmsVme58 MotorViaADS Hexapod KohzuSCAxis
