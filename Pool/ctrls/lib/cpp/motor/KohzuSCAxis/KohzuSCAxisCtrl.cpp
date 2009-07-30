@@ -556,6 +556,11 @@ void KohzuSCAxis::SetPar(int32_t idx, string &par_name, Controller::CtrlData &ne
       Tango::DeviceAttribute out_bs("FlagBacklash",tmp_long);
       motor_data[idx]->proxy->write_attribute(out_bs);
     }
+  else if (par_name == "Step_per_unit")
+    {
+      // The controller will look for this parameter when creating a motor, so
+      // even if it is empty, it has to be here.
+    }
   else
     {
       TangoSys_OMemStream o;
