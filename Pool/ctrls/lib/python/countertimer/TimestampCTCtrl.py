@@ -3,8 +3,11 @@ from PyTango import DevState
 from pool import CounterTimerController
 
 class TimeStampCTController(CounterTimerController):
-    "This controller offers two channels which correspond to the begin
-    and end timestamps of the acquisition."
+    """This controller offers two channels which correspond to the begin
+    and end timestamps of the acquisition.
+    This output is intended to be used with parallel scripts which collect data that you would
+    like to plot together with macros' output.
+    """
                  
     gender = ""
     model  = ""
@@ -33,7 +36,7 @@ class TimeStampCTController(CounterTimerController):
         pass
             
     def StateOne(self, axis):
-        return (DevState.ON, "Always ON")
+        return (DevState.ON, "Always ON, just returning timestamps...")
 
     def PreReadAll(self):
         pass
@@ -46,9 +49,12 @@ class TimeStampCTController(CounterTimerController):
 
     def ReadOne(self, axis):
         if axis == 1:
+            self._log.debug("The begin acquisition timestamp is %f" % self._start_time)
             return self._start_time
         elif axis == 2:
-            return int(1000 * time.time())
+            now = time.time()
+            self._log.debug("The current acquisition timestamp is %f" % now)
+            return now
     
     def AbortOne(self, axis):
         self._start_time = None
@@ -60,7 +66,7 @@ class TimeStampCTController(CounterTimerController):
         pass
     
     def StartAllCT(self):
-        self._start_time = int(1000 * time.time())
+        self._start_time = time.time()
                  
     def LoadOne(self, axis, value):
         pass
