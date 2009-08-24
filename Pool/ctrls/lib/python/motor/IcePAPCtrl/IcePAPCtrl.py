@@ -97,9 +97,9 @@ class IcepapController(MotorController):
         if self.iPAP.connected:
             drivers_alive = self.iPAP.getDriversAlive()
             if axis in drivers_alive:
-                self._log.info('Added axis %d.'%axis)
+                self._log.info('Added axis %d.' % axis)
             else:
-                self._log.warning('Added axis %d BUT NOT ALIVE.'%axis)
+                self._log.warning('Added axis %d BUT NOT ALIVE.' % axis)
         else:
             self._log.debug('AddDevice(%d). No connection to %s.' % (axis,self.Host))
 
@@ -123,7 +123,7 @@ class IcepapController(MotorController):
                 state = PyTango.DevState.UNKNOWN
                 register = self._getStatusRegister(axis)
                 if not isinstance(register,int):
-                    self._log.warning('StateOne(%d): Invalid register: (%s)'%(axis,str(register)))
+                    self._log.warning('StateOne(%d): Invalid register: (%s)' % (axis,str(register)))
                     driver_status += '\nDriver board %d NOT OPERATIVE\nRegister: %s' % (axis,register)
                     register = 0
                 statereg = IcepapStatus.isDisabled(register)
@@ -166,7 +166,7 @@ class IcepapController(MotorController):
                 self.attributes[axis]["powerinfo"] = power_info
                 return (int(state),switchstate)
             except Exception,e:
-                self._log.error('StateOne(%d).\nException:\n%s'%(axis,str(e)))
+                self._log.error('StateOne(%d).\nException:\n%s' % (axis,str(e)))
                 raise
 
         else:
@@ -202,7 +202,7 @@ class IcepapController(MotorController):
                     ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
                     return  pos / self.attributes[axis]["pulses_per_unit"]
             except Exception,e:
-                self._log.error('ReadOne(%d).\nException:\n%s'%(axis,str(e)))
+                self._log.error('ReadOne(%d).\nException:\n%s' % (axis,str(e)))
                 raise
         else:
             self._log.debug('ReadOne(%d). No connection to %s.' % (axis,self.Host))
@@ -210,6 +210,7 @@ class IcepapController(MotorController):
 
     def PreStartAll(self):
         """ If there is no connection, to the Icepap system, return False"""
+	    self.moveMultipleValues = []
         if not self.iPAP.connected:
             return False
 
@@ -224,7 +225,7 @@ class IcepapController(MotorController):
                 self.moveMultipleValues.append((axis,int(pos)))
                 return True
             except Exception,e:
-                self._log.error('PreStartOne(%d,%f).\nException:\n%s'%(axis,pos,str(e)))
+                self._log.error('PreStartOne(%d,%f).\nException:\n%s' % (axis,pos,str(e)))
                 raise
         else:
             self._log.debug('PreStartOne(%d,%f). No connection to %s.' % (axis,pos,self.Host))
@@ -239,7 +240,7 @@ class IcepapController(MotorController):
                 self.iPAP.moveMultiple(self.moveMultipleValues)
                 self.moveMultipleValues = []
             except Exception,e:
-                self._log.error('StartAll(%s).\nException:\n%s'%(str(self.moveMultipleValues,str(e))))
+                self._log.error('StartAll(%s).\nException:\n%s' % (str(self.moveMultipleValues),str(e)))
                 raise                               
         else:
             self._log.debug('StartAll(). No connection to %s.' % (self.Host))
@@ -263,7 +264,7 @@ class IcepapController(MotorController):
                 elif name.lower() == "step_per_unit":
                     self.attributes[axis]["step_per_unit"] = float(value)
             except Exception,e:
-                self._log.error('SetPar(%d,%s,%s).\nException:\n%s'%(axis,name,str(value),str(e)))
+                self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
         else:
             self._log.debug('SetPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
@@ -279,10 +280,10 @@ class IcepapController(MotorController):
             try:
                 register = self._getStatusRegister(axis)
                 if not isinstance(register,int):
-                    self._log.warning('GetPar(%d,%s): Invalid register: (%s)'%(axis,name,str(register)))
+                    self._log.warning('GetPar(%d,%s): Invalid register: (%s)' % (axis,name,str(register)))
                     return None
                 if IcepapStatus.isDisabled(register):
-                    self._log.warning('GetPar(%d,%s): Not active driver.'%(axis,name))
+                    self._log.warning('GetPar(%d,%s): Not active driver.' % (axis,name))
                     return None
                 
                 # THESE PARAMETERS ARE ONLY ALLOWED ON ACTIVE DRIVERS
@@ -301,7 +302,7 @@ class IcepapController(MotorController):
 
                 return None
             except Exception,e:
-                self._log.error('GetPar(%d,%s).\nException:\n%s'%(axis,name,str(e)))
+                self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
         else:
             self._log.debug('GetPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
@@ -403,7 +404,7 @@ class IcepapController(MotorController):
                 if name == "encshftenc" or name == "enctgtenc" or name == "posshftenc" or name == "postgtenc":
                     #IN SOME CASES THIS VALUES ARE NOT ACCESSIBLE
                     return
-                self._log.error('GetExtraAttributePar(%d,%s).\nException:\n%s'%(axis,name,str(e)))
+                self._log.error('GetExtraAttributePar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
         else:
             self._log.debug('GetExtraAttributePar(%d,%s). No connection to %s.' % (axis,name,self.Host))
@@ -466,7 +467,7 @@ class IcepapController(MotorController):
                 else:
                     PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()r", "Error setting " + name + ", not implemented", "SetExtraAttributePar()")
             except Exception,e:
-                self._log.error('SetExtraAttributePar(%d,%s,%s).\nException:\n%s'%(axis,name,str(value),str(e)))
+                self._log.error('SetExtraAttributePar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
         else:
             self._log.debug('SetExtraAttributePar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
