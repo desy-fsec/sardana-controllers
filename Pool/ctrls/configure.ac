@@ -218,6 +218,7 @@ AC_CONFIG_FILES([Makefile
                  lib/cpp/motor/Hexapod/Makefile
                  lib/cpp/motor/KohzuSCAxis/Makefile
                  lib/cpp/pseudocounter/Makefile
+                 lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile
                  lib/cpp/pseudocounter/current/Makefile
                  lib/cpp/pseudomotor/Makefile
                  lib/cpp/pseudomotor/diffractometer/Makefile

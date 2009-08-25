@@ -1,1 +1,1 @@
-SUBDIRS = current
+SUBDIRS = current LTB_BCM_PCs

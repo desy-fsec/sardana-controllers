@@ -92,7 +92,7 @@ class SimuMotorController(MotorController):
         #positions = [ y for x,y in self._mvBuff ]
         #self._getMotorCtrl().command_inout("SetAxePosition", [positions, indexes])
         for axis,pos in self._mvBuff:
-            self._getMotorCtrl().command_inout("SetAxePosition", [[pos], [axis]])
+            self._getMotorCtrl().command_inout("SetAxePosition", ((pos,), (str(axis),)))
         
     def SetPar(self, axis, par_name, value):
         d_in = [[value],[str(axis)]]

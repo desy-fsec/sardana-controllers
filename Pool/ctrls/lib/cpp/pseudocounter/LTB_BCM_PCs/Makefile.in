@@ -32,7 +32,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = lib/cpp/communication/serial
+subdir = lib/cpp/pseudocounter/LTB_BCM_PCs
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ac_python_devel.m4 \
@@ -53,9 +53,10 @@ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(pkglibdir)"
 pkglibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
-SerialComCtrl_la_LIBADD =
-am_SerialComCtrl_la_OBJECTS = SerialComCtrl.lo
-SerialComCtrl_la_OBJECTS = $(am_SerialComCtrl_la_OBJECTS)
+LTB_BCM_PseudoCoCtrl_la_LIBADD =
+am_LTB_BCM_PseudoCoCtrl_la_OBJECTS = LTB_BCM_PseudoCoCtrl.lo
+LTB_BCM_PseudoCoCtrl_la_OBJECTS =  \
+	$(am_LTB_BCM_PseudoCoCtrl_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -77,8 +78,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(SerialComCtrl_la_SOURCES)
-DIST_SOURCES = $(SerialComCtrl_la_SOURCES)
+SOURCES = $(LTB_BCM_PseudoCoCtrl_la_SOURCES)
+DIST_SOURCES = $(LTB_BCM_PseudoCoCtrl_la_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -220,16 +221,16 @@ top_srcdir = @top_srcdir@
 RSYNC_OPTS = -r --cvs-exclude
 @USE_PARENT_AS_POOL_PATH_FALSE@CTRL_ROOT = @POOL_ROOT@
 @USE_PARENT_AS_POOL_PATH_TRUE@CTRL_ROOT = $(top_srcdir)/..
-pkglib_LTLIBRARIES = SerialComCtrl.la
+pkglib_LTLIBRARIES = LTB_BCM_PseudoCoCtrl.la
 AM_CPPFLAGS = -I@TANGO_ROOT@/include \
 			-I@OMNI_ROOT@/include \
-			$(PYTHON_CPPFLAGS) \
+      $(PYTHON_CPPFLAGS) \
 			-I$(CTRL_ROOT)/include
 
 AM_CXXFLAGS = -DREENTRANT 
 AM_LDFLAGS = -module -avoid-version
-SerialComCtrl_la_SOURCES = $(srcdir)/SerialComCtrl.cpp \
-					$(srcdir)/SerialComCtrl.h
+LTB_BCM_PseudoCoCtrl_la_SOURCES = $(srcdir)/LTB_BCM_PseudoCoCtrl.cpp \
+					$(srcdir)/LTB_BCM_PseudoCoCtrl.h
 
 all: all-am
 
@@ -244,9 +245,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  lib/cpp/communication/serial/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  lib/cpp/communication/serial/Makefile
+	  $(AUTOMAKE) --gnu  lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -291,8 +292,8 @@ clean-pkglibLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-SerialComCtrl.la: $(SerialComCtrl_la_OBJECTS) $(SerialComCtrl_la_DEPENDENCIES) 
-	$(CXXLINK) -rpath $(pkglibdir) $(SerialComCtrl_la_OBJECTS) $(SerialComCtrl_la_LIBADD) $(LIBS)
+LTB_BCM_PseudoCoCtrl.la: $(LTB_BCM_PseudoCoCtrl_la_OBJECTS) $(LTB_BCM_PseudoCoCtrl_la_DEPENDENCIES) 
+	$(CXXLINK) -rpath $(pkglibdir) $(LTB_BCM_PseudoCoCtrl_la_OBJECTS) $(LTB_BCM_PseudoCoCtrl_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -300,7 +301,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SerialComCtrl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LTB_BCM_PseudoCoCtrl.Plo@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -323,12 +324,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
 
-SerialComCtrl.lo: $(srcdir)/SerialComCtrl.cpp
-@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT SerialComCtrl.lo -MD -MP -MF $(DEPDIR)/SerialComCtrl.Tpo -c -o SerialComCtrl.lo `test -f '$(srcdir)/SerialComCtrl.cpp' || echo '$(srcdir)/'`$(srcdir)/SerialComCtrl.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/SerialComCtrl.Tpo $(DEPDIR)/SerialComCtrl.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$(srcdir)/SerialComCtrl.cpp' object='SerialComCtrl.lo' libtool=yes @AMDEPBACKSLASH@
+LTB_BCM_PseudoCoCtrl.lo: $(srcdir)/LTB_BCM_PseudoCoCtrl.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT LTB_BCM_PseudoCoCtrl.lo -MD -MP -MF $(DEPDIR)/LTB_BCM_PseudoCoCtrl.Tpo -c -o LTB_BCM_PseudoCoCtrl.lo `test -f '$(srcdir)/LTB_BCM_PseudoCoCtrl.cpp' || echo '$(srcdir)/'`$(srcdir)/LTB_BCM_PseudoCoCtrl.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/LTB_BCM_PseudoCoCtrl.Tpo $(DEPDIR)/LTB_BCM_PseudoCoCtrl.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$(srcdir)/LTB_BCM_PseudoCoCtrl.cpp' object='LTB_BCM_PseudoCoCtrl.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o SerialComCtrl.lo `test -f '$(srcdir)/SerialComCtrl.cpp' || echo '$(srcdir)/'`$(srcdir)/SerialComCtrl.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o LTB_BCM_PseudoCoCtrl.lo `test -f '$(srcdir)/LTB_BCM_PseudoCoCtrl.cpp' || echo '$(srcdir)/'`$(srcdir)/LTB_BCM_PseudoCoCtrl.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo
