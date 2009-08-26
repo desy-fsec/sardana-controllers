@@ -210,7 +210,7 @@ class IcepapController(MotorController):
 
     def PreStartAll(self):
         """ If there is no connection, to the Icepap system, return False"""
-	    self.moveMultipleValues = []
+        self.moveMultipleValues = []
         if not self.iPAP.connected:
             return False
 
