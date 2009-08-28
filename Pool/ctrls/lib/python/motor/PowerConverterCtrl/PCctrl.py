@@ -30,7 +30,7 @@ class PowerConverterController(MotorController):
 
     def getPowerConverter(self, axis, raiseOnConnError=True):
         proxy = self.powerConverterProxys.get(axis)
-        devName = self.devList[axis-1]
+        devName = self.device_list[axis-1]
         if not proxy:
             proxy = pool.PoolUtil().get_device(self.inst_name, devName)
             self.powerConverterProxys[axis] = proxy
@@ -54,7 +54,7 @@ class PowerConverterController(MotorController):
 
     def StateOne(self,powerConverter):
         pc = self.getPowerConverter(powerConverter)
-        state = int(pc.read_attribute("state").value)
+        state = int(pc.read_attribute("State").value)
         switchstate = 0
         return (state, switchstate)
 
