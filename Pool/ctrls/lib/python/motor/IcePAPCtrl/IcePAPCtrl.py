@@ -57,7 +57,7 @@ class IcepapController(MotorController):
                              'PowerInfo':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'}
                              }
 
-    
+
     gender = "Motor"
     model = "Icepap"
     organization = "ALBA"
@@ -66,16 +66,16 @@ class IcepapController(MotorController):
     icon = "icepapicon.png"
     state = ""
     status = ""
-    
+
     MaxDevice = 128
-    
+
     def __init__(self,inst,props):
         """ Do the default init plus the icepap connection
         @param inst instance name of the controller
         @param properties of the controller
         """
         MotorController.__init__(self,inst,props)
-        
+
         self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
         self.attributes = {}
         self.moveMultipleValues = []
@@ -86,7 +86,7 @@ class IcepapController(MotorController):
         """
         self.attributes[axis] = {}
         self.attributes[axis]["pos_sel"] = ""
-        self.attributes[axis]["step_per_unit"] = 1  
+        self.attributes[axis]["step_per_unit"] = 1
         ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
         self.attributes[axis]["pulses_per_unit"] = 1
         self.attributes[axis]["statusdriverboard"] = "Not updated yet"
@@ -103,12 +103,12 @@ class IcepapController(MotorController):
         else:
             self._log.debug('AddDevice(%d). No connection to %s.' % (axis,self.Host))
 
-        
+
     def DeleteDevice(self,axis):
         """ Nothing special to do. """
         pass
-    
-    
+
+
     def StateOne(self,axis):
         """ Connect to the hardware and check the state. If no connection available, return ALARM.
         @param axis to read the state
@@ -232,7 +232,7 @@ class IcepapController(MotorController):
 
     def StartOne(self,axis,pos):
         pass
-            
+
     def StartAll(self):
         """ Move all axis at all position with just one command to the Icepap Controller. """
         if self.iPAP.connected:
@@ -241,7 +241,7 @@ class IcepapController(MotorController):
                 self.moveMultipleValues = []
             except Exception,e:
                 self._log.error('StartAll(%s).\nException:\n%s' % (str(self.moveMultipleValues),str(e)))
-                raise                               
+                raise
         else:
             self._log.debug('StartAll(). No connection to %s.' % (self.Host))
 
@@ -258,7 +258,7 @@ class IcepapController(MotorController):
                 elif name.lower() == "base_rate":
                     pass
                 elif name.lower() == "acceleration" or name == "deceleration":
-                    self.iPAP.setAcceleration(axis, value)        
+                    self.iPAP.setAcceleration(axis, value)
                 elif name.lower() == "backlash":
                     PyTango.Except.throw_exception("IcepapController_SetPar", "Error setting backlash, not implemented", "SetPar()")
                 elif name.lower() == "step_per_unit":
@@ -268,7 +268,7 @@ class IcepapController(MotorController):
                 raise
         else:
             self._log.debug('SetPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
-        
+
 
     def GetPar(self,axis,name):
         """ Get the standard pool motor parameters.
@@ -285,7 +285,7 @@ class IcepapController(MotorController):
                 if IcepapStatus.isDisabled(register):
                     self._log.warning('GetPar(%d,%s): Not active driver.' % (axis,name))
                     return None
-                
+
                 # THESE PARAMETERS ARE ONLY ALLOWED ON ACTIVE DRIVERS
                 if name.lower() == "velocity":
                     return float(self.iPAP.getSpeed(axis))
@@ -297,7 +297,7 @@ class IcepapController(MotorController):
                 elif name.lower() == "backlash":
                     PyTango.Except.throw_exception("IcepapController_GetPar", "Error getting backlash, not implemented", "GetPar()")
                 elif name.lower() == "step_per_unit":
-                    return float(self.attributes[axis]["step_per_unit"]) 
+                    return float(self.attributes[axis]["step_per_unit"])
 
 
                 return None
@@ -428,7 +428,7 @@ class IcepapController(MotorController):
                     if value in IcepapRegisters.PositionRegisters:
                         self.attributes[axis]["pos_sel"] = value
                     else:
-                        PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()", "Error setting " + name + ", wrong value", "SetExtraAttributePar()")                
+                        PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()", "Error setting " + name + ", wrong value", "SetExtraAttributePar()")
                 elif name == "enableencoder_5v":
                     if value:
                         self.iPAP.setAuxPS(axis, IcepapAnswers.ON)
@@ -448,7 +448,7 @@ class IcepapController(MotorController):
                 ## THIS IS A TEMPORARY TRICK UNTIL THE ICEPAP MANAGES ENCODER PULSES INPUT
                 elif name == "pulses_per_unit":
                     self.attributes[axis]["pulses_per_unit"] = float(value)
-                    
+
                 elif name.startswith("info"):
                     name = name.upper()
                     value = value.split()
@@ -460,10 +460,10 @@ class IcepapController(MotorController):
                         polarity = value[1].upper()
                         if not polarity in IcepapInfo.Polarity:
                             PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar(r", "Error setting " + name + ", [Source = ("+str(IcepapInfo.Sources) + "), Polarity= ("+str(IcepapInfo.Polarity)+")]", "SetExtraAttributePar()")
-                    
-                    
-                    #self.iPAP.setInfoSource(axis, name, src, polarity)                            
-                    self.iPAP.setInfo(axis, name, src, polarity)                            
+
+
+                    #self.iPAP.setInfoSource(axis, name, src, polarity)
+                    self.iPAP.setInfo(axis, name, src, polarity)
                 else:
                     PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()r", "Error setting " + name + ", not implemented", "SetExtraAttributePar()")
             except Exception,e:
@@ -536,4 +536,4 @@ class IcepapController(MotorController):
         except Exception, e:
             pass
         return register
-        
+
