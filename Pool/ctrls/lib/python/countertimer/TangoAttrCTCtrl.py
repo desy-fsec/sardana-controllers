@@ -6,7 +6,7 @@ from pool import PoolUtil
 TANGO_ATTR = 'TangoAttribute'
 FORMULA = 'Formula'
 DEVICE = 'Device'
-ATTRIBUTE = 'Attriubte'
+ATTRIBUTE = 'Attribute'
 EVALUATED_VALUE = 'Evaluated_value'
 INDEX_READ_ALL = 'Index_read_all'
 
@@ -63,7 +63,10 @@ class ReadTangoAttributes():
         for dev in self.devices_to_read.keys():
             attributes = self.devices_to_read[dev]
             dev_proxy = PoolUtil().get_device(self.inst_name, dev)
-            values = dev_proxy.read_attributes(attributes)
+            try:
+                values = dev_proxy.read_attributes(attributes)
+            except Exception,e:
+                self._log.error('Exception reading attributes:%s.%s' % (dev,str(attributes)))
             for attr in attributes:
                 axis = self.axis_by_tango_attribute[dev+'/'+attr]
                 formula = self.devsExtraAttributes[axis][FORMULA]
