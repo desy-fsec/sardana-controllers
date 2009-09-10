@@ -5,36 +5,34 @@ from pool import MotorController
 import array
 import sys
 
-# ????: What does setPar do?
-
+TANGO_DEV = 'TangoDevice'
 
 class PowerConverterController(MotorController):
     """This class is the Tango Sardana motor controller for the Tango Power Converter device. The common 'axis' in a classical motor, here is the current in the PowerConverter"""
 
-    # The controller have common for all the axis
-    class_prop = {'device_list':{'Description' : 'List of the PowerConverters Tango device names','Type' : 'PyTango.DevVarStringArray'}}
-
+    
     #Each 'axis' ('PowerConverter') have a particular 'ctrl_extra_attributes'
-    #ctrl_extra_attributes = { 'TangoDevice':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE','Description':'Tango-ds name.'}}
+    ctrl_extra_attributes = { TANGO_DEV:{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE','Description':'Tango-ds name.'}}
 
     gender = "PowerConverter"
     model = "Simulator"
     organization = "CELLS - ALBA"
     devList = None
 
-    MaxDevice = 10**87
+    MaxDevice = 1024
 
     def __init__(self,inst,props):
         MotorController.__init__(self, inst, props)
+        self.extra_attributes = {}
         self.powerConverterProxys = {}
 
     def getPowerConverter(self, axis, raiseOnConnError=True):
         proxy = self.powerConverterProxys.get(axis)
-        devName = self.device_list[axis-1]
         if not proxy:
-            proxy = pool.PoolUtil().get_device(self.inst_name, devName)
-            self.powerConverterProxys[axis] = proxy
-
+            devName = self.extra_attributes[axis][TANGO_DEV]
+            if devName is not None:
+                proxy = pool.PoolUtil().get_device(self.inst_name, devName)
+                self.powerConverterProxys[axis] = proxy
         if False:
           try:
               proxy.ping()
@@ -47,13 +45,17 @@ class PowerConverterController(MotorController):
         return proxy
 
     def AddDevice(self, axis):
-        pass #< nothing to be done :-)
+        self.extra_attributes[axis] = {}
+        self.extra_attributes[axis][TANGO_DEV] = None
 
     def DeleteDevice(self, axis):
         del self.powerConverterProxys[axis]
+        del self.extra_attributes[axis]
 
-    def StateOne(self,powerConverter):
-        pc = self.getPowerConverter(powerConverter)
+    def StateOne(self, axis):
+        pc = self.getPowerConverter(axis)
+        if pc is None:
+            return (int(PyTango.DevState.ALARM), 0)
         state = int(pc.read_attribute("State").value)
         switchstate = 0
         return (state, switchstate)
@@ -62,37 +64,38 @@ class PowerConverterController(MotorController):
         #Read the specific current that the PowerConverter supplies related to this axis corresponds.
         return self.getPowerConverter(axis).read_attribute('Current').value
 
-    def StartOne(self,powerConverter,current):
-        self.getPowerConverter(powerConverter).write_attribute('CurrentSetpoint',current)
+    def StartOne(self, axis, current):
+        self.getPowerConverter(axis).write_attribute('CurrentSetpoint', current)
 
   
-    def SetPar(self,powerConverter,name,value):
-        print "[PowerConverterController]",self.inst_name,": In SetPar method for powerConverter",powerConverter-1," name=",name," value=",value
-        #nothing to do	
-
-    def GetPar(self, axis, name):
-        print "[PowerConverterController]",self.inst_name,": In GetPar method for powerConverter",powerConverter-1," name=",name
-        #nothing to do
-	if name.lower()=='velocity':
-	  return self.getPowerConverter(axis).read_attribute('CurrentRamp').value
-
-    def GetExtraAttributePar(self, powerConverter, name):
-        return 0
-
-    def SetExtraAttributePar(self, powerConverter, name, value):
+    def SetPar(self, axis, name, value):
+        #print "[PowerConverterController]",self.inst_name,": In SetPar method for powerConverter",axis," name=",name," value=",value
         pass
 
-    def AbortOne(self, pc_idx):
-        pc = self.getPowerConverter(pc_idx)
+    def GetPar(self, axis, name):
+        #print "[PowerConverterController]",self.inst_name,": In GetPar method for powerConverter",axis," name=",name
+        if name.lower()=='velocity':
+            return self.getPowerConverter(axis).read_attribute('CurrentRamp').value
+
+    def GetExtraAttributePar(self, axis, name):
+        if name in [TANGO_DEV,]:
+            return self.extra_attributes[axis][name]
+
+    def SetExtraAttributePar(self, axis, name, value):
+        if name in [TANGO_DEV,]:
+            self.extra_attributes[axis][name] = value
+
+    def AbortOne(self, axis):
+        pc = self.getPowerConverter(axis)
         current = pc.read_attribute('Current')
         pc.write_attribute('CurrentSetpoint', current)
 
-    def StopOne(self,powerConverter):
-        print "[PowerConverterController]",self.inst_name,": In StopOne for powerConverter",powerConverter-1
-        #nothing to do
+    def StopOne(self, axis):
+        #print "[PowerConverterController]",self.inst_name,": In StopOne for powerConverter",axis
+        pass
 
     def DefinePosition(self, axis, current):
-	raise Exception('not implemented')
+        raise Exception('not implemented')
         pc = self.getPowerConverter(axis)
         # assumes that the power converter has reached its setpoint        
         setp = pc.read_attribute('CurrentSetpoint')
