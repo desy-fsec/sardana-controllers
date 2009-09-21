@@ -139,7 +139,6 @@ class TangoAttrMotorController(MotorController):
             self.tauAttributes[axis][name] = value
             if name == TANGO_ATTR:
                 self.tauAttributes[axis][TAU_ATTR] = tau.Factory().getAttribute(value)
-                self.axis_by_tango_attribute[value] = axis
         except Exception,e:
             self._log.error("(%d) error setting attribute: %s" % (axis, str(e)))
         
