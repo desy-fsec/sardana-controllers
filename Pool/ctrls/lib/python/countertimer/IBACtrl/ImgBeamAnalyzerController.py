@@ -1,3 +1,37 @@
+#!/usr/bin/env python
+
+#############################################################################
+##
+## file :        ImgBeamAanalyzrController.py
+##
+## description :
+##
+## project :     Sardana
+##
+## $Author: sblanch $
+##
+## copyleft :    Cells / Alba Synchrotron
+##               Bellaterra
+##               Spain
+##
+#############################################################################
+##
+## This file is part of Tango-ds.
+##
+## Tango-ds is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 3 of the License, or
+## (at your option) any later version.
+##
+## Tango-ds is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+
 import PyTango
 from pool import CounterTimerController
 import time
@@ -8,7 +42,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
 
 	class_prop = {'devName':{'Description' : 'ImgBeamAnalyzer Tango device','Type' : 'PyTango.DevString'}}
 
-	MaxDevice = 15 #only one device, but with 6 attributes per device
+	MaxDevice = 10 #only one device
 
 	gender = "ImgBeamAnalyzer"
 	model = "Ccd Img processor"
@@ -17,9 +51,9 @@ class ImgBeamAnalyzerController(CounterTimerController):
 	ImgBeamAnalyzerProxys = {}
 
 	def stateBridge(self,state):
-		if state == PyTango.DevState.RUNNING:
-			return PyTango.DevState.ON
 		if state == PyTango.DevState.STANDBY:
+			return PyTango.DevState.ON
+		if state == PyTango.DevState.RUNNING:
 			return PyTango.DevState.MOVING
 		if state == PyTango.DevState.FAULT:
 			return PyTango.DevState.ALARM
@@ -30,21 +64,16 @@ class ImgBeamAnalyzerController(CounterTimerController):
 		CounterTimerController.__init__(self,inst,props)
 		print "[ImgBeamAnalyzerController] CounterTimerController for instance",self.inst_name," with the properties",props
 		self.ch_attrs = {
-			1 : 'CentroidX',
-			2 : 'CentroidY',
-			3 : 'VarianceX',
-			4 : 'VarianceY',
-			5 : 'XProjFitCenter',
-			6 : 'YProjFitCenter',
-			7 : 'XProjFitSigma',
-			8 : 'YProjFitSigma',
-			9 : 'GaussianFitCenterX',
-			10 : 'GaussianFitCenterY',
-			11 : 'GaussianFitVarianceX',
-			12 : 'GaussianFitVarianceY',
-			13 : 'GaussianFitMajorAxisFWHM',
-			14 : 'GaussianFitMinorAxisFWHM',
-			15 : 'GaussianFitTilt'}
+			1  : 'CentroidX',
+			2  : 'CentroidY',
+			3  : 'RmsX',
+			4  : 'RmsY',
+			5  : 'XProjFitConverged',
+			6  : 'YProjFitConverged',
+			7  : 'XProjFitCenter',
+			8  : 'YProjFitCenter',
+			9  : 'XProjFitSigma',
+			10 : 'YProjFitSigma'}
 		self.ImgBeamAnalyzerProxys = [None,] # This controller can only connect to one device. #self.MaxDevice*[None,]
 		self.readList = []#self.MaxDevice*[None,]
 		self.ansList = []#self.MaxDevice*[None,]
