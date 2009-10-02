@@ -18,7 +18,6 @@ class LI_BCM_PCCtrl(PseudoCounterController):
     #           ibend: motor/lt01_pc_bend1/1
     
     counter_roles = ('bcm1', 'bcm2')
-    # THERE'S A BUG AND CAN NOT USE THE SCRIPT TO CREATE PCs PHISICAL CHANNELS!
     pseudo_counter_roles = ('cr', 'crgap', 'e', 'egap', 'gap', 'offset', 'ibend', 'crnorm')
 
 
