@@ -2,6 +2,7 @@ from PyTango import DevState
 from pool import CounterTimerController
 from pool import ZeroDController
 from pool import PoolUtil
+import math
 
 TANGO_ATTR = 'TangoAttribute'
 FORMULA = 'Formula'
@@ -22,7 +23,7 @@ class ReadTangoAttributes():
                              ,'R/W Type':'PyTango.READ_WRITE'},
                             FORMULA:
                             {'Type':'PyTango.DevString'
-                             ,'Description':'The Formula to get the desired value.\ne.g. "sqrt(VALUE)"'
+                             ,'Description':'The Formula to get the desired value.\ne.g. "math.sqrt(VALUE)"'
                              ,'R/W Type':'PyTango.READ_WRITE'}
                             }
     
@@ -104,9 +105,9 @@ class TangoAttrCTController(CounterTimerController, ReadTangoAttributes):
     ch1.TangoExtraAttribute = 'my/tango/device/attribute1'
     ch1.Formula = '-1 * VALUE'
     ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
-    ch2.Formula = 'sqrt(VALUE)'
+    ch2.Formula = 'math.sqrt(VALUE)'
     ch3.TangoExtraAttribute = 'my_other/tango/device/attribute1'
-    ch3.Formula = 'cos(VALUE)'
+    ch3.Formula = 'math.cos(VALUE)'
     """
                  
     gender = ""
