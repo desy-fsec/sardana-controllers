@@ -1,6 +1,6 @@
 import PyTango
 import pool
-from pool import MotorController
+from pool import CounterTimerController
 import array
 import sys
 
