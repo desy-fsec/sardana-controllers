@@ -1,9 +1,10 @@
 from PyTango import DevState
 from PyTango import AttrQuality
+from PyTango import AttributeProxy
+from PyTango import DevFailed
 from pool import MotorController
 from pool import PoolUtil
 import math
-import tau
 
 TANGO_ATTR = 'TangoAttribute'
 FORMULA_READ = 'FormulaRead'
@@ -66,15 +67,17 @@ class TangoAttrMotorController(MotorController):
             state = DevState.ON
             switch_state = 0
             tau_attr = self.tauAttributes[axis][TAU_ATTR]
+            if tau_attr is None:
+                return (DevState.ALARM, "attribute proxy is None", 0)
             if tau_attr.read().quality == AttrQuality.ATTR_CHANGING:
                 state = DevState.MOVING
 
             # SHOULD DEAL ALSO ABOUT LIMITS
             switch_state = 0
-            return (int(state), switch_state)
+            return (state, "OK", switch_state)
         except Exception,e:
             self._log.error(" (%d) error getting state: %s"%(axis,str(e)))
-            return (int(DevState.ALARM), 0)
+            return (DevState.ALARM, "Exception: %s" % str(e), 0)
 
     def PreReadAll(self):
         pass
@@ -88,6 +91,8 @@ class TangoAttrMotorController(MotorController):
     def ReadOne(self, axis):
         try:
             tau_attr = self.tauAttributes[axis][TAU_ATTR]
+            if tau_attr is None:
+                raise Exception("attribute proxy is None")
             formula = self.tauAttributes[axis][FORMULA_READ]
             VALUE = tau_attr.read().value
             value = VALUE # just in case 'VALUE' has been written in lowercase in the formula...
@@ -96,12 +101,13 @@ class TangoAttrMotorController(MotorController):
             return evaluated_value
         except Exception,e:
             self._log.error("(%d) error reading: %s" % (axis,str(e)))
+            raise e
     
     def PreStartAll(self):
         pass
 
     def PreStartOne(self, axis, pos):
-        return True
+        return not self.tauAttributes[axis][TAU_ATTR] is None
 
     def StartOne(self, axis, pos):
         try:
@@ -111,7 +117,7 @@ class TangoAttrMotorController(MotorController):
             value = VALUE # just in case 'VALUE' has been written in lowercase in the formula...
             evaluated_value = eval(formula)
             tau_attr.write(evaluated_value)
-            self._log.info('(%d) from Motor(%s) to Tango(%s)' % (axis, str(value), str(evaluated_value)))
+            self._log.info("(%d) from Motor(%s) to Tango(%s)" % (axis, str(value), str(evaluated_value)))
         except Exception,e:
             self._log.error("(%d) error writing: %s" % (axis,str(e)))
 
@@ -135,12 +141,23 @@ class TangoAttrMotorController(MotorController):
 
     def SetExtraAttributePar(self,axis, name, value):
         try:
-            self._log.info('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
+            self._log.info("SetExtraAttributePar [%d] %s = %s" % (axis, name, value))
             self.tauAttributes[axis][name] = value
             if name == TANGO_ATTR:
-                self.tauAttributes[axis][TAU_ATTR] = tau.Factory().getAttribute(value)
+                try:
+                    self.tauAttributes[axis][TAU_ATTR] = AttributeProxy(value)
+                except Exception, e:
+                    self.tauAttributes[axis][TAU_ATTR] = None
+                    raise e
+        except DevFailed, df:
+            de = df[0]
+            self._log.info("SetExtraAttribute DevFailed: (%s) %s" % (de.reason, de.desc))
+            self._log.debug("SetExtraAttribute DevFailed: %s" % str(df))
+            #raise df
         except Exception,e:
-            self._log.error("(%d) error setting attribute: %s" % (axis, str(e)))
+            self._log.warning("SetExtraAttribute Exception: %s" % str(e))
+            #raise e
+
         
     def SendToCtrl(self,in_data):
         return ""

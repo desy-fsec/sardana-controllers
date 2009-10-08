@@ -34,145 +34,124 @@
 
 import PyTango
 from pool import CounterTimerController
+from pool import PoolUtil
 import time
 
 class ImgBeamAnalyzerController(CounterTimerController):
-	"""This class is the Tango Sardana CounterTimer controller for the Tango ImgBeamAnalyzer device.
-	One controller only knows one device, and each counter channel responds to one specific device attribute."""
+    """This class is the Tango Sardana CounterTimer controller for the Tango ImgBeamAnalyzer device.
+    One controller only knows one device, and each counter channel responds to one specific device attribute."""
 
-	class_prop = {'devName':{'Description' : 'ImgBeamAnalyzer Tango device','Type' : 'PyTango.DevString'}}
+    class_prop = {'devName':{'Description' : 'ImgBeamAnalyzer Tango device','Type' : 'PyTango.DevString'}}
 
-	MaxDevice = 10 #only one device
+    MaxDevice = 10 #only one device
 
-	gender = "ImgBeamAnalyzer"
-	model = "Ccd Img processor"
-	organization = "CELLS - ALBA"
+    gender = "ImgBeamAnalyzer"
+    model = "Ccd Img processor"
+    organization = "CELLS - ALBA"
 
-	ImgBeamAnalyzerProxys = {}
+    ImgBeamAnalyzerProxys = {}
 
-	def stateBridge(self,state):
-		if state == PyTango.DevState.STANDBY:
-			return PyTango.DevState.ON
-		if state == PyTango.DevState.RUNNING:
-			return PyTango.DevState.MOVING
-		if state == PyTango.DevState.FAULT:
-			return PyTango.DevState.ALARM
-		else:
-			return PyTango.DevState.ALARM
+    def stateBridge(self,state):
+        if state == PyTango.DevState.STANDBY:
+            return PyTango.DevState.ON
+        if state == PyTango.DevState.RUNNING:
+            return PyTango.DevState.MOVING
+        if state == PyTango.DevState.FAULT:
+            return PyTango.DevState.ALARM
+        else:
+            return PyTango.DevState.ALARM
 
-	def __init__(self,inst,props):
-		CounterTimerController.__init__(self,inst,props)
-		print "[ImgBeamAnalyzerController] CounterTimerController for instance",self.inst_name," with the properties",props
-		self.ch_attrs = {
-			1  : 'CentroidX',
-			2  : 'CentroidY',
-			3  : 'RmsX',
-			4  : 'RmsY',
-			5  : 'XProjFitConverged',
-			6  : 'YProjFitConverged',
-			7  : 'XProjFitCenter',
-			8  : 'YProjFitCenter',
-			9  : 'XProjFitSigma',
-			10 : 'YProjFitSigma'}
-		self.ImgBeamAnalyzerProxys = [None,] # This controller can only connect to one device. #self.MaxDevice*[None,]
-		self.readList = []#self.MaxDevice*[None,]
-		self.ansList = []#self.MaxDevice*[None,]
-		self.CrtlState = PyTango.DevState.ON
+    def __init__(self,inst,props):
+        CounterTimerController.__init__(self,inst,props)
+        self.ch_attrs = {
+            1  : 'CentroidX',
+            2  : 'CentroidY',
+            3  : 'RmsX',
+            4  : 'RmsY',
+            5  : 'XProjFitConverged',
+            6  : 'YProjFitConverged',
+            7  : 'XProjFitCenter',
+            8  : 'YProjFitCenter',
+            9  : 'XProjFitSigma',
+            10 : 'YProjFitSigma'}
+        self.ImgBeamAnalyzerProxys = None
+        self.readList = []
+        self.readIndex = {}
+        self.ansList = []
+        self.CrtlState = PyTango.DevState.ON
 
-	def AddDevice(self,ind):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In AddDevice method for index",ind
-		#if self.devList[ind-1]: #Remember this controller, only one tango device
-		#	self.ImgBeamAnalyzerProxys[ind-1] = PyTango.DeviceProxy(self.devList[ind-1])
-		#	print "[ImgBeamAnalyzerController]",self.inst_name,": In AddDevice method added",self.ImgBeamAnalyzerProxys[ind-1].name()
-		#else:
-		#	print "[ImgBeamAnalyzerController]",self.inst_name,": In AddDevice method, no element in class_prop"
-		self.ImgBeamAnalyzerProxys = PyTango.DeviceProxy(self.devName)
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In AddDevice method added",self.ImgBeamAnalyzerProxys.name()
+    def getIBA(self):
+        return PoolUtil().get_device(self.inst_name, self.devName)
 
-	def DeleteDevice(self,ind):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In DeleteDevice method for index",ind
-		#del self.ImgBeamAnalyzerProxys[ind-1]
-		del self.ImgBeamAnalyzerProxys
+    def AddDevice(self,ind):
+        if ind > 10:
+            raise Exception("This IBA controller only supports 10 axis")
 
-	def StateAll(self):
-		localState = self.ImgBeamAnalyzerProxys.state()
-		state = self.stateBridge(localState)
-		self.CrtlState = state
-		switchstate = 0
-		#print "[ImgBeamAnalyzerController]",self.inst_name,": In StateAll method: Device State = ",localState,": PoolState = ",state
-		return (int(state), switchstate)
+    def DeleteDevice(self,ind):
+        pass
+    
+    def StateAll(self):
+        iba = self.getIBA()
+        
+        try:
+            localState = iba.state()
+        except Exception,e:
+            self.CrtlState = PyTango.DevState.ALARM, str(e)
+            return
+        
+        state = self.stateBridge(localState)
+        self.CrtlState = state, "ONE eq to ALL"
 
-	def StateOne(self,ind):
-		#print "[ImgBeamAnalyzerController]",self.inst_name,": In StateOne method for index",ind
-		#state = self.ImgBeamAnalyzerProxys[ind-1].state()
-		#localState = self.ImgBeamAnalyzerProxys.state()
-		#print "[ImgBeamAnalyzerController]",self.inst_name,": Device State = ",localState
-		#state = self.stateBridge(localState)
-		#print "[ImgBeamAnalyzerController]",self.inst_name,": PoolState = ",state
-		#print "[ImgBeamAnalyzerController]",self.inst_name,": In StateOne method for index",ind,": Device State = ",localState,": PoolState = ",state
-		#print "[ImgBeamAnalyzerController]",self.inst_name,": In StateOne method for index",ind,": State = ",self.CrtlState
-		return (self.CrtlState, "ONE eq to ALL")
-		#return (PyTango.DevState.ON,"forced ON")
+    def StateOne(self,ind):
+        return self.CrtlState
 
-	def PreReadAll(self):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In PreReadAll method"
-		#clean lastest queries
-		self.readList = []#self.MaxDevice*[None,]
-		self.ansList = []#self.MaxDevice*[None,]
+    def PreReadAll(self):
+        # we try to get IBA proxy to check for errors.
+        iba = self.getIBA()
 
-	def PreReadOne(self,ind):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In PreReadOne method for index",ind
-		#store a list
-		#self.readList.append(self.ImgBeamAnalyzerProxys[ind-1].name())
-		self.readList.append(self.ch_attrs[ind])
+        self.readList = []
+        self.readIndex = {}
+        self.ansList = []
 
-	def ReadAll(self):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In ReadAll method"
-		#send one transaction to tango to read multiples atributes with read_atrubuteS
-		print "[ImgBeamAnalyzerController]",self.inst_name,": list",self.readList
-		try:
-			self.ansList = self.ImgBeamAnalyzerProxys.read_attributes(self.readList)
-		except e:
-			print "[ImgBeamAnalyzerController]",self.inst_name,": In ReadAll method exception ",e
+    def PreReadOne(self,ind):
+        ch_name = self.ch_attrs[ind]
+        self.readList.append(ch_name)
+        self.readIndex[ind] = len(self.readList)-1
 
-	def ReadOne(self,ind):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In ReadOne method for index",ind
-		#send back the exactly one that the pool asks.
-		#return self.ansList[ind].value #!! This does NOT work if the PreReadOne ask the elements in a different than ReadOne!
-		return self.ansList[self.readList.index(self.ch_attrs[ind])].value
+    def ReadAll(self):
+        iba = self.getIBA()
+        
+        try:
+            self.ansList = iba.read_attributes(self.readList)
+        except Exception, e:
+            print "[ImgBeamAnalyzerController]",self.inst_name,": In ReadAll method exception ",e
 
-	def AbortOne(self,ind):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In AbortOne method for index",ind
-		pass
+    def ReadOne(self,ind):
+        return self.ansList[self.readIndex[ind]].value
 
-	def PreStartAllCT(self):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In PreStartAllCT method"
-		pass
+    def AbortOne(self,ind):
+        pass
 
-	def StartOneCT(self,ind):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In StartOneCT method for index",ind
-		pass
+    def PreStartAllCT(self):
+        pass
 
-	def StartAllCT(self):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In StartAllCT method"
-		pass
+    def StartOneCT(self,ind):
+        pass
 
-	def LoadOne(self,ind,value):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In LoadOne method for index",ind," value=",value
-		pass
+    def StartAllCT(self):
+        pass
 
-	def GetExtraAttributePar(self,ind,name):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In GetExtraAttributePar method for IBA-ct",ind," name=",name
-		pass
+    def LoadOne(self,ind,value):
+        pass
 
-	def SetExtraAttributePar(self,ind,name,value):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": In SetExtraAttributePar method for IBA-ct",ind," name=",name," value=",value
-		pass
+    def GetExtraAttributePar(self,ind,name):
+        pass
 
-	def SendToCtrl(self,in_data):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": Received value =",in_data
-		return "Adios"
+    def SetExtraAttributePar(self,ind,name,value):
+        pass
 
-	def __del__(self):
-		print "[ImgBeamAnalyzerController]",self.inst_name,": Destroyed"
-		pass
+    def SendToCtrl(self,in_data):
+        return "Adios"
+
+    def __del__(self):
+        pass

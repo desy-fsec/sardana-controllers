@@ -142,7 +142,7 @@ class NSC200Controller(MotorController):
             switchstate = 4
         elif int(upper) == 1:
             switchstate = 2
-        state = (int(status), switchstate)
+        state = (status, "OK", switchstate)
         return state
 
     def PreReadAll(self):

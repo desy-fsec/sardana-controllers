@@ -166,7 +166,7 @@ class TangoAttrCTController(CounterTimerController, ReadTangoAttributes):
         pass
     
     def GetExtraAttributePar(self, axis, name):
-        return self.get_extra_attriubte_par(axis, name)
+        return self.get_extra_attribute_par(axis, name)
 
     def SetExtraAttributePar(self,axis, name, value):
         self.set_extra_attribute_par(axis, name, value)

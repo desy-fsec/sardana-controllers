@@ -9,6 +9,8 @@ class Motor:
         self.mv = None
         self.state = None
         self.switchstate = None
+        self.step_per_unit = 1
+        self.backlash = 0
 
 class SimuMotorController(MotorController):
     """This class represents a motor controller that connects to a Tango
@@ -63,7 +65,7 @@ class SimuMotorController(MotorController):
             
     def StateOne(self,axis):
         m = self.m[axis]
-        return (int(m.state), m.switchstate)
+        return (m.state, "OK", m.switchstate)
 
     def PreReadAll(self):
         pass
@@ -76,6 +78,7 @@ class SimuMotorController(MotorController):
 
     def ReadOne(self,axis):
         res = self._getMotorCtrl().command_inout("GetAxePosition", axis)
+        res = res / self.m[axis].step_per_unit
         return res
     
     def PreStartAll(self):
@@ -85,6 +88,7 @@ class SimuMotorController(MotorController):
         return True
 
     def StartOne(self,axis,pos):
+        pos = pos * self.m[axis].step_per_unit
         self._mvBuff.append((axis,pos))
         
     def StartAll(self):
@@ -105,9 +109,9 @@ class SimuMotorController(MotorController):
         elif par_name == "Deceleration":
             self._getMotorCtrl().command_inout("SetAxeDeceleration", d_in)
         elif par_name == "Step_per_unit":
-            pass
+            self.m[axis].step_per_unit = value
         elif par_name == "Backlash":
-            pass
+            self.m[axis].backlash = value
             
     def GetPar(self, axis, par_name):
         if par_name == "Acceleration":
@@ -119,7 +123,7 @@ class SimuMotorController(MotorController):
         elif par_name == "Deceleration":
             return self._getMotorCtrl().command_inout("GetAxeDeceleration", axis)
         elif par_name == "Backlash":
-            return 11.111
+            self.m[axis].backlash = value
         
 
     def GetExtraAttributePar(self,axis,name):

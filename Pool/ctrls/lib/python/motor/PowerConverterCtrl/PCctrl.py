@@ -33,6 +33,8 @@ class PowerConverterController(MotorController):
             if devName is not None:
                 proxy = pool.PoolUtil().get_device(self.inst_name, devName)
                 self.powerConverterProxys[axis] = proxy
+                if proxy is None and raiseOnConnError:
+                    raise Exception("Proxy for '%s' could not be created" % devName)
         if False:
           try:
               proxy.ping()
@@ -53,12 +55,13 @@ class PowerConverterController(MotorController):
         del self.extra_attributes[axis]
 
     def StateOne(self, axis):
-        pc = self.getPowerConverter(axis)
-        if pc is None:
-            return (int(PyTango.DevState.ALARM), 0)
-        state = int(pc.read_attribute("State").value)
-        switchstate = 0
-        return (state, switchstate)
+        try:
+            pc = self.getPowerConverter(axis)
+            state = pc.read_attribute("State").value
+            return state, "OK", 0
+        except Exception,e:
+            return PyTango.DevState.ALARM), str(e), 0
+        
 
     def ReadOne(self, axis):
         #Read the specific current that the PowerConverter supplies related to this axis corresponds.

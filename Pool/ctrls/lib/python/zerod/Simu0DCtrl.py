@@ -1,4 +1,4 @@
-from PyTango import DevState
+from PyTango import DevState, DevFailed
 from pool import ZeroDController
 import pool
 
@@ -54,10 +54,27 @@ class Simu0DController(ZeroDController):
             self._log.error("Invalid axis %d" % axis)
             return
         del self.channels[axis]
-    
+
+    def PreStateAll(self):
+        for c in self.channels.values():
+            c.state = None
+            
+    def StateAll(self):
+        for c in self.channels.values():
+            try:
+                c.dev.ping()
+                c.state = c.dev.state()
+                c.status = str(c.state)
+            except DevFailed, df:
+                c.state = DevState.FAULT
+                c.status = df[0].desc
+            except Exception,e:
+                c.state = DevState.FAULT
+                c.status = str(e)
+            
     def StateOne(self, axis):
         c = self.channels[axis]
-        return (c.dev.state(), c.dev.status())
+        return (c.state, c.status)
 
     def PreReadAll(self):
         pass

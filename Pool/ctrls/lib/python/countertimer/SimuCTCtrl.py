@@ -50,19 +50,23 @@ class SimuCoTiController(CounterTimerController):
         
     def PreStateAll(self):
         for c in self._counters.values():
-            c.state, c.switchstate = None, None
+            c.state = None
             
     def StateAll(self):
-        for c in self._counters.values():
-            try:
-                self._getCTCtrl().ping()
-                c.state, c.status = self._getCTCtrl().command_inout("GetCounterState",c.axis), "OK"
-            except:
+        try:
+            self._getCTCtrl().ping()
+        except:
+            for c in self._counters.values():
                 c.state, c.status = PyTango.DevState.OFF, "Offline"
+            return
+        
+        for c in self._counters.values():
+            c.state = self._getCTCtrl().command_inout("GetCounterState", c.axis)
+            c.status = str(c.state)
             
     def StateOne(self, axis):
         c = self._counters[axis]
-        return (int(c.state), c.status)
+        return (c.state, c.status)
 
     def PreReadAll(self):
         pass
