@@ -60,7 +60,7 @@ class PowerConverterController(MotorController):
             state = pc.read_attribute("State").value
             return state, "OK", 0
         except Exception,e:
-            return PyTango.DevState.ALARM), str(e), 0
+            return PyTango.DevState.ALARM, str(e), 0
         
 
     def ReadOne(self, axis):
