@@ -114,6 +114,10 @@ class IcepapController(MotorController):
         @param axis to read the state
         @return the state value: {ALARM|ON|MOVING}
         """
+        status_template = "DRV(%s) PWR(%s) STATE(%s) LIM+(%s) LIM-(%s)"
+        status_enable = '?'
+        status_power = '?'
+        status_state = '?'
         driver_status = '\nIcepap is not connected'
         power_info = '\nIcepap is not connected'
         if self.iPAP.connected:
@@ -121,32 +125,45 @@ class IcepapController(MotorController):
             driver_status = ''
             try:
                 state = PyTango.DevState.UNKNOWN
+                status_state = 'UNKNOWN'
                 register = self._getStatusRegister(axis)
                 if not isinstance(register,int):
+                    status_enable = 'NOT_PRESENT'
                     self._log.warning('StateOne(%d): Invalid register: (%s)' % (axis,str(register)))
                     driver_status += '\nDriver board %d NOT OPERATIVE\nRegister: %s' % (axis,register)
                     register = 0
                 statereg = IcepapStatus.isDisabled(register)
                 if int(statereg) == 1:
+                    status_enable = 'DISABLE'
                     driver_status += '\nDriver is disabled'
+                    status = 'Driver %d NOT ENABLED' % axis
                     state = PyTango.DevState.ALARM
+                    status_state = 'ALARM'
                 else:
+                    status_enable = 'ENABLE'
                     driver_status += '\nDriver is enabled'
                     power = self.iPAP.getPower(axis)
                     power = (power == IcepapAnswers.ON)
                     if power:
+                        status_power = 'ON'
                         driver_status += '\nPower is ON'
                         state = PyTango.DevState.ON
+                        status_state = 'ON'
                     else:
+                        status_power = 'OFF'
                         driver_status += '\nPower is OFF'
                         state = PyTango.DevState.ALARM
+                        status_state = 'ALARM'
                     moving = IcepapStatus.isMoving(register)
                     if int(moving) == 1:
+                        status_motion = 'MOVING'
                         driver_status += '\nDriver is moving'
                         state = PyTango.DevState.MOVING
+                        status_state = 'MOVING'
                 if self.iPAP.getMode(axis) == IcepapMode.CONFIG:
                     driver_status += '\nDriver is in CONFIG mode'
                     state = PyTango.DevState.ALARM
+                    status_state = 'ALARM_CONFIG'
 
                 lower = IcepapStatus.getLimitNegative(register)
                 upper = IcepapStatus.getLimitPositive(register)
@@ -164,7 +181,8 @@ class IcepapController(MotorController):
 
                 self.attributes[axis]["statusdriverboard"] = driver_status
                 self.attributes[axis]["powerinfo"] = power_info
-                return (int(state),switchstate)
+                status_string = status_template % (status_enable,status_power,status_state,upper,lower)
+                return (int(state), status_string, switchstate)
             except Exception,e:
                 self._log.error('StateOne(%d).\nException:\n%s' % (axis,str(e)))
                 raise
@@ -173,7 +191,7 @@ class IcepapController(MotorController):
             self._log.debug('StateOne(%d). No connection to %s.' % (axis,self.Host))
         self.attributes[axis]["statusdriverboard"] = driver_status
         self.attributes[axis]["powerinfo"] = power_info
-        return (int(PyTango.DevState.ALARM),0)
+        return (int(PyTango.DevState.ALARM),'Icepap Not Connected', 0)
 
     def PreReadAll(self):
         """ If there is no connection, to the Icepap system, return False"""
