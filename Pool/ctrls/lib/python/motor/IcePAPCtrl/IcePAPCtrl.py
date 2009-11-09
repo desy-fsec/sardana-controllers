@@ -176,7 +176,7 @@ class IcepapController(MotorController):
                 elif int(upper) == 1:
                     switchstate = 2
                 if switchstate != 0:
-                    driver_status += '\nAt least one of the lower/upper switches in activated'
+                    driver_status += '\nAt least one of the lower/upper switches is activated'
                     state = PyTango.DevState.ALARM
 
                 self.attributes[axis]["statusdriverboard"] = driver_status
