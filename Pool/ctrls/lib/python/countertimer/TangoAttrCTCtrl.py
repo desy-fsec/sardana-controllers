@@ -82,7 +82,7 @@ class ReadTangoAttributes():
         self._log.info('returning value %s' % (str(value)))
         return value
 
-    def get_extra_attriubte_par(self, axis, name):
+    def get_extra_attribute_par(self, axis, name):
         return self.devsExtraAttributes[axis][name]
 
     def set_extra_attribute_par(self,axis, name, value):
