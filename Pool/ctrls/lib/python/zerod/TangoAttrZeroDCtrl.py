@@ -22,7 +22,7 @@ class ReadTangoAttributes():
                              ,'R/W Type':'PyTango.READ_WRITE'},
                             FORMULA:
                             {'Type':'PyTango.DevString'
-                             ,'Description':'The Formula to get the desired value.\ne.g. "sqrt(VALUE)"'
+                             ,'Description':'The Formula to get the desired value.\ne.g. "math.sqrt(VALUE)"'
                              ,'R/W Type':'PyTango.READ_WRITE'}
                             }
     
@@ -71,17 +71,18 @@ class ReadTangoAttributes():
                 axis = self.axis_by_tango_attribute[dev+'/'+attr]
                 formula = self.devsExtraAttributes[axis][FORMULA]
                 index = attributes.index(attr)
-                VALUE = values[index].value
+                VALUE = float(values[index].value)
                 value = VALUE # just in case 'VALUE' has been written in lowercase...
+                self._log.info('(%d) %s AND %s = %s' % (axis,formula,str(value),str(eval(formula))))
                 self.devsExtraAttributes[axis][EVALUATED_VALUE] = eval(formula)
 
 
     def read_one(self, axis):
         value = self.devsExtraAttributes[axis][EVALUATED_VALUE]
-        self._log.info('returning value %s' % (str(value)))
+        self._log.info('(%d) returning value %s' % (axis,str(value)))
         return value
 
-    def get_extra_attriubte_par(self, axis, name):
+    def get_extra_attribute_par(self, axis, name):
         return self.devsExtraAttributes[axis][name]
 
     def set_extra_attribute_par(self,axis, name, value):
@@ -105,9 +106,9 @@ class TangoAttrZeroDController(ZeroDController, ReadTangoAttributes):
     ch1.TangoExtraAttribute = 'my/tango/device/attribute1'
     ch1.Formula = '-1 * VALUE'
     ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
-    ch2.Formula = 'sqrt(VALUE)'
+    ch2.Formula = 'math.sqrt(VALUE)'
     ch3.TangoExtraAttribute = 'my_other/tango/device/attribute1'
-    ch3.Formula = 'cos(VALUE)'
+    ch3.Formula = 'math.cos(VALUE)'
     """
                  
     gender = ""
@@ -145,7 +146,7 @@ class TangoAttrZeroDController(ZeroDController, ReadTangoAttributes):
         return self.read_one(axis)
 
     def GetExtraAttributePar(self, axis, name):
-        return self.get_extra_attriubte_par(axis, name)
+        return self.get_extra_attribute_par(axis, name)
 
     def SetExtraAttributePar(self,axis, name, value):
         self.set_extra_attribute_par(axis, name, value)
