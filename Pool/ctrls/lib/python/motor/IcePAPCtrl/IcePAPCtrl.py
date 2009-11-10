@@ -177,12 +177,13 @@ class IcepapController(MotorController):
                     switchstate = 2
                 if switchstate != 0:
                     driver_status += '\nAt least one of the lower/upper switches is activated'
-                    state = PyTango.DevState.ALARM
+                    if state != PyTango.DevState.MOVING:
+                        state = PyTango.DevState.ALARM
 
                 self.attributes[axis]["statusdriverboard"] = driver_status
                 self.attributes[axis]["powerinfo"] = power_info
                 status_string = status_template % (status_enable,status_power,status_state,upper,lower)
-                return (int(state), status_string, switchstate)
+                return (state, status_string, switchstate)
             except Exception,e:
                 self._log.error('StateOne(%d).\nException:\n%s' % (axis,str(e)))
                 raise
