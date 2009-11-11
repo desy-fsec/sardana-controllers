@@ -1,6 +1,6 @@
 import time
 from macro import Macro, ParamRepeat, Type
-from macro import GScan
+from macro import SScan
 import tau
 
 class cycle_magnets(Macro):
@@ -50,7 +50,7 @@ class cycle_magnets(Macro):
             generator = self._generator
             moveables = self.magnets
             env = opts.get('env',{})
-            self._gScan = GScan(self, generator, moveables, env, [])
+            self._sScan = SScan(self, generator, moveables, env, [])
         else:
             self.error('Sorry, it is not possible to cycle these magnets')
             return False
@@ -136,9 +136,9 @@ class cycle_magnets(Macro):
             yield step
     
     def run(self,*args):
-        self._gScan.scan()
+        self._sScan.scan()
         self._restore_magnet_positions()
 
     @property
     def data(self):
-        return self._gScan.data
+        return self._sScan.data
