@@ -150,6 +150,8 @@ double DGG2::ReadOne(int32_t idx)
 {
   //cout << "[DGG2] Getting Value for timer with index " << idx << " on controller DGG2/" << inst_name << endl;
   double returned_time;
+  double sample_time;
+  double remaining_time;
   
   if (dgg2timer_ctrl != NULL)
     {
@@ -158,7 +160,12 @@ double DGG2::ReadOne(int32_t idx)
       d_in << (Tango::DevLong)idx;
       
       d_out = dgg2timer_ctrl->command_inout("GetAxeSampleTime",d_in);
-      d_out >> returned_time;
+      d_out >> sample_time;
+      
+      d_out = dgg2timer_ctrl->command_inout("GetAxeRemainingTime",d_in);
+      d_out >> remaining_time;
+
+      returned_time = sample_time - remaining_time;
     }
   else
     {
