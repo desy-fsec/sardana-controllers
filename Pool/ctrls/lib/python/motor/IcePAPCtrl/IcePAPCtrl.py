@@ -500,14 +500,6 @@ class IcepapController(MotorController):
         else:
             self._log.debug('AbortOne(%d). No connection to %s.' % (axis,self.Host))
 
-    def StopOne(self,axis):
-        if self.iPAP.connected:
-            #self.iPAP.stopMotor(axis)
-            self.iPAP.stop(axis)
-        else:
-            self._log.debug('StopOne(%d). No connection to %s.' % (axis,self.Host))
-
-
     def DefinePosition(self, axis, position):
         if self.iPAP.connected:
             position = int(position * self.attributes[axis]["step_per_unit"])
