@@ -36,7 +36,7 @@ import PyTango
 from pool import MotorController
 
 
-class PMACController(MotorController):
+class PmacController(MotorController):
     """This class is the Tango Sardana motor controller for the Pmac motor controller device."""
 
     class_prop = {'DevName':{'Description' : 'Device name of the PmacEth DS','Type' : 'PyTango.DevString'}}
