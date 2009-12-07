@@ -36,7 +36,7 @@ from PyTango import DevState
 from pool import IORegisterController
 from pool import PoolUtil
 
-class LTPIORController(IORegisterController):
+class PmacLTPIOController(IORegisterController):
     """ This controller provides the state of the air supply and the airpads to the pool.
     +) first axis is the state of air supply
     +) second axis is the state of airpads for top axis
