@@ -24,9 +24,9 @@ class LTP_homing(Macro):
         ['motor', Type.Motor, None, 'Motor name']
     ]
     
-    result_def = [
-        ['homed',  Type.Boole, None, 'Motor homed state']
-    ]
+    #result_def = [
+    #    ['homed',  Type.Bool, None, 'Motor homed state']
+    #]
     
     def run(self, motor):
     	self.motor = motor
@@ -35,24 +35,23 @@ class LTP_homing(Macro):
     	self.ctrl_axis = self.motor.getAxis()
         
         #checking if this motor belongs to Pmac controller
-        ctrls_list = self.pool.read_attribute("ControllerList")
+        ctrls_list = self.pool.read_attribute("ControllerList").value
         # line format: laop_pmac (PmacLTPCtrl.PmacLTPController/laop_pmac) - Motor Python ctrl (PmacLTPCtrl.py)
         for ctrl_line in ctrls_list:
             ctrl_line_splitted = ctrl_line.split()
             c_name = ctrl_line_splitted[0]
             if c_name == self.ctrl_name:
-                c_type = ctrl_line.split()[1][1:-1].split("/")[0] 
-            if  c_type !=  PMAC_CTRL_TYPE:
-                self.error("""Couldn't start homing macro, this motor doesn't belong to Pmac Controller""")
-                return False
-        
+                c_type = ctrl_line_splitted[1][1:-1].split("/")[0] 
+                if c_type !=  PMAC_CTRL_TYPE:
+                    self.error("""Couldn't start homing macro, this motor doesn't belong to Pmac Controller""")
+                    return False
         if self.ctrl_axis == 1: self.homing_plc_nr = 3
         elif self.ctrl_axis == 2: self.homing_plc_nr = 4
         else: 
             self.error("""Couldn't start homing macro, there is no PLC homing routine for this motor""")
             return False    
          
-    	self.pool.SendToController([self.ctrl_name, ENABLLE_PLC_CMD_STR % homing_plc_nr])
+    	self.pool.SendToController([self.ctrl_name, ENABLLE_PLC_CMD_STR % self.homing_plc_nr])
     	self.pool.SendToController([self.ctrl_name, SET_P_VARIABLE_CMD_STR % (100, self.ctrl_axis)])
     	self.info('PLC homing routine for axis %d on controller %s started.' % (self.ctrl_axis, self.ctrl_name))
         
