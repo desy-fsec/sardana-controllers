@@ -97,6 +97,8 @@ void CCDPVCAM::AddDevice(int32_t idx)
       ccdpvcam_data[idx]->device_available = false;
     }
   }
+
+  read_value =  new double[2000*2000];
 }
 
 //-----------------------------------------------------------------------------
@@ -133,10 +135,10 @@ void CCDPVCAM::PreReadOne(int32_t idx)
 
 double *CCDPVCAM::ReadOne(int32_t idx)
 {
-  double *read_value;
-  vector<Tango::DevUShort> vector_data;
+
   
   cout << "[CCDPVCAM] In ReadOne" << endl;
+
   
   if(ccdpvcam_data[idx]->proxy == NULL){
     TangoSys_OMemStream o;
@@ -162,10 +164,9 @@ double *CCDPVCAM::ReadOne(int32_t idx)
 
   d_out = ccdpvcam_data[idx]->proxy->read_attribute("Bild");
   d_out >> vector_data;
-  read_value =  new double[vector_data.size()];
+
   for(int i = 0; i < vector_data.size(); i++)
     read_value[i] = (double)vector_data[i];
-
 
   return read_value;
     

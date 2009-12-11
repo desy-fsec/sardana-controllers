@@ -130,7 +130,11 @@ protected:
 	int32_t *acq_mode;
 	
 	std::map<int32_t, CCDPVCAMData*> ccdpvcam_data; 
-	
+
+	double *read_value;
+
+	vector<Tango::DevUShort> vector_data;
+
 
     stringstream            convert_stream;
 };
