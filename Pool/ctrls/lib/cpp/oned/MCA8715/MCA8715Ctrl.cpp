@@ -73,8 +73,7 @@ MCA8715::~MCA8715()
 
 void MCA8715::AddDevice(int32_t idx)
 {
-	//cout << "[MCA8715] Creating a new OneD with index " << idx << " on controller MCA8715/" << inst_name << endl;	
-  cout << " Teresa en AddDevice: idx " << idx << endl;
+	//cout << "[MCA8715] Creating a new OneD with index " << idx << " on controller MCA8715/" << inst_name << endl;
   if(idx > max_device){
     TangoSys_OMemStream o;
     o << "The property 'TangoDevices' has no value for index " << idx << ".";
