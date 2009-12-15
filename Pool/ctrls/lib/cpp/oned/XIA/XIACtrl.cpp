@@ -73,8 +73,7 @@ XIA::~XIA()
 
 void XIA::AddDevice(int32_t idx)
 {
-	//cout << "[XIA] Creating a new OneD with index " << idx << " on controller XIA/" << inst_name << endl;	
-  cout << " Teresa en AddDevice: idx " << idx << endl;
+	//cout << "[XIA] Creating a new OneD with index " << idx << " on controller XIA/" << inst_name << endl;
   if(idx > max_device){
     TangoSys_OMemStream o;
     o << "The property 'TangoDevices' has no value for index " << idx << ".";
