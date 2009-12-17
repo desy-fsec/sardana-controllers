@@ -53,11 +53,11 @@ class PmacLTPController(PmacController):
         if bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d21" % axis))))):
                state = PyTango.DevState.ALARM
                status = '\nAt least one of the negative/positive limit is activated'
-               switchstate += 4
+               switchstate += 2
         if bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d22" % axis))))):
                state = PyTango.DevState.ALARM
                status = '\nAt least one of the negative/positive limit is activated'
-               switchstate += 2
+               switchstate += 4
         if not bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d39" % axis))))):
                state = PyTango.DevState.ALARM
                status = '''\nMotor's amplifier is not enabled'''
