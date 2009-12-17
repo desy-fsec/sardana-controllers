@@ -87,32 +87,32 @@ class PmacController(MotorController):
 	    raise Exception(error_msg) 
         self.pmacEth.command_inout("JogToPos",[axis,position])
 
-	def SetPar(self, axis, name, value):
-		""" Set the standard pool motor parameters.
-		@param axis to set the parameter
-		@param name of the parameter
-		@param value to be set
-		"""
-		try:
-			if name.lower() == "velocity":
-				self.pmacEth.command_inout("SetIVariable",(float("%d22" % axis), float(value)))
-		except Exception,e:
-			self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
-			raise
+    def SetPar(self, axis, name, value):
+        """ Set the standard pool motor parameters.
+        @param axis to set the parameter
+        @param name of the parameter
+        @param value to be set
+        """
+        try:
+            if name.lower() == "velocity":
+                self.pmacEth.command_inout("SetIVariable",(float("%d22" % axis), float(value)))
+        except Exception,e:
+            self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
+            raise
 
-	def GetPar(self, axis, name):
-		""" Get the standard pool motor parameters.
-		@param axis to get the parameter
-		@param name of the parameter to get the value
-		@return the value of the parameter
-		"""
-		try:
-			if name.lower() == "velocity":
-				return float(self.pmacEth.command_inout("GetIVariable",(float("%d22" % axis))))
-			return None
-		except Exception,e:
-			self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
-			raise
+    def GetPar(self, axis, name):
+        """ Get the standard pool motor parameters.
+        @param axis to get the parameter
+        @param name of the parameter to get the value
+        @return the value of the parameter
+        """
+        try:
+            if name.lower() == "velocity":
+                return float(self.pmacEth.command_inout("GetIVariable",(long("%d22" % axis))))
+            return None
+        except Exception,e:
+            self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
+            raise
 
     def GetExtraAttributePar(self, axis, attr_name):
         return 0
