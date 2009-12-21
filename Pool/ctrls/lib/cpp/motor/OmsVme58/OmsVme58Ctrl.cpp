@@ -988,7 +988,7 @@ Controller::ExtraAttrInfo OmsVme58Ctrl_ctrl_extra_attributes[] = {
 
 
 //char *OmsVme58Ctrl_ctrl_features[] = {"Backlash","Rounding","Encoder","Home_acceleration",NULL};
-const char *OmsVme58Ctrl_ctrl_features[] = {"WantRounding","Encoder","Home_acceleration",NULL};
+//const char *OmsVme58Ctrl_ctrl_features[] = {"WantRounding","Encoder","Home_acceleration",NULL};
 const char *OmsVme58Ctrl_ctrl_features[] = {"Encoder","Home_acceleration",NULL};
 
 
