@@ -989,6 +989,8 @@ Controller::ExtraAttrInfo OmsVme58Ctrl_ctrl_extra_attributes[] = {
 
 //char *OmsVme58Ctrl_ctrl_features[] = {"Backlash","Rounding","Encoder","Home_acceleration",NULL};
 const char *OmsVme58Ctrl_ctrl_features[] = {"WantRounding","Encoder","Home_acceleration",NULL};
+const char *OmsVme58Ctrl_ctrl_features[] = {"Encoder","Home_acceleration",NULL};
+
 
 Controller::PropInfo OmsVme58Ctrl_class_prop[] = {{"DevName","The tango device name of the OmsVme58Ctrl","DevString"},
 										 {"The prop","The first CPP property","DevLong","12"},
