@@ -218,6 +218,7 @@ void  XIA::StartOne(int32_t idx)
     }
   }
 
+  xia_data[idx]->proxy->command_inout("Clear");
   xia_data[idx]->proxy->command_inout("Start");
 
 }
