@@ -56,7 +56,6 @@ class PmacController(MotorController):
         pass
 
     def StateOne(self, axis):
-        self._log.info('RETURNING THE STATE OF AXIS %d'%axis)
         state = PyTango.DevState.ON
         switchstate = 0
         status = "No limits are active, motor is in position"
@@ -74,17 +73,14 @@ class PmacController(MotorController):
         return (state, status, switchstate)
 
     def ReadOne(self, axis):
-        self._log.info('Returning the current position for axis %d'%axis)
         position = self.pmacEth.command_inout("GetMotorPos",(axis))
-        self._log.info('POSITION: %s'%position)
         return float(position)
 
     def StartOne(self, axis, position):
-        self._log.info('Moving the axis %d to position %d'%(axis, position))
-	if not self.GetExtraAttributePar(axis,"PowerOn"):
-	    error_msg = '''It's not possible to move motor %d with disabled amplifier ''' % axis
-	    self._log.error(error_msg)
-	    raise Exception(error_msg) 
+    	if not self.GetExtraAttributePar(axis,"PowerOn"):
+    	    error_msg = '''It's not possible to move motor %d with disabled amplifier ''' % axis
+    	    self._log.error(error_msg)
+    	    raise Exception(error_msg) 
         self.pmacEth.command_inout("JogToPos",[axis,position])
 
     def SetPar(self, axis, name, value):
@@ -121,7 +117,6 @@ class PmacController(MotorController):
         pass
 
     def AbortOne(self, axis):
-        self._log.info('Stopping the movement of axis %d'%axis)
         self.pmacEth.command_inout("JogStop",[axis])
     
     def DefinePosition(self,powerConverter, current):
@@ -133,9 +128,9 @@ class PmacController(MotorController):
         @param name of the parameter to retrive
         @return the value of the parameter
         """
-	name = name.lower()
-	if name == "poweron":
-	    return bool(self.pmacEth.command_inout("GetMVariable",int("%d39"%axis)))
+    	name = name.lower()
+    	if name == "poweron":
+    	    return bool(self.pmacEth.command_inout("GetMVariable",int("%d39"%axis)))
 
     def SetExtraAttributePar(self, axis, name, value):
         """ Set Pmac axis particular parameters.
@@ -155,18 +150,17 @@ class PmacController(MotorController):
         @param string representing the command
         @return the result received
         """
-        self._log.info('SendToCtrl(%s).' % cmd)
-	cmd_splitted = cmd.split()
-	if len(cmd_splitted) == 1: 
+    	cmd_splitted = cmd.split()
+    	if len(cmd_splitted) == 1: 
             self.pmacEth.command_inout(cmd)
-	else:
-	    if len(cmd_splitted) == 2:
-	        if cmd_splitted[0].lower() == "enableplc":
-	            self.pmacEth.command_inout("enableplc",int(cmd_splitted[1]))
-		if cmd_splitted[0].lower() =="getmvariable":
-		    return str(self.pmacEth.command_inout("getmvariable",int(cmd_splitted[1])))
+    	else:
+    	    if len(cmd_splitted) == 2:
+                if cmd_splitted[0].lower() == "enableplc":
+    	            self.pmacEth.command_inout("enableplc",int(cmd_splitted[1]))
+                if cmd_splitted[0].lower() =="getmvariable":
+                    return str(self.pmacEth.command_inout("getmvariable",int(cmd_splitted[1])))
             elif len(cmd_splitted) > 2:
-	        if cmd_splitted[0].lower() == "setpvariable":
-		    array = [float(cmd_splitted[i]) for i in range(1, len(cmd_splitted))]
-	            self.pmacEth.command_inout("setpvariable", array)
+                if cmd_splitted[0].lower() == "setpvariable":
+                    array = [float(cmd_splitted[i]) for i in range(1, len(cmd_splitted))]
+                    self.pmacEth.command_inout("setpvariable", array)
 

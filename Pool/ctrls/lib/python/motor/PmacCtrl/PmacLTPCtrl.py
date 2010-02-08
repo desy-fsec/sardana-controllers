@@ -43,7 +43,6 @@ class PmacLTPController(PmacController):
         PmacController.__init__(self,inst,props)
 
     def StateOne(self, axis):
-        self._log.info('RETURNING THE STATE OF AXIS %d'%axis)
         state = PyTango.DevState.ON
         switchstate = 0
         status = "No limits are active, motor is in position"
