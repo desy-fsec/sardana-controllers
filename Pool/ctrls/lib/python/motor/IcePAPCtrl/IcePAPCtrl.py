@@ -119,9 +119,7 @@ class IcepapController(MotorController):
         status_power = '?'
         status_state = '?'
         driver_status = '\nIcepap is not connected'
-        power_info = '\nIcepap is not connected'
         if self.iPAP.connected:
-            power_info = self.iPAP.isg_powerinfo(axis)
             driver_status = ''
             try:
                 state = PyTango.DevState.UNKNOWN
@@ -181,7 +179,6 @@ class IcepapController(MotorController):
                         state = PyTango.DevState.ALARM
 
                 self.attributes[axis]["statusdriverboard"] = driver_status
-                self.attributes[axis]["powerinfo"] = power_info
                 status_string = status_template % (status_enable,status_power,status_state,upper,lower)
                 return (state, status_string, switchstate)
             except Exception,e:
@@ -191,7 +188,6 @@ class IcepapController(MotorController):
         else:
             self._log.debug('StateOne(%d). No connection to %s.' % (axis,self.Host))
         self.attributes[axis]["statusdriverboard"] = driver_status
-        self.attributes[axis]["powerinfo"] = power_info
         return (int(PyTango.DevState.ALARM),'Icepap Not Connected', 0)
 
     def PreReadAll(self):
@@ -416,6 +412,10 @@ class IcepapController(MotorController):
                 elif name == "statusdriverboard":
                     return self.attributes[axis]["statusdriverboard"]
                 elif name == "powerinfo":
+                    try:
+                        self.attributes[axis]["powerinfo"] = self.iPAP.isg_powerinfo(axis)
+                    except Exception,e:
+                        self.attributes[axis]["powerinfo"] = 'Problems accessing the driver:\n'+str(e)
                     return self.attributes[axis]["powerinfo"]
                 else:
                     PyTango.Except.throw_exception("IcepapController_GetExtraAttributePar()", "Error getting " + name + ", not implemented", "GetExtraAttributePar()")
