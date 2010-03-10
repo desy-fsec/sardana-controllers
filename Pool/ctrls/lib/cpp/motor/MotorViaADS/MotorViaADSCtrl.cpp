@@ -400,7 +400,7 @@ void MotorViaADS::StateOne(int32_t idx,Controller::CtrlState *info_ptr)
   switches = 0;
 
   if(cwlimit)  switches = switches + 2;
-  if(cwlimit)  switches = switches + 4;
+  if(ccwlimit)  switches = switches + 4;
 
   mot_info_ptr->switches = switches;
 }
