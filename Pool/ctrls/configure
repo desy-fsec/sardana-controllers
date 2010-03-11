@@ -18151,7 +18151,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile lib/Makefile lib/cpp/Makefile lib/cpp/communication/Makefile lib/cpp/communication/fake/Makefile lib/cpp/communication/serial/Makefile lib/cpp/countertimer/Makefile lib/cpp/countertimer/c208/Makefile lib/cpp/countertimer/NI6602/Makefile lib/cpp/countertimer/DGG2/Makefile lib/cpp/motor/Makefile lib/cpp/motor/simulator/Makefile lib/cpp/motor/OmsVme58/Makefile lib/cpp/motor/MotorViaADS/Makefile lib/cpp/motor/Hexapod/Makefile lib/cpp/motor/KohzuSCAxis/Makefile lib/cpp/motor/FMBOxfDCMMotor/Makefile lib/cpp/motor/Lom/Makefile lib/cpp/motor/HasylabMotor/Makefile lib/cpp/pseudocounter/Makefile lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile lib/cpp/pseudocounter/current/Makefile lib/cpp/pseudomotor/Makefile lib/cpp/pseudomotor/diffractometer/Makefile lib/cpp/pseudomotor/slit/Makefile lib/cpp/zerod/Makefile lib/cpp/zerod/simulator/Makefile lib/cpp/zerod/IK220/Makefile lib/cpp/zerod/TIP830u20/Makefile lib/cpp/oned/Makefile lib/cpp/oned/MCA8715/Makefile lib/cpp/ioregister/Makefile lib/cpp/ioregister/SIS3610/Makefile lib/cpp/ioregister/ScanServer/Makefile lib/cpp/twod/Makefile lib/cpp/twod/CCDPVCAM/Makefile lib/python/Makefile"
+ac_config_files="$ac_config_files Makefile lib/Makefile lib/cpp/Makefile lib/cpp/communication/Makefile lib/cpp/communication/fake/Makefile lib/cpp/communication/serial/Makefile lib/cpp/countertimer/Makefile lib/cpp/countertimer/c208/Makefile lib/cpp/countertimer/NI6602/Makefile lib/cpp/countertimer/DGG2/Makefile lib/cpp/motor/Makefile lib/cpp/motor/simulator/Makefile lib/cpp/motor/OmsVme58/Makefile lib/cpp/motor/MotorViaADS/Makefile lib/cpp/motor/Hexapod/Makefile lib/cpp/motor/KohzuSCAxis/Makefile lib/cpp/motor/FMBOxfDCMMotor/Makefile lib/cpp/motor/Lom/Makefile lib/cpp/motor/HasylabMotor/Makefile lib/cpp/motor/ScanVariable/Makefile lib/cpp/pseudocounter/Makefile lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile lib/cpp/pseudocounter/current/Makefile lib/cpp/pseudomotor/Makefile lib/cpp/pseudomotor/diffractometer/Makefile lib/cpp/pseudomotor/slit/Makefile lib/cpp/zerod/Makefile lib/cpp/zerod/simulator/Makefile lib/cpp/zerod/IK220/Makefile lib/cpp/zerod/TIP830u20/Makefile lib/cpp/oned/Makefile lib/cpp/oned/MCA8715/Makefile lib/cpp/ioregister/Makefile lib/cpp/ioregister/SIS3610/Makefile lib/cpp/ioregister/ScanServer/Makefile lib/cpp/twod/Makefile lib/cpp/twod/CCDPVCAM/Makefile lib/python/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -19181,6 +19181,7 @@ do
     "lib/cpp/motor/FMBOxfDCMMotor/Makefile") CONFIG_FILES="$CONFIG_FILES lib/cpp/motor/FMBOxfDCMMotor/Makefile" ;;
     "lib/cpp/motor/Lom/Makefile") CONFIG_FILES="$CONFIG_FILES lib/cpp/motor/Lom/Makefile" ;;
     "lib/cpp/motor/HasylabMotor/Makefile") CONFIG_FILES="$CONFIG_FILES lib/cpp/motor/HasylabMotor/Makefile" ;;
+    "lib/cpp/motor/ScanVariable/Makefile") CONFIG_FILES="$CONFIG_FILES lib/cpp/motor/ScanVariable/Makefile" ;;
     "lib/cpp/pseudocounter/Makefile") CONFIG_FILES="$CONFIG_FILES lib/cpp/pseudocounter/Makefile" ;;
     "lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile") CONFIG_FILES="$CONFIG_FILES lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile" ;;
     "lib/cpp/pseudocounter/current/Makefile") CONFIG_FILES="$CONFIG_FILES lib/cpp/pseudocounter/current/Makefile" ;;

@@ -220,6 +220,7 @@ AC_CONFIG_FILES([Makefile
                  lib/cpp/motor/FMBOxfDCMMotor/Makefile
                  lib/cpp/motor/Lom/Makefile
                  lib/cpp/motor/HasylabMotor/Makefile
+                 lib/cpp/motor/ScanVariable/Makefile
                  lib/cpp/pseudocounter/Makefile
                  lib/cpp/pseudocounter/LTB_BCM_PCs/Makefile
                  lib/cpp/pseudocounter/current/Makefile
