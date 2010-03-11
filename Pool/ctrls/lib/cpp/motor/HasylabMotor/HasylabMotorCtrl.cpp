@@ -525,12 +525,14 @@ Controller::CtrlData HasylabMotor::GetExtraAttributePar(int32_t idx, string &par
     par_value.data_type = Controller::DOUBLE;
   } else if(par_name_lower == "resultsim"){
     vector<string> value;
-    char output[200];
-    output[0] = '\0';
+    char tmp_output[200];
+    tmp_output[0] = '\0';
+    Tango::DevString output;
     in >> value;
     for(int i = 0; i < in.dim_x; i++){
-      strcat(output, value[i].c_str());
+      strcat(tmp_output, value[i].c_str());
     }
+    output = (char*) tmp_output;
     par_value.str_data = output;
     par_value.data_type = Controller::STRING;
   } else {
