@@ -141,8 +141,6 @@ class HKLMotorController(MotorController):
             pos1 = self.hkl_device[1].position
             self.hkl_simu_device.write_attribute("k",pos1)
             self.hkl_simu_device.write_attribute("l",pos)
-
-        print "Teresa: StartOne 6 "
             
         self.diffrac.write_attribute("Simulated",1)
 
