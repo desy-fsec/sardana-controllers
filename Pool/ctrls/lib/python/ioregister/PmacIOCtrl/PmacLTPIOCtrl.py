@@ -36,6 +36,17 @@ from PyTango import DevState
 from pool import IORegisterController
 from pool import PoolUtil
 
+def _to_binary(number, bits):
+    str_binary_number = ''
+    for pos in range(bits):
+        index = bits - pos - 1
+        shifted_number = number / pow(2,index)
+        bit = '0'
+        if shifted_number & 1:
+            bit = '1'
+        str_binary_number = str_binary_number+bit
+    return str_binary_number
+
 class PmacLTPIOController(IORegisterController):
     """ This controller provides the state of the air supply and the airpads to the pool.
     +) first axis is the state of air supply
@@ -61,7 +72,7 @@ class PmacLTPIOController(IORegisterController):
 
     def __init__(self, inst, props):
         IORegisterController.__init__(self, inst, props)
-	self.pmac_eth = PoolUtil().get_device(self.inst_name, self.PmacDevName)
+        self.pmac_eth = PoolUtil().get_device(self.inst_name, self.PmacDevName)
 
     def AddDevice(self, axis):
         self._log.debug('AddDevice %d' % axis)
@@ -96,21 +107,19 @@ class PmacLTPIOController(IORegisterController):
         return (state, status)
 
     def ReadOne(self, axis):
-        # DO THE STUFF TO READ FROM THE PMAC
-        # ...
         value = int(self.pmac_eth.command_inout("GetMVariable", 100))
         if axis == 1:
             value &= 1
         elif axis == 2:
-            value >>= 1
+            value >>= 8
             value &= 63
         elif axis == 3:
-            value >>= 7
+            value >>= 14
             value &= 3
         return value
 
     def WriteOne(self, axis, value):
-        # IT IS ONLY POSSIBLE TO WRITE THE AIRPADS (axis 2)
+        # IT IS ONLY POSSIBLE TO WRITE THE AIRPADS (axis 2, 3)
         if axis == 1:
             return
         if axis == 2:
@@ -120,9 +129,6 @@ class PmacLTPIOController(IORegisterController):
             current_2axis = self.ReadOne(2)
             write_value = (value << 6) + current_2axis
         self.pmac_eth.command_inout("SetMVariable", [101,write_value])
-            
-            
-            # DO THE STUFF TO SET THE VALUE IN THE PMAC
 
     def GetExtraAttributePar(self, axis, name):
         pass
@@ -133,14 +139,5 @@ class PmacLTPIOController(IORegisterController):
     def SendToCtrl(self,in_data):
         return "Not implemented yet"
 
-    def _to_binary(self, number, bits):
-        str_binary_number = ''
-        for pos in range(bits):
-            index = bits - pos - 1
-            shifted_number = number / pow(2,index)
-            bit = '0'
-            if shifted_number & 1:
-                bit = '1'
-            str_binary_number = str_binary_number+bit
-        return str_binary_number
+
                                                                         
