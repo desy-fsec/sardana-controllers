@@ -679,8 +679,8 @@ Controller::PropInfo ScanVariable_class_prop[] = {
   {"VariableName","Variable to scan","DevString",NULL},
   {"VariableType","0 double, 1 float, 2 long","DevLong","0"},
   {"StopFunction","Name of the function to stop move","DevString","StopMove"},
-  {"LimitMax", "Name of the attribute with the limit for maximum value","DevString","UnitLimitMax"},
-  {"LimitMin", "Name of the attribute with the limit for minimum value","DevString","UnitLimitMin"},
+  {"LimitMax", "Name of the attribute with the limit for maximum value","DevString","NotDefined"},
+  {"LimitMin", "Name of the attribute with the limit for minimum value","DevString","NotDefined"},
   NULL};
 
 
