@@ -45,6 +45,10 @@ ScanVariable::ScanVariable(const char *inst,vector<Controller::Properties> &prop
       stop_function = prop_it->value.string_prop[0];
     } else if(prop_it->name == "VariableType"){
       variable_type = prop_it->value.int32_prop[0];
+    } else if(prop_it->name == "LimitMax"){
+      limitmax_name = prop_it->value.string_prop[0];
+    } else if(prop_it->name == "LimitMin"){
+      limitmin_name = prop_it->value.string_prop[0];
     }
   }
   
@@ -328,48 +332,47 @@ void  ScanVariable::StartAll()
 
   int32_t nb_mot = wanted_mot.size();
   
-  for (int32_t loop = 0;loop < nb_mot;loop++)
-    {
- 
-      int idx = wanted_mot[loop];
-
-      if(motor_data[idx]->proxy == NULL){
-	TangoSys_OMemStream o;
-	o << "ScanVariable Device Proxy for idx " << idx << " is NULL" << ends;	
-	Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
-				       (const char *)"ScanVariable::StartOne()");  
-      }
-      
-      if(motor_data[idx]->device_available == false){
-	try{
-	  motor_data[idx]->proxy->ping();
-	  motor_data[idx]->device_available = true;	
-	}
-	catch(Tango::DevFailed &e){
-	  motor_data[idx]->device_available = false;
-	  TangoSys_OMemStream o;
-	  o << "ScanVariable Device for idx " << idx << " not available" << ends;	
-	  Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
-					 (const char *)"ScanVariable::StartOne()"); 
-	}
-      }
-
-      if(variable_type == 0) {
-	Tango::DevDouble position = wanted_mot_pos[loop];
-	Tango::DeviceAttribute da(variable_name,position);
-	motor_data[idx]->proxy->write_attribute(da);
-      } else if (variable_type == 1) {
-	Tango::DevFloat position = (float) wanted_mot_pos[loop];
-	Tango::DeviceAttribute da(variable_name,position);
-	motor_data[idx]->proxy->write_attribute(da);
-      } else if (variable_type == 2) {
-	Tango::DevLong position = (long) wanted_mot_pos[loop];
-	Tango::DeviceAttribute da(variable_name,position);
-	motor_data[idx]->proxy->write_attribute(da);
-      }
-
-
+  for (int32_t loop = 0;loop < nb_mot;loop++){
+    
+    int idx = wanted_mot[loop];
+    
+    if(motor_data[idx]->proxy == NULL){
+      TangoSys_OMemStream o;
+      o << "ScanVariable Device Proxy for idx " << idx << " is NULL" << ends;  
+      Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				     (const char *)"ScanVariable::StartOne()");  
     }
+    
+    if(motor_data[idx]->device_available == false){
+      try{
+	motor_data[idx]->proxy->ping();
+	motor_data[idx]->device_available = true;	
+      }
+      catch(Tango::DevFailed &e){
+	motor_data[idx]->device_available = false;
+	TangoSys_OMemStream o;
+	o << "ScanVariable Device for idx " << idx << " not available" << ends;
+	Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				       (const char *)"ScanVariable::StartOne()"); 
+      }
+    }
+    
+    if(variable_type == 0) {
+      Tango::DevDouble position = wanted_mot_pos[loop];
+      Tango::DeviceAttribute da(variable_name,position);
+      motor_data[idx]->proxy->write_attribute(da);
+    } else if (variable_type == 1) {
+      Tango::DevFloat position = (float) wanted_mot_pos[loop];
+      Tango::DeviceAttribute da(variable_name,position);
+      motor_data[idx]->proxy->write_attribute(da);
+    } else if (variable_type == 2) {
+      Tango::DevLong position = (long) wanted_mot_pos[loop];
+      Tango::DeviceAttribute da(variable_name,position);
+      motor_data[idx]->proxy->write_attribute(da);
+    }
+    
+    
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -512,13 +515,50 @@ Controller::CtrlData ScanVariable::GetExtraAttributePar(int32_t idx, string &par
 {
 
   Controller::CtrlData par_value;
+   
+  Tango::DeviceAttribute d_out;
+  double par_tmp_db;
 
-  TangoSys_OMemStream o;
-  o << "Not extra attribute parameteres for ScanVariable Controller" << ends;
+  if(motor_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "ScanVariable Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				   (const char *)"ScanVariable::GetExtraAttributePar()");
+  }
   
-  Tango::Except::throw_exception((const char *)"ScanVariable_BadCtrlPtr",o.str(),
-				 (const char *)"ScanVariable::GetExtraAttributePar()");
   
+  if (par_name == "UnitLimitMax"){  
+    try{
+      d_out = motor_data[idx]->proxy->read_attribute(limitmax_name);
+      d_out >> par_tmp_db;
+      par_value.db_data = par_tmp_db;
+      par_value.data_type = Controller::DOUBLE;
+    } catch(Tango::DevFailed &e){
+      TangoSys_OMemStream o;
+      o << "LimitMax wrong defined or not not available" << ends;	
+      Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				     (const char *)"ScanVariable::GetExtraAttributePar()"); 
+    }
+    
+  } else if (par_name == "UnitLimitMin"){
+    try{
+      d_out = motor_data[idx]->proxy->read_attribute(limitmin_name);
+      d_out >> par_tmp_db;
+      par_value.db_data = par_tmp_db;
+      par_value.data_type = Controller::DOUBLE;
+    } catch(Tango::DevFailed &e){
+      TangoSys_OMemStream o;
+      o << "LimitMin wrong defined or not not available" << ends;	
+      Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				     (const char *)"ScanVariable::GetExtraAttributePar()"); 
+    }
+    
+  } else {
+    TangoSys_OMemStream o;
+    o << "Extra attribute " << par_name << " is unknown for controller ScanVariabvleCtrl/" << get_name()  << ends;
+    Tango::Except::throw_exception((const char *)"ScanVariable_BadCtrlPtr",o.str(),
+				   (const char *)"ScanVariable::GetExtraAttributePar()");
+  }
   
   return par_value;
 	
@@ -537,14 +577,46 @@ Controller::CtrlData ScanVariable::GetExtraAttributePar(int32_t idx, string &par
 //-----------------------------------------------------------------------------
 
 void ScanVariable::SetExtraAttributePar(int32_t idx, string &par_name, Controller::CtrlData &new_value)
-{  
+{ 
 
-  TangoSys_OMemStream o;
-  o << "Not extra attribute parameteres for ScanVariable Controller" << ends;
+  if(motor_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "ScanVariable Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				   (const char *)"ScanVariable::SetExtraAttributePar()");
+  }
   
-  Tango::Except::throw_exception((const char *)"ScanVariable_BadCtrlPtr",o.str(),
-				 (const char *)"ScanVariable::SetExtraAttributePar()");
-
+  if (par_name == "UnitLimitMax"){
+    try{
+      Tango::DevDouble limit = new_value.db_data;
+      Tango::DeviceAttribute da(limitmax_name,limit);
+      motor_data[idx]->proxy->write_attribute(da);
+    } catch(Tango::DevFailed &e){
+      TangoSys_OMemStream o;
+      o << "LimitMax wrong defined or not not available" << ends;	
+      Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				     (const char *)"ScanVariable::SetExtraAttributePar()");  
+      
+    }
+  } else if (par_name == "UnitLimitMin"){
+    try{
+      Tango::DevDouble limit = new_value.db_data;
+      Tango::DeviceAttribute da(limitmin_name,limit);
+      motor_data[idx]->proxy->write_attribute(da);
+    } catch(Tango::DevFailed &e){
+      TangoSys_OMemStream o;
+      o << "LimitMin wrong defined or not not available" << ends;	
+      Tango::Except::throw_exception((const char *)"ScanVariableCtrl_BadCtrlPtr",o.str(),
+				     (const char *)"ScanVariable::SetExtraAttributePar()");  
+    }
+  } else {
+    TangoSys_OMemStream o;
+    o << "Extra attribute " << par_name << " is unknown for controller ScanVariableCtrl/" << get_name() << ends;
+    
+    Tango::Except::throw_exception((const char *)"ScanVariable_BadCtrlPtr",o.str(),
+				   (const char *)"ScanVariable::SetExtraAttributePar()");    
+  }
+  
 }
 
 
@@ -598,15 +670,20 @@ const char *ScanVariable_organization = "DESY";
 const char *ScanVariable_logo = "ALBA_logo.png";
 
 Controller::ExtraAttrInfo ScanVariable_ctrl_extra_attributes[] = {
-	NULL};
+  {"UnitLimitMax","DevDouble","Read_Write"},
+  {"UnitLimitMin","DevDouble","Read_Write"},
+  NULL};
 
 Controller::PropInfo ScanVariable_class_prop[] = {
-	{"RootDeviceName","Root name for tango devices","DevString",NULL},
-	{"VariableName","Variable to scan","DevString",NULL},
-	{"VariableType","0 double, 1 float, 2 long","DevLong","0"},
-	{"StopFunction","Name of the function to stop move","DevString","StopMove"},
-	NULL};
-							  			 
+  {"RootDeviceName","Root name for tango devices","DevString",NULL},
+  {"VariableName","Variable to scan","DevString",NULL},
+  {"VariableType","0 double, 1 float, 2 long","DevLong","0"},
+  {"StopFunction","Name of the function to stop move","DevString","StopMove"},
+  {"LimitMax", "Name of the attribute with the limit for maximum value","DevString","UnitLimitMax"},
+  {"LimitMin", "Name of the attribute with the limit for minimum value","DevString","UnitLimitMin"},
+  NULL};
+
+
 int32_t ScanVariable_MaxDevice = 97;
 
 extern "C"

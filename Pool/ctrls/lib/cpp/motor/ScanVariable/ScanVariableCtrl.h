@@ -117,7 +117,8 @@ protected:
 	string variable_name;
 	int32_t variable_type;
 	string stop_function;
-     
+	string limitmax_name;
+	string limitmin_name;
 
     stringstream            convert_stream;
 };
