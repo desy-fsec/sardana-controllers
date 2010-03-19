@@ -69,7 +69,7 @@ class TangoAttrIORController(IORegisterController):
         return self.devsExtraAttributes[axis][name]
 
     def SetExtraAttributePar(self,axis, name, value):
-        self._log.info('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
+        self._log.debug('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
         self.devsExtraAttributes[axis][name] = value
         if name == TANGO_ATTR:
             idx = value.rfind("/")
