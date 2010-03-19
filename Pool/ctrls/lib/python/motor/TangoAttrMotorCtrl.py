@@ -97,7 +97,6 @@ class TangoAttrMotorController(MotorController):
             VALUE = tau_attr.read().value
             value = VALUE # just in case 'VALUE' has been written in lowercase in the formula...
             evaluated_value = eval(formula)
-            self._log.info('(%d) from Tango(%s) to Motor(%s)' % (axis, str(value), str(evaluated_value)))
             return evaluated_value
         except Exception,e:
             self._log.error("(%d) error reading: %s" % (axis,str(e)))
@@ -117,7 +116,6 @@ class TangoAttrMotorController(MotorController):
             value = VALUE # just in case 'VALUE' has been written in lowercase in the formula...
             evaluated_value = eval(formula)
             tau_attr.write(evaluated_value)
-            self._log.info("(%d) from Motor(%s) to Tango(%s)" % (axis, str(value), str(evaluated_value)))
         except Exception,e:
             self._log.error("(%d) error writing: %s" % (axis,str(e)))
 
@@ -141,7 +139,7 @@ class TangoAttrMotorController(MotorController):
 
     def SetExtraAttributePar(self,axis, name, value):
         try:
-            self._log.info("SetExtraAttributePar [%d] %s = %s" % (axis, name, value))
+            self._log.debug("SetExtraAttributePar [%d] %s = %s" % (axis, name, value))
             self.tauAttributes[axis][name] = value
             if name == TANGO_ATTR:
                 try:
@@ -151,11 +149,11 @@ class TangoAttrMotorController(MotorController):
                     raise e
         except DevFailed, df:
             de = df[0]
-            self._log.info("SetExtraAttribute DevFailed: (%s) %s" % (de.reason, de.desc))
-            self._log.debug("SetExtraAttribute DevFailed: %s" % str(df))
+            self._log.error("SetExtraAttribute DevFailed: (%s) %s" % (de.reason, de.desc))
+            self._log.error("SetExtraAttribute DevFailed: %s" % str(df))
             #raise df
         except Exception,e:
-            self._log.warning("SetExtraAttribute Exception: %s" % str(e))
+            self._log.error("SetExtraAttribute Exception: %s" % str(e))
             #raise e
 
         
