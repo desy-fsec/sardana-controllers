@@ -117,7 +117,6 @@ class PmacLTPIOController(IORegisterController):
     def ReadOne(self, axis):
 	#cast to int cause PmacEthDS returns DevDouble in GetMVariable command
         value = int(self.pmacEth.command_inout("getmvariable",100))
-	self._log.info("M100 = %d" % value)
         if axis == 1:
             value &= 1
         elif axis == 2:
@@ -126,7 +125,6 @@ class PmacLTPIOController(IORegisterController):
         elif axis == 3:
             value >>= 14
             value &= 3
-	self._log.info("value = %d" % value)
         return value
 
     def WriteOne(self, axis, value):
@@ -182,7 +180,6 @@ class SimuPmacLTPIOController(IORegisterController):
         self._log.debug('DeleteDevice %d' % axis)
 
     def StateOne(self, axis):
-        self._log.info("In StateOne axis: %d" %axis)
         try:
             value = self.ReadOne(axis)
             bits = 1
@@ -216,10 +213,7 @@ class SimuPmacLTPIOController(IORegisterController):
         return (state, status)
 
     def ReadOne(self, axis):
-        self._log.info("In ReadOne axis %d" % axis)
-#        value = self.array
         value = copy.copy(self.array)
-        self._log.info("Array: %d" % value)
         if axis == 1:
             value &= 1
         elif axis == 2:
@@ -228,11 +222,9 @@ class SimuPmacLTPIOController(IORegisterController):
         elif axis == 3:
             value >>= 14
             value &= 3
-        self._log.info("Value: %d" % value)            
         return int(value)
 
     def WriteOne(self, axis, value):
-        self._log.info("In WriteOne axis: %d" % axis)
         if axis == 1:
             PyTango.Except.throw_exception("PmacLTPIOCtrl WriteOne() exception",
                                            "Axis nr 1 is read-only",
