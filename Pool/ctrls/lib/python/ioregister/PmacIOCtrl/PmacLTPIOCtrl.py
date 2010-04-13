@@ -31,8 +31,9 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
+import copy
 
-from PyTango import DevState
+import PyTango
 from pool import IORegisterController
 from pool import PoolUtil
 
@@ -48,12 +49,12 @@ def _to_binary(number, bits):
     return str_binary_number
 
 class PmacLTPIOController(IORegisterController):
-    """ This controller provides the state of the air supply and the airpads to the pool.
+    """ This controller provides the state of the air supply and the air pads of pmac axes ltp to the pool.
     +) first axis is the state of air supply
-    +) second axis is the state of airpads for top axis
+    +) second axis is the state of air pads for top axis
        -)   0: top axis lifted
        -)  63: top axis landed
-    +) third axis is the state of airpads for bottom axis
+    +) third axis is the state of air pads for bottom axis
        -) 0: bottom axis lifted
        -) 3: bottom axis landed
     """
@@ -72,7 +73,7 @@ class PmacLTPIOController(IORegisterController):
 
     def __init__(self, inst, props):
         IORegisterController.__init__(self, inst, props)
-        self.pmac_eth = PoolUtil().get_device(self.inst_name, self.PmacDevName)
+        self.pmacEth = PoolUtil().get_device(self.inst_name, self.PmacDevName)
 
     def AddDevice(self, axis):
         self._log.debug('AddDevice %d' % axis)
@@ -85,29 +86,38 @@ class PmacLTPIOController(IORegisterController):
             value = self.ReadOne(axis)
             bits = 1
             if axis == 2: bits = 6
-            elif axis == 3: bits = 2
-            str_bin_value = self._to_binary(value, bits)
+            elif axis == 3: bits = 2 
+            str_bin_value = _to_binary(value, bits)
         except Exception, e:
             self._log.error(str(e))
-            value = '???'
-            str_bin_value = '????????' 
+            if axis == 1: 
+                value = '?'
+                str_bin_value = '?'
+            elif axis == 2: 
+                value = '??'
+                str_bin_value = '??????'
+            elif axis == 3:
+                value == "?"
+                str_bin_value = '?' 
 
         # THE STATE CAN BE ON (everything OK), OR ALARM (not all OK)
-        state = DevState.ON
-        status = 'Hardware value: %s' % str_bin_value
+        state = PyTango.DevState.ON
+        status = 'Hardware value: %s.' % str_bin_value
         if axis == 1 and value != 1:
-            state = DevState.ALARM
+            state = PyTango.DevState.ALARM
             status += ' The air supply is NOT OK'
         elif axis == 2 and value != 0:
-            state = DevState.ALARM
-            status += ' Some airpads are not lifted: %s' % str_bin_value
+            state = PyTango.DevState.ALARM
+            status += ' Some air pads are not lifted.'
         elif axis == 3 and value != 0:
-            state = DevState.ALARM
-            status += ' Some airpads are not lifted: %s' % str_bin_value
+            state = PyTango.DevState.ALARM
+            status += ' Some air pads are not lifted.'
         return (state, status)
 
     def ReadOne(self, axis):
-        value = int(self.pmac_eth.command_inout("GetMVariable", 100))
+	#cast to int cause PmacEthDS returns DevDouble in GetMVariable command
+        value = int(self.pmacEth.command_inout("getmvariable",100))
+	self._log.info("M100 = %d" % value)
         if axis == 1:
             value &= 1
         elif axis == 2:
@@ -116,19 +126,124 @@ class PmacLTPIOController(IORegisterController):
         elif axis == 3:
             value >>= 14
             value &= 3
+	self._log.info("value = %d" % value)
         return value
 
     def WriteOne(self, axis, value):
-        # IT IS ONLY POSSIBLE TO WRITE THE AIRPADS (axis 2, 3)
         if axis == 1:
-            return
+            PyTango.Except.throw_exception("I/O error",
+                                           "Axis nr 1 is read-only",
+                                           "PmacLTPIOCtrl.WriteOne()")
         if axis == 2:
             current_3axis = self.ReadOne(3)
             write_value = value + (current_3axis << 6)
         if axis == 3:
             current_2axis = self.ReadOne(2)
             write_value = (value << 6) + current_2axis
-        self.pmac_eth.command_inout("SetMVariable", [101,write_value])
+        self.pmacEth.command_inout("setmvariable", [101, write_value])
+
+    def GetExtraAttributePar(self, axis, name):
+        pass
+
+    def SetExtraAttributePar(self,axis, name, value):
+        pass
+        
+    def SendToCtrl(self,in_data):
+        return "Not implemented yet"
+    
+class SimuPmacLTPIOController(IORegisterController):
+    """ This controller provides the state of the air supply and the airpads to the pool.
+    +) first axis is the state of air supply
+    +) second axis is the state of airpads for top axis
+       -)   0: top axis lifted
+       -)  63: top axis landed
+    +) third axis is the state of airpads for bottom axis
+       -) 0: bottom axis lifted
+       -) 3: bottom axis landed
+    """
+    
+    gender = ""
+    model  = ""
+    organization = "CELLS - ALBA"
+    image = ""
+    icon = ""
+    logo = "ALBA_logo.png"
+    
+    MaxDevice = 3
+
+    def __init__(self, inst, props):
+        IORegisterController.__init__(self, inst, props)
+        self.array = 1
+        
+    def AddDevice(self, axis):
+        self._log.debug('AddDevice %d' % axis)
+
+    def DeleteDevice(self, axis):
+        self._log.debug('DeleteDevice %d' % axis)
+
+    def StateOne(self, axis):
+        self._log.info("In StateOne axis: %d" %axis)
+        try:
+            value = self.ReadOne(axis)
+            bits = 1
+            if axis == 2: bits = 6
+            elif axis == 3: bits = 2 
+            str_bin_value = _to_binary(value, bits)
+        except Exception, e:
+            self._log.error(str(e))
+            if axis == 1: 
+                value = '?'
+                str_bin_value = '?'
+            elif axis == 2: 
+                value = '??'
+                str_bin_value = '??????'
+            elif axis == 3:
+                value == "?"
+                str_bin_value = '?' 
+
+
+        state = PyTango.DevState.ON
+        status = 'Hardware value: %s' % str_bin_value
+        if axis == 1 and value != 1:
+            state = PyTango.DevState.ALARM
+            status += ' The air supply is NOT OK'
+        elif axis == 2 and value != 0:
+            state = PyTango.DevState.ALARM
+            status += ' Some air pads are not lifted'
+        elif axis == 3 and value != 0:
+            state = PyTango.DevState.ALARM
+            status += ' Some air pads are not lifted'
+        return (state, status)
+
+    def ReadOne(self, axis):
+        self._log.info("In ReadOne axis %d" % axis)
+#        value = self.array
+        value = copy.copy(self.array)
+        self._log.info("Array: %d" % value)
+        if axis == 1:
+            value &= 1
+        elif axis == 2:
+            value >>= 8
+            value &= 63
+        elif axis == 3:
+            value >>= 14
+            value &= 3
+        self._log.info("Value: %d" % value)            
+        return int(value)
+
+    def WriteOne(self, axis, value):
+        self._log.info("In WriteOne axis: %d" % axis)
+        if axis == 1:
+            PyTango.Except.throw_exception("PmacLTPIOCtrl WriteOne() exception",
+                                           "Axis nr 1 is read-only",
+                                           "PmacLTPIOCtrl.WriteOne()")
+        if axis == 2:
+            current_3axis = self.ReadOne(3)
+            write_value = (value << 8) + (current_3axis << 14) + 1
+        if axis == 3:
+            current_2axis = self.ReadOne(2)
+            write_value = (value << 14) + (current_2axis << 8) + 1
+        self.array = copy.copy(write_value)
 
     def GetExtraAttributePar(self, axis, name):
         pass
