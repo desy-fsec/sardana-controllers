@@ -246,6 +246,11 @@ class IcepapController(MotorController):
 
     def PreReadOne(self,axis):
         self.attributes[axis]["position_value"] = None
+        # THERE IS AN IMPROVEMENT HERE, WE COULD GROUP ALL THE AXIS WHICH HAVE A COMMON TANGO DEVICE IN THE POSITION SOURCE
+        # AND QUERY ALL AT ONCE THE ATTRIBUTES RELATED TO THOSE AXIS
+        # OF COURSE THIS MEANS THAT ReadAll HAS ALSO TO BE REIMPLEMENTED
+        # AND self.positionMultiple HAS TO BE SPLITTED IN ORDER TO QUERY SOME AXIS TO ICEPAP
+        # SOME OTHERS TO ONE DEVICE, SOME OTHERS TO ANOTHER DEVICE, ETC....
         if self.attributes[axis]['MotorEnabled'] == True and self.attributes[axis]['position_source'] == '':
             self.positionMultiple.append(axis)
 
@@ -537,7 +542,7 @@ class IcepapController(MotorController):
                 ## Fulvio requires this closed loop boolean attribute
                 elif name == "closedloop":
                     if value:
-                        self.iPAP.setClosedLoop(axis,"TGTENC")
+                        self.iPAP.setClosedLoop(axis,"ON")
                     else:
                         self.iPAP.setClosedLoop(axis,"OFF")
                 elif name == 'motorenabled':
