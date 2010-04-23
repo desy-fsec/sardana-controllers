@@ -4,17 +4,104 @@ from pool import ZeroDController
 from pool import PoolUtil
 import math
 
-import tau
-
 TANGO_ATTR = 'TangoAttribute'
 FORMULA = 'Formula'
 DEVICE = 'Device'
 ATTRIBUTE = 'Attribute'
 EVALUATED_VALUE = 'Evaluated_value'
+INDEX_READ_ALL = 'Index_read_all'
 
-TAU_ATTR = 'TauAttr'
 
-class TangoAttrCTController(CounterTimerController):
+class ReadTangoAttributes():
+    """ Generic class that has as many devices as the user wants.
+    Each device has a tango attribute and a formula and the 'hardware' tango calls
+    are optimized in the sense that only one call per tango device is issued.
+    """
+    ctrl_extra_attributes ={TANGO_ATTR:
+                            {'Type':'PyTango.DevString'
+                             ,'Description':'The first Tango Attribute to read (e.g. my/tango/dev/attr)'
+                             ,'R/W Type':'PyTango.READ_WRITE'},
+                            FORMULA:
+                            {'Type':'PyTango.DevString'
+                             ,'Description':'The Formula to get the desired value.\ne.g. "math.sqrt(VALUE)"'
+                             ,'R/W Type':'PyTango.READ_WRITE'}
+                            }
+    
+    def __init__(self):
+        self.devsExtraAttributes = {}
+        self.axis_by_tango_attribute = {}
+        self.devices_to_read = {}
+        self.axis_to_update = {}
+        self.devs_values = []
+
+    def add_device(self, axis):
+        self._log.debug('AddDevice %d' % axis)
+        self.devsExtraAttributes[axis] = {}
+        self.devsExtraAttributes[axis][FORMULA] = 'VALUE'
+        self.devsExtraAttributes[axis][TANGO_ATTR] = None
+        self.devsExtraAttributes[axis][EVALUATED_VALUE] = None
+
+    def delete_device(self, axis):
+        del self.devsExtraAttributes[axis]
+
+    def state_one(self, axis):
+        return (DevState.ON, 'Always ON, just reading external Tango Attribute')
+
+    def pre_read_all(self):
+        self.devices_to_read = {}
+
+    def pre_read_one(self, axis):
+        dev = self.devsExtraAttributes[axis][DEVICE]
+        attr = self.devsExtraAttributes[axis][ATTRIBUTE]
+        if not self.devices_to_read.has_key(dev):
+            self.devices_to_read[dev] = []
+        self.devices_to_read[dev].append(attr)
+        index = self.devices_to_read[dev].index(attr)
+        self.devsExtraAttributes[axis][INDEX_READ_ALL] = index
+
+    def read_all(self):
+        for dev in self.devices_to_read.keys():
+            attributes = self.devices_to_read[dev]
+            dev_proxy = PoolUtil().get_device(self.inst_name, dev)
+            try:
+                values = dev_proxy.read_attributes(attributes)
+            except Exception,e:
+                self._log.error('Exception reading attributes:%s.%s' % (dev,str(attributes)))
+            for attr in attributes:
+                axis = self.axis_by_tango_attribute[dev+'/'+attr]
+                formula = self.devsExtraAttributes[axis][FORMULA]
+                index = attributes.index(attr)
+                dev_attr_value = values[index]
+                if dev_attr_value.has_failed:
+                    VALUE = PyTango.DevFailed(*dev_attr_value.get_err_stack())
+                else:
+                    VALUE = float(dev_attr_value.value)
+                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = VALUE
+                value = VALUE # just in case 'VALUE' has been written in lowercase...
+                
+
+    def read_one(self, axis):
+        value = self.devsExtraAttributes[axis][EVALUATED_VALUE]
+        if isinstance(value, PyTango.DevFailed):
+            raise value
+        return value
+
+    def get_extra_attribute_par(self, axis, name):
+        return self.devsExtraAttributes[axis][name]
+
+    def set_extra_attribute_par(self,axis, name, value):
+        self._log.debug('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
+        self.devsExtraAttributes[axis][name] = value
+        if name == TANGO_ATTR:
+            idx = value.rfind("/")
+            dev = value[:idx]
+            attr = value[idx+1:]
+            self.devsExtraAttributes[axis][DEVICE] = dev
+            self.devsExtraAttributes[axis][ATTRIBUTE] = attr
+            self.axis_by_tango_attribute[value] = axis
+
+
+class TangoAttrCTController(CounterTimerController, ReadTangoAttributes):
     """This controller offers as many channels as the user wants.
     Each channel has two _MUST_HAVE_ extra attributes:
     +) TangoAttribute - Tango attribute to retrieve the value of the counter
@@ -28,16 +115,6 @@ class TangoAttrCTController(CounterTimerController):
     ch3.Formula = 'math.cos(VALUE)'
     """
                  
-    ctrl_extra_attributes ={TANGO_ATTR:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The first Tango Attribute to read (e.g. my/tango/dev/attr)'
-                             ,'R/W Type':'PyTango.READ_WRITE'},
-                            FORMULA:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The Formula to get the desired value.\ne.g. "math.sqrt(VALUE)"'
-                             ,'R/W Type':'PyTango.READ_WRITE'}
-                            }
-
     gender = ""
     model  = ""
     organization = "CELLS - ALBA"
@@ -49,58 +126,38 @@ class TangoAttrCTController(CounterTimerController):
 
     def __init__(self, inst, props):
         CounterTimerController.__init__(self, inst, props)
-        self.devsExtraAttributes = {}
+        ReadTangoAttributes.__init__(self)
 
     def AddDevice(self, axis):
-        self._log.debug('AddDevice %d' % axis)
-        self.devsExtraAttributes[axis] = {}
-        self.devsExtraAttributes[axis][TANGO_ATTR] = None
-        self.devsExtraAttributes[axis][FORMULA] = 'VALUE'
-        self.devsExtraAttributes[axis][DEVICE] = None
-        self.devsExtraAttributes[axis][ATTRIBUTE] = None
-        self.devsExtraAttributes[axis][TAU_ATTR] = None
-        
-    def DeleteDevice(self, axis): 
-        del self.devsExtraAttributes[axis]
+        self.add_device(axis)
 
-    def PreStateAll(self):
-        pass
+    def DeleteDevice(self, axis):
+        self.delete_device(axis)
 
-    def StateAll(self):
-        pass
-            
     def StateOne(self, axis):
-        return (DevState.ON, 'Always ON, just reading external Tango Attribute')
+        return self.state_one(axis)
 
     def PreReadAll(self):
-        #self.pre_read_all()
-        pass
+        self.pre_read_all()
         
     def PreReadOne(self, axis):
-        #self.pre_read_one(axis)
-        pass
+        self.pre_read_one(axis)
 
     def ReadAll(self):
-        #self.read_all()
-        pass
+        self.read_all()
 
     def ReadOne(self, axis):
-        dev = self.devsExtraAttributes[axis][DEVICE]
-        attr = self.devsExtraAttributes[axis][ATTRIBUTE]
-        formula = self.devsExtraAttributes[axis][FORMULA]
-        tau_attr = self.devsExtraAttributes[axis][TAU_ATTR]
-        try:
-            tango_read = tau_attr.read().value
-            VALUE = tango_read
-            value = VALUE # just in case 'VALUE' has been written in lowercase...
-            evaluated_value = eval(formula)
-            return evaluated_value
-        except Exception,e:
-            self._log.error('Exception reading attribute: %s.%s\n%s' % (dev,str(attr),str(e)))
+        return self.read_one(axis)
 
-        return value
+    def GetExtraAttributePar(self, axis, name):
+        return self.get_extra_attribute_par(axis, name)
 
-
+    def SetExtraAttributePar(self,axis, name, value):
+        self.set_extra_attribute_par(axis, name, value)
+        
+    def SendToCtrl(self,in_data):
+        return ""
+    
     def AbortOne(self, axis):
         pass
         
@@ -112,27 +169,6 @@ class TangoAttrCTController(CounterTimerController):
     
     def StartAllCT(self):
         pass
-                 
+    
     def LoadOne(self, axis, value):
         pass
-    
-    def GetExtraAttributePar(self, axis, name):
-        return self.devsExtraAttributes[axis][name]
-
-    def SetExtraAttributePar(self,axis, name, value):
-        self._log.debug('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
-        self.devsExtraAttributes[axis][name] = value
-        if name == TANGO_ATTR:
-            idx = value.rfind("/")
-            dev = value[:idx]
-            attr = value[idx+1:]
-            self.devsExtraAttributes[axis][DEVICE] = dev
-            self.devsExtraAttributes[axis][ATTRIBUTE] = attr
-            try:
-                self.devsExtraAttributes[axis][TAU_ATTR] = tau.Attribute(value)
-            except Exception,e:
-                self._log.error('Exception accessing the tango attribute: %s'%str(e))
-        
-    def SendToCtrl(self,in_data):
-        return ""
-
