@@ -1,3 +1,4 @@
+import PyTango
 from PyTango import DevState
 from pool import CounterTimerController
 from pool import ZeroDController
@@ -71,13 +72,19 @@ class ReadTangoAttributes():
                 axis = self.axis_by_tango_attribute[dev+'/'+attr]
                 formula = self.devsExtraAttributes[axis][FORMULA]
                 index = attributes.index(attr)
-                VALUE = float(values[index].value)
+                dev_attr_value = values[index]
+                if dev_attr_value.has_failed:
+                    VALUE = PyTango.DevFailed(*dev_attr_value.get_err_stack())
+                else:
+                    VALUE = float(dev_attr_value.value)
+                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = VALUE
                 value = VALUE # just in case 'VALUE' has been written in lowercase...
-                self.devsExtraAttributes[axis][EVALUATED_VALUE] = eval(formula)
-
+                
 
     def read_one(self, axis):
         value = self.devsExtraAttributes[axis][EVALUATED_VALUE]
+        if isinstance(value, PyTango.DevFailed):
+            raise value
         return value
 
     def get_extra_attribute_par(self, axis, name):
