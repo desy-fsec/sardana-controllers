@@ -1,3 +1,4 @@
+import PyTango
 from PyTango import DevState
 from pool import CounterTimerController
 from pool import ZeroDController
