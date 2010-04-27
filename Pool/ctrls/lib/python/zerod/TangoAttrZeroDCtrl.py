@@ -80,6 +80,7 @@ class ReadTangoAttributes():
                 dev_attr_value = values[index]
                 if dev_attr_value.has_failed:
                     VALUE = PyTango.DevFailed(*dev_attr_value.get_err_stack())
+                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = VALUE
                 else:
                     VALUE = float(dev_attr_value.value)
                     value = VALUE # just in case 'VALUE' has been written in lowercase...
