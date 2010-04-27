@@ -1,3 +1,4 @@
+import math
 import PyTango
 from PyTango import DevState
 from pool import CounterTimerController
@@ -66,6 +67,10 @@ class ReadTangoAttributes():
             dev_proxy = PoolUtil().get_device(self.inst_name, dev)
             try:
                 values = dev_proxy.read_attributes(attributes)
+            except PyTango.DevFailed, e:
+                for attr in attributes:
+                    axis = self.axis_by_tango_attribute[dev+'/'+attr]
+                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = e
             except Exception,e:
                 self._log.error('Exception reading attributes:%s.%s' % (dev,str(attributes)))
             for attr in attributes:
@@ -77,9 +82,8 @@ class ReadTangoAttributes():
                     VALUE = PyTango.DevFailed(*dev_attr_value.get_err_stack())
                 else:
                     VALUE = float(dev_attr_value.value)
-                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = VALUE
-                value = VALUE # just in case 'VALUE' has been written in lowercase...
-                
+                    value = VALUE # just in case 'VALUE' has been written in lowercase...
+                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = eval(formula)
 
     def read_one(self, axis):
         value = self.devsExtraAttributes[axis][EVALUATED_VALUE]
