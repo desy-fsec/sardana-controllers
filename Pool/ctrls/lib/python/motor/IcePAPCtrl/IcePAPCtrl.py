@@ -38,6 +38,7 @@ class IcepapController(MotorController):
                              'PosEncIn':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
                              'PosInPos':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
                              'PosAbsEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             'PosMotor':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
                              'EncAxis':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
                              'EncIndexer':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
                              #'EncExtErr':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
@@ -109,6 +110,7 @@ class IcepapController(MotorController):
         self.attributes[axis] = {}
         self.attributes[axis]["step_per_unit"] = 1
         self.attributes[axis]["status_value"] = None
+        self.attributes[axis]["last_state_value"] = None
         self.attributes[axis]["position_value"] = None
         self.attributes[axis]["MotorEnabled"] = True
         self.attributes[axis]['position_source'] = ''
@@ -164,6 +166,7 @@ class IcepapController(MotorController):
         """
         if axis not in self.stateMultiple:
             self._log.warning('StateOne(%d) Not enabled. Check the Driver Board is present in %s.'%(axis,self.Host))
+            self.attributes[axis]["last_state_value"] = PyTango.DevState.ALARM
             return (PyTango.DevState.ALARM, 'Motor Not Enabled or Not Present', 0)
 
         status_template = "STATE(%s) PWR(%s) RDY(%s) MOVING(%s) SETTLING(%s) STPCODE(%s) LIM+(%s) LIM-(%s)"
@@ -179,9 +182,13 @@ class IcepapController(MotorController):
             try:
                 register = self.attributes[axis]['status_value']
                 status_dict = self.iPAP.decodeStatus(register)
+                previous_state = self.attributes[axis]["last_state_value"]
+
 
                 if status_dict is None:
+                    self.attributes[axis]["last_state_value"] = PyTango.DevState.ALARM
                     return (PyTango.DevState.ALARM, 'Status Register not available', 0)
+
                 # CHECK POWER LED
                 disable, status_power = status_dict['disable']
                 if disable == 0:
@@ -229,6 +236,10 @@ class IcepapController(MotorController):
                 #    status_state = 'ALARM_CONFIG'
 
                 status_string = status_template % (status_state,status_power,status_ready,status_moving,status_settling,status_stopcode,upper,lower)
+                if previous_state != PyTango.DevState.ALARM and state == PyTango.DevState.ALARM:
+                    dump = self.iPAP.debug_internals(axis)
+                    self._log.warning('StateOne(%d).State change from %s to %s. Icepap internals dump:\n%s' % (axis, previous_state, state, dump))
+                self.attributes[axis]["last_state_value"] = state
                 return (state, status_string, switchstate)
             except Exception,e:
                 self._log.error('StateOne(%d).\nException:\n%s' % (axis,str(e)))
@@ -283,7 +294,7 @@ class IcepapController(MotorController):
                     raise e
             else:
                 self._log.warning('ReadOne(%d) Not enabled. Check the Driver Board is present in %s.'%(axis,self.Host))
-                return float('NaN')
+                raise Exception(self.inst_name,'Axis %d is not enabled: No position value available'%axis)
 
         if self.iPAP.connected:
             try:
@@ -449,6 +460,8 @@ class IcepapController(MotorController):
                     return float(ans)
                 elif name == "posabsenc":
                     ans = self.iPAP.getPositionFromBoard(axis,"ABSENC")
+                elif name == "posmotor":
+                    ans = self.iPAP.getPositionFromBoard(axis,"MOTOR")
                     return float(ans)
                 elif name == "encaxis":
                     ans = self.iPAP.getEncoder(axis,"AXIS")
