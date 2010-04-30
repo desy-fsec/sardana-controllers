@@ -374,6 +374,15 @@ class GroupAttenuatorIOCtrl(IORegisterController):
         IORegisterController.__init__(self, inst, props)
         self._log.debug("GroupAttenuatorIOCtrl::__init__(%s,%s) "%(inst,props))
         self.devsExtraAttributes = {}
+        self._statePriorities = {DevState.ON:0,
+                                 DevState.OFF:1,
+                                 DevState.DISABLE:1,
+                                 DevState.MOVING:2,
+                                 DevState.UNKNOWN:3,
+                                 DevState.INIT:4,
+                                 DevState.ALARM:4,
+                                 DevState.FAULT:5,
+                                }#bigger number more important
 
     def AddDevice(self, axis):
         self._log.debug("GroupAttenuatorIOCtrl::AddDevice(%s) "%(axis))
@@ -392,8 +401,10 @@ class GroupAttenuatorIOCtrl(IORegisterController):
             return (DevState.DISABLE,
                     "Not yet configured the %s Attribute"%_ARMS)
         else:
-            return (DevState.ON,"")
+            #return (DevState.ON,"")
             #@todo: combine the states and substates in the status
+            state,status = self.stateComposer(axis)
+            return (state,status)
             #return (self.devsExtraAttributes[axis][_VALVE_DPROXY].state(),
             #        "The valve status says: %s"%self.devsExtraAttributes[axis][_VALVE_DPROXY].status())
 
@@ -524,18 +535,44 @@ class GroupAttenuatorIOCtrl(IORegisterController):
             res = []
             for i in first:
                 for j in second:
-                    res.append(method(i,j))
+                    res = method(i,j,res)
             return res
         except: return args[0]
         
-    def forLabels(self,i,j):
-        return "".join("%s+%s"%(i,j))
+    def forLabels(self,i,j,acum):
+        acum.append("".join("%s+%s"%(i,j)))
+        return acum
     
     #def forPositions(self,i,j):
     #    return "".join("%s %s"%(i,j))
+    
+    def forState(self,i,j,acum):
+        print "!"*20
+        print i
+        print j
+        i_ = self._statePriorities.get(i,-1)
+        j_ = self._statePriorities.get(j,-1)
+        print "i is %s"%i_
+        print "j is %s"%j_
+        if i_>j_: return i
+        else: return j
+    
+    def stateComposer(self,axis):
+        stateComposed = None
+        status = ""
+        for i,dev in enumerate(self.devsExtraAttributes[axis][_ARMS_DPROXY]):
+            state = dev.State()
+            status += "Arm %s in state %s\n"%(self.devsExtraAttributes[axis][_ARMS_DEVICE][i],state)
+            if self._statePriorities.get(state,-1) > self._statePriorities.get(stateComposed,-1):
+                stateComposed = state
+        #print ">"*20,stateArray
+        #state = self.combine(self.forState,stateArray)[0]
+        #print "<"*20,state
+        return stateComposed,status
     
     # end lower level
     ####
 
 if __name__ == "__main__":
-    obj = AttenuatorIOCtrl('test')
+    obj = AttenuatorIOCtrl('arm')
+    grp = GroupAttenuatorIOCtrl('group')
