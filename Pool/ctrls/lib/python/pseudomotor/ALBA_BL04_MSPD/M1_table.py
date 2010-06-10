@@ -25,6 +25,8 @@ class M1_Z_Pitch_Roll(PseudoMotorController):
 
   DIM_Y = 1262.5
   DIM_X = 261
+#  DIM_Y = 1000
+#  DIM_X = 500
 
   def calc_physical(self, index, pseudos):
     return self.calc_all_physical(pseudos)[index - 1]
@@ -94,6 +96,7 @@ class M1_X_and_Yaw(PseudoMotorController):
   motor_roles = ('mx1', 'mx2')
 
   DIM_Y = 1262.50
+#  DIM_Y = 1000
 
   def calc_physical(self, index, pseudos):
     return self.calc_all_physical(pseudos)[index - 1]
