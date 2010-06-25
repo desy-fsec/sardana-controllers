@@ -30,15 +30,20 @@ class LI_BCM_PCCtrl(PseudoCounterController):
 
     def __init__(self, inst, props):
         PseudoCounterController.__init__(self, inst, props)
-        util = PoolUtil()
-        try:
-            self.gap_motor = util.get_device(self.inst_name, self.gap_motor_dev)
-            self.offset_motor = util.get_device(self.inst_name, self.offset_motor_dev)
-            self.ibend_motor = util.get_device(self.inst_name, self.ibend_motor_dev)
-        except Exception,e:
-            self._log.error('Could not connect to devices %s, %s and %s' %(self.gap_motor_dev,self.offset_motor_dev,self.ibend_motor_dev))
+        self.gap_motor = None
+        self.offset_motor = None
+        self.ibend_motor = None
 
     def calc(self,index,counter_values):
+        if self.gap_motor == None or self.offset_motor == None or self.ibend_motor == None:
+            util = PoolUtil()
+            try:
+                self.gap_motor = util.get_device(self.inst_name, self.gap_motor_dev)
+                self.offset_motor = util.get_device(self.inst_name, self.offset_motor_dev)
+                self.ibend_motor = util.get_device(self.inst_name, self.ibend_motor_dev)
+            except Exception,e:
+                self._log.error('Could not connect to devices %s, %s and %s' %(self.gap_motor_dev,self.offset_motor_dev,self.ibend_motor_dev))
+
         bcm1 = counter_values[0]
         bcm2 = counter_values[1]
         if index == 1:
