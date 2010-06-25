@@ -33,7 +33,7 @@ class LI_BCM_PCCtrl(PseudoCounterController):
         util = PoolUtil()
         try:
             self.gap_motor = util.get_device(self.inst_name, self.gap_motor_dev)
-            self.offsettor = util.get_device(self.inst_name, self.offset_motor_dev)
+            self.offset_motor = util.get_device(self.inst_name, self.offset_motor_dev)
             self.ibend_motor = util.get_device(self.inst_name, self.ibend_motor_dev)
         except Exception,e:
             self._log.error('Could not connect to devices %s, %s and %s' %(self.gap_motor_dev,self.offset_motor_dev,self.ibend_motor_dev))
