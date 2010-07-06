@@ -1,5 +1,5 @@
-#ifndef _MAXECTRL_H
-#define _MAXECTRL_H
+#ifndef _OMSCTRL_H
+#define _OMSCTRL_H
 
 #include <pool/MotCtrl.h>
 #include <tango.h>
@@ -58,4 +58,4 @@ protected:
 	stringstream            convert_stream;
 };
 
-#endif /* _MAXECTRL_H */
+#endif /* _OMSCTRL_H */
