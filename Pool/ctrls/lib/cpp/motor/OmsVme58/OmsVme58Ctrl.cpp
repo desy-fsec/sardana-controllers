@@ -17,43 +17,30 @@ using namespace std;
 
 OmsVme58Ctrl::OmsVme58Ctrl(const char *inst,vector<Controller::Properties> &prop):MotorController(inst)
 {
-  //cout << "[OmsVme58Ctrl] Received " << prop.size() << " properties" << endl;
-  for (unsigned long loop = 0;loop < prop.size();loop++)
-    {
-      if( prop[loop].name == "DevName" )
-	{
-	  DevName = prop[loop].value.string_prop[0]; 
-	}
+  max_device = 0;
+  vector<Controller::Properties>::iterator prop_it;
+  for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
+    if(prop_it->name == "RootDeviceName"){
+      Tango::Database *db = new Tango::Database();
+      string root_device_name =prop_it->value.string_prop[0];
+      string add = "*";
+      string name = root_device_name + add;
+      Tango::DbDatum db_datum = db->get_device_exported(name);
+      vector<string> str_vec;
+      db_datum >> str_vec;  
+      int index = 1;
+      for(unsigned long l = 0; l < str_vec.size(); l++){
+	MotorData *motor_data_elem = new MotorData;
+	motor_data_elem->tango_device = str_vec[l];
+	motor_data_elem->device_available = false;
+	motor_data_elem->proxy = NULL;
+	motor_data.insert(make_pair(index, motor_data_elem));
+	max_device++;
+	index++;
+      }
     }
-  
-  simu_ctrl = NULL;
-  home_acc = 1.0;
-  
-  //
-  // Create a DeviceProxy on the simulated controller and set
-  // it in automatic reconnection mode
-  //
-  simu_ctrl = Pool_ns::PoolUtil::instance()->get_device(inst_name, DevName);
-  
-  //
-  // Ping the device to be sure that it is present
-  //
-  if(simu_ctrl == NULL)
-    {
-      TangoSys_OMemStream o;
-      o << "The PoolAPI did not provide a valid simulator device" << ends;
-      Tango::Except::throw_exception((const char *)"SimuCtrl_BadPoolAPI",o.str(),
-				     (const char *)"OmsVme58Ctrl::OmsVme58Ctrl()");
-    }
-  
-  try
-    {
-      simu_ctrl->ping();
-    }
-  catch (Tango::DevFailed &e)
-    {
-      throw;
-    }
+  }
+ 
 }
 
 //-----------------------------------------------------------------------------
@@ -66,10 +53,17 @@ OmsVme58Ctrl::OmsVme58Ctrl(const char *inst,vector<Controller::Properties> &prop
 
 OmsVme58Ctrl::~OmsVme58Ctrl()
 {
-  //cout << "[OmsVme58Ctrl] class dtor" << endl;
-  //if (simu_ctrl != NULL)
-  //	delete simu_ctrl;
+  //cout << "[OmsVme58Ctrl] class dtor" << endl;	
+  map<int32_t, MotorData*>::iterator ite = motor_data.begin();
+  for(;ite != motor_data.end();ite++)
+    {
+      if(ite->second->proxy != NULL)
+	delete ite->second->proxy;
+      delete ite->second;		
+    }		
+  motor_data.clear();
 }
+
 
 //-----------------------------------------------------------------------------
 //
@@ -83,7 +77,27 @@ OmsVme58Ctrl::~OmsVme58Ctrl()
 
 void OmsVme58Ctrl::AddDevice(int32_t idx)
 {
-  //cout << "[OmsVme58Ctrl] Creating a new motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name  << " (" << DevName << ")" << endl;
+  //cout << "[OmsVme58Ctrl] Creating a new motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name  << " (" << RootDeviceName << ")" << endl;	
+
+    if(idx > max_device){
+	TangoSys_OMemStream o;
+	o << "The property 'TangoDevices' has no value for index " << idx << ".";
+	o << " Please define a valid tango device before adding a new element to this controller"<< ends;
+	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadIndex",o.str(),
+				       (const char *)"OmsVme58Ctrl::AddDevice()");
+    }
+    if(motor_data[idx]->device_available == false){
+	if(motor_data[idx]->proxy == NULL)
+	    motor_data[idx]->proxy = new Tango::DeviceProxy(motor_data[idx]->tango_device);
+	try{
+	    motor_data[idx]->proxy->ping();
+	    motor_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	    motor_data[idx]->device_available = false;
+	}
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -98,7 +112,20 @@ void OmsVme58Ctrl::AddDevice(int32_t idx)
 
 void OmsVme58Ctrl::DeleteDevice(int32_t idx)
 {
-  //cout << "[OmsVme58Ctrl] Deleting motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name  << " (" << DevName << ")" << endl;
+  //cout << "[OmsVme58Ctrl] Deleting motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name  << " (" << RootDeviceName << ")" << endl;
+  if(idx > max_device){
+    TangoSys_OMemStream o;
+    o << "Trying to delete an inexisting element(" << idx << ") from the controller." << ends;
+    
+    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadIndex",o.str(),
+				   (const char *)"OmsVme58Ctrl::DeleteDevice()");
+  }	
+	
+  if(motor_data[idx]->proxy != NULL){
+    delete motor_data[idx]->proxy;
+    motor_data[idx]->proxy = NULL;  
+  }
+  motor_data[idx]->device_available = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -113,21 +140,31 @@ void OmsVme58Ctrl::DeleteDevice(int32_t idx)
 
 void OmsVme58Ctrl::AbortOne(int32_t idx)
 {
-  //cout << "[OmsVme58Ctrl] Aborting one motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
-  if (simu_ctrl != NULL)
-    {
-      Tango::DeviceData d_in;
-      d_in << (Tango::DevLong)idx;
-      simu_ctrl->command_inout("Abort",d_in);
+  
+  //cout << "[OmsVme58Ctrl] Aborting one motor with index " << idx  << endl;
+
+  if(motor_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"OmsVme58Ctrl::AbortOne()");  
+  }
+	
+  if(motor_data[idx]->device_available == false){
+    try{
+      motor_data[idx]->proxy->ping();
+      motor_data[idx]->device_available = true;	
     }
-  else
-    {
+    catch(Tango::DevFailed &e){
+      motor_data[idx]->device_available = false;
       TangoSys_OMemStream o;
-      o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
-      
-      Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-				     (const char *)"OmsVme58Ctrl::AbortOne()");
+      o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				     (const char *)"OmsVme58Ctrl::AbortOne()"); 
     }
+  }
+
+  motor_data[idx]->proxy->command_inout("StopMove");
 }
 
 //-----------------------------------------------------------------------------
@@ -143,30 +180,37 @@ void OmsVme58Ctrl::AbortOne(int32_t idx)
 
 void OmsVme58Ctrl::DefinePosition(int32_t idx,double new_pos)
 {
-  //cout << "[OmsVme58Ctrl] Defining position for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
-  if (simu_ctrl != NULL)
-    {
-      Tango::DeviceData d_in;
-      
-      vector<double> v_db;
-      v_db.push_back(new_pos);
-      
-      vector<string> v_str;
-      convert_stream << (Tango::DevLong)idx;
-      v_str.push_back(convert_stream.str());
-      convert_stream.str("");
-      
-      d_in.insert(v_db,v_str);	
-      simu_ctrl->command_inout("LoadAxePosition",d_in);
-    }
-  else
-    {
-      TangoSys_OMemStream o;
-      o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
-      
-      Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-				     (const char *)"OmsVme58Ctrl::DefinePosition()");
-    }
+  //cout << "[OmsVme58Ctrl] Defining position for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl;
+     
+  Tango::DeviceData d_in;
+
+  
+  if(motor_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << " OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"OmsVme58Ctrl::StartOne()");
+  }
+  
+  if(motor_data[idx]->device_available == false){
+    try
+      {
+	motor_data[idx]->proxy->ping();
+	motor_data[idx]->device_available = true;	
+      }
+    catch(Tango::DevFailed &e)
+      {
+	motor_data[idx]->device_available = false;
+	TangoSys_OMemStream o;
+	o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::StartOne()");	
+      }
+  }
+  
+  d_in << new_pos;
+  motor_data[idx]->proxy->command_inout("Calibrate", d_in);
+
 }
 
 //-----------------------------------------------------------------------------
@@ -182,27 +226,38 @@ void OmsVme58Ctrl::DefinePosition(int32_t idx,double new_pos)
 
 double OmsVme58Ctrl::ReadOne(int32_t idx)
 {
-  //cout << "[OmsVme58Ctrl] Getting position for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
-  double received_pos;
+  //cout << "[OmsVme58Ctrl] Getting position for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl;
   
-  if (simu_ctrl != NULL)
-    {
-      Tango::DeviceData d_in,d_out;
-
-      d_in << (Tango::DevLong)idx;
-      
-      d_out = simu_ctrl->command_inout("GetAxePosition",d_in);
-      d_out >> received_pos;
+  if(motor_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"OmsVme58Ctrl::ReadOne()");  
+  }
+	
+  if(motor_data[idx]->device_available == false){
+    try{
+      motor_data[idx]->proxy->ping();
+      motor_data[idx]->device_available = true;	
     }
-  else
-    {
+    catch(Tango::DevFailed &e){
+      motor_data[idx]->device_available = false;
       TangoSys_OMemStream o;
-      o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
-      
-      Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-				     (const char *)"OmsVme58Ctrl::ReadOne()");
+      o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				     (const char *)"OmsVme58Ctrl::ReadOne()"); 
     }
-  return received_pos;
+  }
+
+  Tango::DeviceAttribute d_out;
+  double value;
+
+  d_out = motor_data[idx]->proxy->read_attribute("Position");
+  d_out >> value;
+  
+
+  return value;
+
 }
 
 //-----------------------------------------------------------------------------
@@ -215,7 +270,7 @@ double OmsVme58Ctrl::ReadOne(int32_t idx)
 	
 void OmsVme58Ctrl::PreStartAll()
 {
-	//cout << "[OmsVme58Ctrl] PreStartAll on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
+	//cout << "[OmsVme58Ctrl] PreStartAll on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl;
 	
 	wanted_mot_pos.clear();
 	wanted_mot.clear();
@@ -234,21 +289,31 @@ void OmsVme58Ctrl::PreStartAll()
 	
 void OmsVme58Ctrl::StartOne(int32_t idx,double new_pos)
 {
-	//cout << "[OmsVme58Ctrl] Starting one motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
+	//cout << "[OmsVme58Ctrl] Starting one motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl;
+  
+  if(motor_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"OmsVme58Ctrl::StartOne()");  
+  }
+	
+  if(motor_data[idx]->device_available == false){
+    try{
+      motor_data[idx]->proxy->ping();
+      motor_data[idx]->device_available = true;	
+    }
+    catch(Tango::DevFailed &e){
+      motor_data[idx]->device_available = false;
+      TangoSys_OMemStream o;
+      o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				     (const char *)"OmsVme58Ctrl::StartOne()"); 
+    }
+  }
 
-	if (simu_ctrl != NULL)
-	{
-		wanted_mot_pos.push_back(new_pos);
-		wanted_mot.push_back(idx);
-	}
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
-		
-		Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-					       			   (const char *)"OmsVme58Ctrl::StartOne()");
-	}
+  wanted_mot_pos.push_back(new_pos);
+  wanted_mot.push_back(idx);
 }
 
 //-----------------------------------------------------------------------------
@@ -264,36 +329,40 @@ void OmsVme58Ctrl::StartOne(int32_t idx,double new_pos)
 	
 void OmsVme58Ctrl::StartAll()
 {
-  //cout << "[OmsVme58Ctrl] StartAll() on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
+  //cout << "[OmsVme58Ctrl] StartAll() on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl;
   
-  if (simu_ctrl != NULL)
-    {
-      int32_t nb_mot = wanted_mot.size();
-      
-      for (int32_t loop = 0;loop < nb_mot;loop++)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<double> v_db;
-	  v_db.push_back(wanted_mot_pos[loop]);
-	  
-	  vector<string> v_str;
-	  convert_stream << wanted_mot[loop];
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
 
-	  
-	  d_in.insert(v_db,v_str);	
-	  simu_ctrl->command_inout("SetAxePosition",d_in);
-	}
-    }
-  else
+  int32_t nb_mot = wanted_mot.size();
+  
+  for (int32_t loop = 0;loop < nb_mot;loop++)
     {
-      TangoSys_OMemStream o;
-      o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
       
-      Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-				     (const char *)"OmsVme58Ctrl::StartOne()");
+      int idx = wanted_mot[loop];
+      Tango::DevDouble position = wanted_mot_pos[loop];
+
+      if(motor_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::StartOne()");  
+      }
+      
+      if(motor_data[idx]->device_available == false){
+	try{
+	  motor_data[idx]->proxy->ping();
+	  motor_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	  motor_data[idx]->device_available = false;
+	  TangoSys_OMemStream o;
+	  o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+	  Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+					 (const char *)"OmsVme58Ctrl::StartOne()"); 
+	}
+      }
+      Tango::DeviceAttribute da("Position",position);
+      motor_data[idx]->proxy->write_attribute(da);
+
     }
 }
 
@@ -313,30 +382,67 @@ void OmsVme58Ctrl::StartAll()
 
 void OmsVme58Ctrl::StateOne(int32_t idx,Controller::CtrlState *info_ptr)
 {
-//cout << "[OmsVme58Ctrl] Getting state for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
+//cout << "[OmsVme58Ctrl] Getting state for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl;
 
-	MotorController::MotorState *mot_info_ptr = static_cast<MotorController::MotorState *>(info_ptr);
-
-	if (simu_ctrl != NULL)
+    MotorController::MotorState *mot_info_ptr = static_cast<MotorController::MotorState *>(info_ptr);
+    
+    if(motor_data[idx]->proxy == NULL){
+	mot_info_ptr->state = Tango::FAULT;
+	return;
+    }
+    
+    if(motor_data[idx]->device_available == false){
+	try
 	{
-		Tango::DeviceData d_in,d_out;
-		d_in << (Tango::DevLong)idx;
-		d_out = simu_ctrl->command_inout("GetAxeStatus",d_in);
-
-		const Tango::DevVarLongArray *dvla;
-		d_out >> dvla;
-		mot_info_ptr->state = (*dvla)[0];
-		mot_info_ptr->switches = (*dvla)[1];
-
+	    motor_data[idx]->proxy->ping();
+	    motor_data[idx]->device_available = true;	
 	}
-	else
+	catch(Tango::DevFailed &e)
 	{
-		TangoSys_OMemStream o;
-		o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
-		
-		Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-					       			   (const char *)"OmsVme58Ctrl::GetStatus()");
+	    motor_data[idx]->device_available = false;
+	    mot_info_ptr->state = Tango::FAULT;
+	    return;
 	}
+    }
+    
+    Tango::DevState s = motor_data[idx]->proxy->state();
+    Tango::DeviceAttribute d_out;
+    
+    if(s == Tango::ON){
+	mot_info_ptr->state = Tango::ON;
+	mot_info_ptr->status = "Motor is iddle";
+    } else if(s == Tango::FAULT){
+	mot_info_ptr->state = Tango::FAULT;
+	mot_info_ptr->status = "Motor is in error";
+    } else if(s == Tango::MOVING){
+	mot_info_ptr->state = Tango::MOVING;
+	mot_info_ptr->status = "Motor is moving";
+    }
+    
+    Tango::DevLong cwlimit;
+    Tango::DevLong ccwlimit;
+    
+    int32_t switches;
+    
+    try{
+	d_out = motor_data[idx]->proxy->read_attribute("CwLimit");
+	d_out >> cwlimit;
+	
+	d_out = motor_data[idx]->proxy->read_attribute("CcwLimit");
+	d_out >> ccwlimit;	
+    }
+    catch(Tango::DevFailed &e){
+	cwlimit = 0;
+	ccwlimit = 0;
+    }
+    
+    switches = 0;
+    
+    if(cwlimit)  switches = switches + 2;
+    if(ccwlimit)  switches = switches + 4;
+    
+    mot_info_ptr->switches = switches;
+      
 }
 
 //-----------------------------------------------------------------------------
@@ -354,62 +460,77 @@ void OmsVme58Ctrl::StateOne(int32_t idx,Controller::CtrlState *info_ptr)
 
 Controller::CtrlData OmsVme58Ctrl::GetPar(int32_t idx,string &par_name)
 {
-	//cout << "[OmsVme58Ctrl] Getting parameter " << par_name << " for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
-
-	Controller::CtrlData par_value;	
-	if (simu_ctrl != NULL)
-	{
-		Tango::DeviceData d_in,d_out;
-
-		d_in << (Tango::DevLong)idx;		
-		if (par_name == "Acceleration")
-		{
-			d_out = simu_ctrl->command_inout("GetAxeAcceleration",d_in);
-			d_out >> par_value.db_data;
-			par_value.data_type = Controller::DOUBLE;		
-		}
-		else if (par_name == "Velocity")
-		{
-			d_out = simu_ctrl->command_inout("GetAxeVelocity",d_in);
-			d_out >> par_value.db_data;
-			par_value.data_type = Controller::DOUBLE;		
-		}
-		else if (par_name == "Base_rate")
-		{
-			d_out = simu_ctrl->command_inout("GetAxeBase_rate",d_in);
-			d_out >> par_value.db_data;
-			par_value.data_type = Controller::DOUBLE;
-		}
-		else if (par_name == "Deceleration")
-		{
-			d_out = simu_ctrl->command_inout("GetAxeDeceleration",d_in);
-			d_out >> par_value.db_data;
-			par_value.data_type = Controller::DOUBLE;	
-		}
-		else if (par_name == "Backlash")
-		{
-			par_value.db_data = 11.111;
-			par_value.data_type = Controller::DOUBLE;
-		}
-		else
-		{
-			TangoSys_OMemStream o;
-			o << "Parameter " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
-			
-			Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-						       			   (const char *)"OmsVme58Ctrl::GetPar()");
-		}
+    //cout << "[OmsVme58Ctrl] Getting parameter " << par_name << " for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl;
+    
+    Controller::CtrlData par_value;
+    
+    if(motor_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::StartOne()");  
+    }
+    
+    if(motor_data[idx]->device_available == false){
+	try{
+	    motor_data[idx]->proxy->ping();
+	    motor_data[idx]->device_available = true;	
 	}
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
-		
-		Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-					       			   (const char *)"OmsVme58Ctrl::GetPar()");
+	catch(Tango::DevFailed &e){
+	    motor_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"OmsVme58Ctrl::StartOne()"); 
 	}
+    }
+
+    Tango::DeviceAttribute d_out;
+    Tango::DevLong l_value;
+
+    if (par_name == "Acceleration")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("Acceleration");
+	d_out >> l_value;
+	par_value.db_data = (double) l_value;
+	par_value.data_type = Controller::DOUBLE;		
+    }
+    else if (par_name == "Velocity")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("SlewRate");
+	d_out >> l_value;
+	par_value.db_data = (double) l_value;
+	par_value.data_type = Controller::DOUBLE;		
+    }
+    else if (par_name == "Base_rate")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("BaseRate");
+	d_out >> l_value;
+	par_value.db_data = (double) l_value;
+	par_value.data_type = Controller::DOUBLE;
+    }
+    else if (par_name == "Deceleration")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("Acceleration");
+	d_out >> l_value;
+	par_value.db_data = (double) l_value;
+	par_value.data_type = Controller::DOUBLE;	
+    }
+    else if (par_name == "Backlash")
+    {
+	par_value.db_data = 11.111;
+	par_value.data_type = Controller::DOUBLE;
+    }
+    else
+    {
+	TangoSys_OMemStream o;
+	o << "Parameter " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
 	
-	return par_value;
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::GetPar()");
+    }
+    
+    return par_value;
 }
 
 //-----------------------------------------------------------------------------
@@ -427,72 +548,77 @@ Controller::CtrlData OmsVme58Ctrl::GetPar(int32_t idx,string &par_name)
 
 void OmsVme58Ctrl::SetPar(int32_t idx,string &par_name,Controller::CtrlData &new_value)
 {
-	//cout << "[OmsVme58Ctrl] Setting parameter " << par_name << " for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << DevName << ")" << endl;
+    //cout << "[OmsVme58Ctrl] Setting parameter " << par_name << " for motor with index " << idx << " on controller OmsVme58Ctrl/" << inst_name << " (" << RootDeviceName << ")" << endl
+    
+    Tango::DevLong l_value;
 
-	if (simu_ctrl != NULL)
-	{
-		Tango::DeviceData d_in;
-
-		vector<double> v_db;
-		if (par_name != "Backlash")
-		{
-			if (new_value.data_type == Controller::DOUBLE)	
-				v_db.push_back(new_value.db_data);
-			else
-				bad_data_type(par_name);
-		}
-	
-		vector<string> v_str;
-		convert_stream << (Tango::DevLong)idx;
-		v_str.push_back(convert_stream.str());
-		convert_stream.str("");
-	
-		d_in.insert(v_db,v_str);	
-				
-		if (par_name == "Acceleration")
-		{
-			simu_ctrl->command_inout("SetAxeAcceleration",d_in);
-		}
-		else if (par_name == "Velocity")
-		{
-			simu_ctrl->command_inout("SetAxeVelocity",d_in);
-		}
-		else if (par_name == "Base_rate")
-		{
-			simu_ctrl->command_inout("SetAxeBase_rate",d_in);
-		}
-		else if (par_name == "Deceleration")
-		{
-			simu_ctrl->command_inout("SetAxeDeceleration",d_in);
-		}
-		else if (par_name == "Step_per_unit")
-		{
-		  //			cout << "[OmsVme58Ctrl] New Step_per_unit feature is " << new_value.db_data << endl;
-		}
-		else if (par_name == "Backlash")
-		{
-			if (new_value.data_type == Controller::INT32)	
-				cout << "[OmsVme58Ctrl] New value for backlash is " << new_value.int32_data << endl;
-			else
-				bad_data_type(par_name);
-		}
-		else
-		{
-			TangoSys_OMemStream o;
-			o << "Parameter " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
-			
-			Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-						       			   (const char *)"OmsVme58Ctrl::GetPar()");
-		}
+    if(motor_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::StartOne()");  
+    }
+    
+    if(motor_data[idx]->device_available == false){
+	try{
+	    motor_data[idx]->proxy->ping();
+	    motor_data[idx]->device_available = true;	
 	}
+	catch(Tango::DevFailed &e){
+	    motor_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"OmsVme58Ctrl::StartOne()"); 
+	}
+    } 
+    
+    if (par_name == "Acceleration" || par_name == "Deceleration")
+    {
+	l_value = (long) new_value.db_data;
+	Tango::DeviceAttribute da_acc("Acceleration",l_value );
+	if (new_value.data_type == Controller::DOUBLE)
+	    motor_data[idx]->proxy->write_attribute(da_acc);
 	else
-	{
-		TangoSys_OMemStream o;
-		o << "Simulated controller for controller OmsVme58Ctrl/" << get_name() << " is NULL" << ends;
-		
-		Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-					       			   (const char *)"OmsVme58Ctrl::SetPar()");
-	}
+	    bad_data_type(par_name);
+    } 
+    else if(par_name == "Velocity")
+    {
+	l_value = (long) new_value.db_data;
+	Tango::DeviceAttribute da_vel("SlewRate",l_value);
+	if (new_value.data_type == Controller::DOUBLE)
+	    motor_data[idx]->proxy->write_attribute(da_vel);
+	else
+	    bad_data_type(par_name);
+    } 
+    else if(par_name == "Base_rate")
+    {
+	l_value = (long) new_value.db_data;
+	Tango::DeviceAttribute da_br("BaseRate",l_value );
+	if (new_value.data_type == Controller::DOUBLE)
+	    motor_data[idx]->proxy->write_attribute(da_br);
+	else
+	    bad_data_type(par_name);
+    }  
+    else if(par_name == "Step_per_unit")
+    {
+    }
+    else if (par_name == "Backlash")
+    {
+	if (new_value.data_type == Controller::INT32)	
+	    cout << "[OmsVme58Ctrl] New value for backlash is " << new_value.int32_data << endl;
+	else
+	    bad_data_type(par_name);
+    }
+    else
+    {
+	TangoSys_OMemStream o;
+	o << "Parameter " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
+	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::GetPar()");
+    }
+    
 }
 
 //-----------------------------------------------------------------------------
@@ -508,141 +634,113 @@ void OmsVme58Ctrl::SetPar(int32_t idx,string &par_name,Controller::CtrlData &new
 //-----------------------------------------------------------------------------
 
 Controller::CtrlData OmsVme58Ctrl::GetExtraAttributePar(int32_t idx,string &par_name)
-{
-	Controller::CtrlData par_value;	
+{ 
+    Controller::CtrlData par_value;
+    
+    Tango::DevLong par_tmp_l;
 
-    double par_tmp_db;
-    Tango::DevLong   par_tmp_l;
-
-	if (par_name == "Conversion")
-	{
-		if (simu_ctrl != NULL)
-		{
-			Tango::DeviceData d_in,d_out;
-			
-			d_in << (Tango::DevLong)idx;
-			d_out = simu_ctrl->command_inout("GetAxeConversion",d_in);
-			d_out >> par_tmp_db;
-            par_value.db_data = par_tmp_db;
-			par_value.data_type = Controller::DOUBLE;
-		}	
+    if(motor_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::StartOne()");  
+    }
+    
+    if(motor_data[idx]->device_available == false){
+	try{
+	    motor_data[idx]->proxy->ping();
+	    motor_data[idx]->device_available = true;	
 	}
+	catch(Tango::DevFailed &e){
+	    motor_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"OmsVme58Ctrl::StartOne()"); 
+	}
+    }
+
+    Tango::DeviceAttribute d_out;
+
+    if (par_name == "Conversion")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("Conversion");
+	d_out >> par_value.db_data;
+	par_value.data_type = Controller::DOUBLE;		
+    } 
     else if (par_name == "SettleTime")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = simu_ctrl->command_inout("GetAxeSettleTime",d_in);
-		d_out >> par_tmp_db;
-		par_value.db_data = par_tmp_db;
-		par_value.data_type = Controller::DOUBLE;
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("SettleTime");
+	d_out >> par_value.db_data;
+	par_value.data_type = Controller::DOUBLE;		
     }
-	else if (par_name == "UnitBacklash")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = simu_ctrl->command_inout("GetAxeUnitBacklash",d_in);
-		d_out >> par_tmp_db;
-		par_value.db_data = par_tmp_db;
-		par_value.data_type = Controller::DOUBLE;
+    else if (par_name == "UnitBacklash")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("UnitBacklash");
+	d_out >> par_value.db_data;
+	par_value.data_type = Controller::DOUBLE;		
     }
-	else if (par_name == "VelocityMax")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = simu_ctrl->command_inout("GetAxeVelocityMax",d_in);
-		d_out >> par_tmp_l;
-        
-		par_value.int32_data = (int32_t)par_tmp_l;
-		par_value.data_type = Controller::INT32;
+    else if (par_name == "VelocityMax")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("SlewRateMax");
+	d_out >> par_tmp_l;
+	par_value.int32_data = (int32_t) par_tmp_l;
+	par_value.data_type = Controller::INT32;		
     }
-	else if (par_name == "VelocityMin")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = simu_ctrl->command_inout("GetAxeVelocityMin",d_in);
-		d_out >> par_tmp_l;
-		par_value.int32_data = (int32_t)par_tmp_l;
-		par_value.data_type = Controller::INT32;
+    else if (par_name == "VelocityMin")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("SlewRateMin");
+	d_out >> par_tmp_l;
+	par_value.int32_data = (int32_t) par_tmp_l;
+	par_value.data_type = Controller::INT32;		
     }
-	else if (par_name == "StepBacklash")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = simu_ctrl->command_inout("GetAxeStepBacklash",d_in);
-		d_out >> par_tmp_l;
-		par_value.int32_data = (int32_t)par_tmp_l;
-		par_value.data_type = Controller::INT32;
+    else if (par_name == "StepBacklash")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("StepBacklash");
+	d_out >> par_tmp_l;
+	par_value.int32_data = (int32_t) par_tmp_l;
+	par_value.data_type = Controller::INT32;		
     }
-	else if (par_name == "StepPosition")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = simu_ctrl->command_inout("GetAxeStepPosition",d_in);
-		d_out >> par_tmp_l;
-		par_value.int32_data = (int32_t)par_tmp_l;
-		par_value.data_type = Controller::INT32;
+    else if (par_name == "StepPosition")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("StepPositionController");
+	d_out >> par_tmp_l;
+	par_value.int32_data = (int32_t) par_tmp_l;
+	par_value.data_type = Controller::INT32;		
     }
-	else if ( ( par_name == "Calibrate") || ( par_name == "UserCalibrate"))
-	{
-	        par_value.db_data = 0;
-		par_value.data_type = Controller::DOUBLE;
-	}
-	else if (par_name == "PositionEncoder")
-	{
-
-	  Tango::DeviceData d_in,d_out;
-	  
-	  d_in << (Tango::DevLong)idx;
-	  d_out = simu_ctrl->command_inout("GetAxisPositionEncoder",d_in);
-	  d_out >> par_tmp_db;
-	  par_value.db_data = par_tmp_db;
-	  par_value.data_type = Controller::DOUBLE;
-	}
-	else if (par_name == "HomePosition")
-	{
-
-	  Tango::DeviceData d_in,d_out;
-	  
-	  d_in << (Tango::DevLong)idx;
-	  d_out = simu_ctrl->command_inout("GetAxisHomePosition",d_in);
-	  d_out >> par_tmp_db;
-	  par_value.db_data = par_tmp_db;
-	  par_value.data_type = Controller::DOUBLE;
-	}
-	else if (par_name == "FlagUseEncoderPosition")
-	{
-	  
-	  Tango::DeviceData d_in,d_out;
-	  
-	  d_in << (Tango::DevLong)idx;
-	  d_out = simu_ctrl->command_inout("GetAxisFlagUseEncoderPosition",d_in);
-	  d_out >> par_tmp_l;
-	  
-	  par_value.int32_data = (int32_t)par_tmp_l;
-	  par_value.data_type = Controller::INT32;
-	}
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "Extra attribute " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
-			
-		Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-						       			   (const char *)"OmsVme58Ctrl::GetExtraAttributePar()");
-	}
+    else if ( ( par_name == "Calibrate") || ( par_name == "UserCalibrate"))
+    {
+	par_value.db_data = 0;
+	par_value.data_type = Controller::DOUBLE;
+    } 
+    else if (par_name == "PositionEncoder")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("PositionEncoder");
+	d_out >> par_value.db_data;
+	par_value.data_type = Controller::DOUBLE;		
+    }
+    else if (par_name == "HomePosition")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("HomePosition");
+	d_out >> par_value.db_data;
+	par_value.data_type = Controller::DOUBLE;		
+    }
+    else if (par_name == "FlagUseEncoderPosition")
+    {
+	d_out = motor_data[idx]->proxy->read_attribute("FlagUseEncoderPosition");
+	d_out >> par_tmp_l;
+	par_value.int32_data = (int32_t) par_tmp_l;
+	par_value.data_type = Controller::INT32;		
+    }
+    else
+    {
+	TangoSys_OMemStream o;
+	o << "Extra attribute " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
 	
-	return par_value;
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::GetExtraAttributePar()");
+    }	
+    return par_value;
 }
 
 //-----------------------------------------------------------------------------
@@ -659,268 +757,132 @@ Controller::CtrlData OmsVme58Ctrl::GetExtraAttributePar(int32_t idx,string &par_
 
 void OmsVme58Ctrl::SetExtraAttributePar(int32_t idx,string &par_name,Controller::CtrlData &new_value)
 {
-  if (par_name == "Conversion")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<double> v_db;
-	  if (new_value.data_type == DOUBLE){
-	    cout << "[OmsVme58Ctrl] New value for Conversion extra attribute is " << new_value.db_data << endl;
-	    v_db.push_back(new_value.db_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxeConversion",d_in);		
-	}
-    }
-  else if (par_name == "SettleTime")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<double> v_db;
-	  if (new_value.data_type == DOUBLE){
-	    cout << "[OmsVme58Ctrl] New value for SettleTime extra attribute is " << new_value.db_data << endl;
-	    v_db.push_back(new_value.db_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxeSettleTime",d_in);		
-	}
-    }
-  else if (par_name == "UnitBacklash")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<double> v_db;
-	  if (new_value.data_type == DOUBLE){
-	    cout << "[OmsVme58Ctrl] New value for UnitBacklash extra attribute is " << new_value.db_data << endl;
-	    v_db.push_back(new_value.db_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxeUnitBacklash",d_in);		
-	}
-    }
-  else if (par_name == "VelocityMax")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<Tango::DevLong> v_db;
-	  if (new_value.data_type == INT32){
-	    cout << "[OmsVme58Ctrl] New value for VelocityMax extra attribute is " << new_value.int32_data << endl;
-	    v_db.push_back((Tango::DevLong)new_value.int32_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxeVelocityMax",d_in);		
-	}
-    }
-  else if (par_name == "VelocityMin")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<Tango::DevLong> v_db;
-	  if (new_value.data_type == INT32){
-	    cout << "[OmsVme58Ctrl] New value for VelocityMin extra attribute is " << new_value.int32_data << endl;
-	    v_db.push_back((Tango::DevLong)new_value.int32_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-            simu_ctrl->command_inout("SetAxeVelocityMin",d_in);		
-		}
-	}
-  else if (par_name == "StepBacklash")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<Tango::DevLong> v_db;
-	  if (new_value.data_type == INT32){
-	    cout << "[OmsVme58Ctrl] New value for StepBacklash extra attribute is " << new_value.int32_data << endl;
-	    v_db.push_back((Tango::DevLong)new_value.int32_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxeStepBacklash",d_in);		
-	}
-    }
-  else if (par_name == "StepPosition")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<Tango::DevLong> v_db;
-	  
-	  if (new_value.data_type == INT32){
-	    cout << "[OmsVme58Ctrl] New value for StepPosition extra attribute is " << new_value.int32_data << endl;
-	    v_db.push_back((Tango::DevLong)new_value.int32_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxeStepPosition",d_in);		
-	}
-    }
-  else if (par_name == "Calibrate")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<double> v_db;
-	  if (new_value.data_type == DOUBLE){
-	    cout << "[OmsVme58Ctrl] New value for Calibrate extra attribute is " << new_value.db_data << endl;
-	    v_db.push_back(new_value.db_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("AxeCalibrate",d_in);		
-	}
-    }
-  else if (par_name == "UserCalibrate")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<double> v_db;
-	  if (new_value.data_type == DOUBLE){
-	    cout << "[OmsVme58Ctrl] New value for UserCalibrate extra attribute is " << new_value.db_data << endl;
-	    v_db.push_back(new_value.db_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-            simu_ctrl->command_inout("AxeUserCalibrate",d_in);		
-	}
-    }
-  if (par_name == "HomePosition")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<double> v_db;
-	  if (new_value.data_type == DOUBLE){
-	    cout << "[OmsVme58Ctrl] New value for Conversion extra attribute is " << new_value.db_data << endl;
-	    v_db.push_back(new_value.db_data);
-	    
-	  }else
-	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxisHomePosition",d_in);		
-	}
-    }
-  else if (par_name == "MoveHome")
-    {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
 
-	  d_in << (Tango::DevLong)idx;
-
-	  simu_ctrl->command_inout("AxisMoveHome",d_in);		
-	}
+     
+    Tango::DeviceData d_in;
+  
+    if(motor_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "OmsVme58Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::StartOne()");  
     }
-  else if (par_name == "FlagUseEncoderPosition")
+    
+    if(motor_data[idx]->device_available == false){
+	try{
+	    motor_data[idx]->proxy->ping();
+	    motor_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	    motor_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "OmsVme58Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"OmsVme58Ctrl::StartOne()"); 
+	}
+    } 
+    
+    if (par_name == "Conversion")
     {
-      if(simu_ctrl != NULL)
-	{
-	  Tango::DeviceData d_in;
-	  
-	  vector<Tango::DevLong> v_db;
-	  
-	  if (new_value.data_type == INT32){
-	    cout << "[OmsVme58Ctrl] New value FlagUseEncoderPosition extra attribute is " << new_value.int32_data << endl;
-	    v_db.push_back((Tango::DevLong)new_value.int32_data);
-	    
-	  }else
+	Tango::DeviceAttribute da_con("Conversion",new_value.db_data );
+	if (new_value.data_type == Controller::DOUBLE)
+	    motor_data[idx]->proxy->write_attribute(da_con);
+	else
 	    bad_data_type(par_name);
-	  
-	  vector<string> v_str;
-	  convert_stream << (Tango::DevLong)idx;
-	  v_str.push_back(convert_stream.str());
-	  convert_stream.str("");
-	  d_in.insert(v_db,v_str);
-	  simu_ctrl->command_inout("SetAxisFlagUseEncoderPosition",d_in);		
-	}
     }
-  else
+    else if (par_name == "SettleTime")
     {
-      TangoSys_OMemStream o;
-      o << "Extra attribute " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
-      
-      Tango::Except::throw_exception((const char *)"SimuCtrl_BadCtrlPtr",o.str(),
-				     (const char *)"OmsVme58Ctrl::SetExtraAttributePar()");
+	Tango::DeviceAttribute da_st("SettleTime",new_value.db_data );
+	if (new_value.data_type == Controller::DOUBLE)
+	    motor_data[idx]->proxy->write_attribute(da_st);
+	else
+	    bad_data_type(par_name);
+    }
+    else if (par_name == "UnitBacklash")
+    {
+	Tango::DeviceAttribute da_ub("UnitBacklash",new_value.db_data );
+	if (new_value.data_type == Controller::DOUBLE)
+	    motor_data[idx]->proxy->write_attribute(da_ub);
+	else
+	    bad_data_type(par_name);
+    } 
+    else if (par_name == "VelocityMax")
+    {
+	Tango::DeviceAttribute da_vmax("SlewRateMax",(Tango::DevLong)new_value.int32_data );
+	if (new_value.data_type == Controller::INT32)
+	    motor_data[idx]->proxy->write_attribute(da_vmax);
+	else
+	    bad_data_type(par_name);
+    } 
+    else if (par_name == "VelocityMin")
+    {
+	Tango::DeviceAttribute da_vmin("SlewRateMin",(Tango::DevLong)new_value.int32_data );
+	if (new_value.data_type == Controller::INT32)
+	    motor_data[idx]->proxy->write_attribute(da_vmin);
+	else
+	    bad_data_type(par_name);
+    } 
+    else if (par_name == "StepBacklash")
+    {
+	Tango::DeviceAttribute da_sb("StepBacklash",(Tango::DevLong)new_value.int32_data );
+	if (new_value.data_type == Controller::INT32)
+	    motor_data[idx]->proxy->write_attribute(da_sb);
+	else
+	    bad_data_type(par_name);
+    }
+    else if (par_name == "StepPosition")
+    {
+	Tango::DeviceAttribute da_sp("StepPosition",(Tango::DevLong)new_value.int32_data );
+	if (new_value.data_type == Controller::INT32)
+	    motor_data[idx]->proxy->write_attribute(da_sp);
+	else
+	    bad_data_type(par_name);
+    } 
+    else if (par_name == "Calibrate")
+    {
+	if (new_value.data_type == Controller::DOUBLE){
+	    d_in << new_value.db_data;
+	    motor_data[idx]->proxy->command_inout("Calibrate", d_in);
+	}
+	else
+	    bad_data_type(par_name);
+    } 
+    else if (par_name == "UserCalibrate")
+    {
+	if (new_value.data_type == Controller::DOUBLE){
+	    d_in << new_value.db_data;
+	    motor_data[idx]->proxy->command_inout("UserCalibrate", d_in);
+	}
+	else
+	    bad_data_type(par_name);
+    }
+    else if (par_name == "HomePosition")
+    {
+	Tango::DeviceAttribute da_hp("HomePosition",new_value.db_data );
+	if (new_value.data_type == Controller::DOUBLE)
+	    motor_data[idx]->proxy->write_attribute(da_hp);
+	else
+	    bad_data_type(par_name);
+    } 
+    else if (par_name == "MoveHome")
+    {
+	motor_data[idx]->proxy->command_inout("MoveHome");
+    }
+    else if (par_name == "FlagUseEncoderPosition")
+    {
+	Tango::DeviceAttribute da_fuep("FlagUseEncoderPosition",(Tango::DevLong)new_value.int32_data );
+	if (new_value.data_type == Controller::INT32)
+	    motor_data[idx]->proxy->write_attribute(da_fuep);
+	else
+	    bad_data_type(par_name);
+    }
+    else
+    {
+	TangoSys_OMemStream o;
+	o << "Extra attribute " << par_name << " is unknown for controller OmsVme58Ctrl/" << get_name() << ends;
+	
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"OmsVme58Ctrl::SetExtraAttributePar()");
     }
 }
 
@@ -940,7 +902,7 @@ void OmsVme58Ctrl::SetExtraAttributePar(int32_t idx,string &par_name,Controller:
 string OmsVme58Ctrl::SendToCtrl(string &in_str)
 {
 	//cout << "[OmsVme58Ctrl] I have received the string: " << in_str << endl;
-	string returned_str("Hasta luego");
+	string returned_str("Nothing to send");
 	return returned_str;	
 }
 
@@ -959,7 +921,7 @@ void OmsVme58Ctrl::bad_data_type(string &par_name)
 	TangoSys_OMemStream o;
 	o << "A wrong data type has been used to set the parameter " << par_name << ends;
 
-	Tango::Except::throw_exception((const char *)"SimuCtrl_BadParameter",o.str(),
+	Tango::Except::throw_exception((const char *)"OmsVme58Ctrl_BadParameter",o.str(),
 			       			   	   (const char *)"OmsVme58Ctrl::SetPar()");
 }
 
@@ -992,13 +954,11 @@ Controller::ExtraAttrInfo OmsVme58Ctrl_ctrl_extra_attributes[] = {
 const char *OmsVme58Ctrl_ctrl_features[] = {"Encoder","Home_acceleration",NULL};
 
 
-Controller::PropInfo OmsVme58Ctrl_class_prop[] = {{"DevName","The tango device name of the OmsVme58Ctrl","DevString"},
-										 {"The prop","The first CPP property","DevLong","12"},
-							  			 {"Another_Prop","The second CPP property","DevString","Hola"},
-							  			 {"Third_Prop","The third CPP property","DevVarLongArray","11,22,33"},
-							  			 NULL};
+Controller::PropInfo OmsVme58Ctrl_class_prop[] = {
+    {"RootDeviceName","Root name for tango devices","DevString"}, 
+    NULL};
 							  			 
-int32_t OmsVme58Ctrl_MaxDevice = 16;
+int32_t OmsVme58Ctrl_MaxDevice = 99;
 
 extern "C"
 {

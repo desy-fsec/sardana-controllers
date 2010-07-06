@@ -39,15 +39,23 @@ public:
 					
 protected:
 	void bad_data_type(string &);
-	
-	string				DevName;
-	Tango::DeviceProxy	*simu_ctrl;
-	stringstream		convert_stream;
-	
+
 	vector<double> 		wanted_mot_pos;
 	vector<int32_t>		wanted_mot;
 
-	double				home_acc;
+	struct MotorData 
+	{
+	  Tango::DeviceProxy	*proxy;
+	  bool			device_available;
+	  std::string		tango_device;
+	};
+	
+	int32_t max_device;
+	
+	std::map<int32_t, MotorData*> motor_data; 
+	
+
+	stringstream            convert_stream;
 };
 
 #endif /* _MAXECTRL_H */
