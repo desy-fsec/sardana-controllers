@@ -1,5 +1,5 @@
-#ifndef _DUMMYCOTI_H
-#define _DUMMYCOTI_H
+#ifndef _DGG2COTI_H
+#define _DGG2COTI_H
 
 #include <pool/CoTiCtrl.h>
 #include <tango.h>
@@ -29,8 +29,14 @@ public:
 					
 protected:
 	
-	Tango::DeviceProxy      *dgg2timer_ctrl;
-	string          DevName;
+	struct TimerData 
+	{
+	  Tango::DeviceProxy	*proxy;
+	  bool			device_available;
+	  std::string		tango_device;
+	};
+
+	std::map<int32_t, TimerData*> timer_data;
 
 	int32_t			nb_sec;
 	int32_t			nb_usec;
@@ -39,9 +45,11 @@ protected:
 	int32_t			stop_time_ms;
 	int32_t			remain_ms;
 	struct timeval	last_read;
-	
+       	
+	int32_t max_device;
+
 	int 			start_th;
 	stringstream            convert_stream;	
 };
 
-#endif /* _DUMMYCOTI_H */
+#endif /* _DGG2COTI_H */

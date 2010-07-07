@@ -21,14 +21,6 @@ using namespace std;
 DGG2::DGG2(const char *inst,vector<Controller::Properties> &prop):CoTiController(inst),
 nb_ms(0),stop_time_ms(0),remain_ms(0),start_th(0)
 {
-
-  for (unsigned long loop = 0;loop < prop.size();loop++)
-    {
-      if( prop[loop].name == "DevName" )
-	{
-	  DevName = prop[loop].value.string_prop[0];
-	}
-    }
   
   //
   // Some data member init
@@ -36,31 +28,30 @@ nb_ms(0),stop_time_ms(0),remain_ms(0),start_th(0)
   
   nb_sec = nb_usec = 0;
   
-  //
-  // Create a DeviceProxy on the dgg2 controller and set
-  // it in automatic reconnection mode
-  //
-  dgg2timer_ctrl = Pool_ns::PoolUtil::instance()->get_device(inst_name, DevName);
-  
-  //
-  // Ping the device to be sure that it is present
-  //
-  if(dgg2timer_ctrl == NULL)
-    {
-      TangoSys_OMemStream o;
-      o << "The PoolAPI did not provide a valid dgg2 device" << ends;
-      Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadPoolAPI",o.str(),
-				     (const char *)"DGG2Controller::DGG2Controller()");
+  max_device = 0;
+  vector<Controller::Properties>::iterator prop_it;
+  for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
+    if(prop_it->name == "RootDeviceName"){
+      Tango::Database *db = new Tango::Database();
+      string root_device_name =prop_it->value.string_prop[0];
+      string add = "*";
+      string name = root_device_name + add;
+      Tango::DbDatum db_datum = db->get_device_exported(name);
+      vector<string> str_vec;
+      db_datum >> str_vec;  
+      int index = 1;
+      for(unsigned long l = 0; l < str_vec.size(); l++){
+	TimerData *timer_data_elem = new TimerData;
+	timer_data_elem->tango_device = str_vec[l];
+	timer_data_elem->device_available = false;
+	timer_data_elem->proxy = NULL;
+	timer_data.insert(make_pair(index, timer_data_elem));
+	max_device++;
+	index++;
+      }
     }
-  
-  try
-    {
-      dgg2timer_ctrl->ping();
-    }
-  catch (Tango::DevFailed &e)
-    {
-      throw;
-    }
+  }
+
 }
 //-----------------------------------------------------------------------------
 //
@@ -71,7 +62,15 @@ nb_ms(0),stop_time_ms(0),remain_ms(0),start_th(0)
 //-----------------------------------------------------------------------------
 
 DGG2::~DGG2()
-{
+{	
+    map<int32_t, TimerData*>::iterator ite = timer_data.begin();
+    for(;ite != timer_data.end();ite++)
+    {
+	if(ite->second->proxy != NULL)
+	    delete ite->second->proxy;
+	delete ite->second;		
+    }		
+    timer_data.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -87,7 +86,26 @@ DGG2::~DGG2()
 void DGG2::AddDevice(int32_t idx)
 {
   //cout << "[DGG2] Creating a new Counter Timer with index " << idx << " on controller DGG2/" << inst_name << endl;
-  
+ 
+    if(idx > max_device){
+	TangoSys_OMemStream o;
+	o << "The property 'TangoDevices' has no value for index " << idx << ".";
+	o << " Please define a valid tango device before adding a new element to this controller"<< ends;
+	
+	Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadIndex",o.str(),
+				       (const char *)"DGG2Ctrl::AddDevice()");
+    }
+    if(timer_data[idx]->device_available == false){
+	if(timer_data[idx]->proxy == NULL)
+	    timer_data[idx]->proxy = new Tango::DeviceProxy(timer_data[idx]->tango_device);
+	try{
+	    timer_data[idx]->proxy->ping();
+	    timer_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	    timer_data[idx]->device_available = false;
+	}
+    } 
 }
 
 //-----------------------------------------------------------------------------
@@ -102,7 +120,20 @@ void DGG2::AddDevice(int32_t idx)
 
 void DGG2::DeleteDevice(int32_t idx)
 {
-  //cout << "[DGG2] Deleting Counter Timer with index " << idx << " on controller DGG2/" << inst_name  << endl;
+  //cout << "[DGG2] Deleting Counter Timer with index " << idx << " on controller DGG2/" << inst_name  << endl;	
+  if(idx > max_device){
+    TangoSys_OMemStream o;
+    o << "Trying to delete an inexisting element(" << idx << ") from the controller." << ends;
+    
+    Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadIndex",o.str(),
+				   (const char *)"DGG2Ctrl::DeleteDevice()");
+  }	
+	
+  if(timer_data[idx]->proxy != NULL){
+    delete timer_data[idx]->proxy;
+    timer_data[idx]->proxy = NULL;  
+  }
+  timer_data[idx]->device_available = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -118,20 +149,28 @@ void DGG2::DeleteDevice(int32_t idx)
 void DGG2::AbortOne(int32_t idx)
 {
   //cout << "[DGG2] Aborting one timer with index " << idx << " on controller DGG2/" << inst_name << endl;
-  if (dgg2timer_ctrl != NULL)
-    {
-      Tango::DeviceData d_in;
-      d_in << (Tango::DevLong)idx;
-      dgg2timer_ctrl->command_inout("Abort",d_in);
+  if(timer_data[idx]->proxy == NULL){
+    TangoSys_OMemStream o;
+    o << "DGG2Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+    Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
+				   (const char *)"DGG2Ctrl::AbortOne()");  
+  }
+	
+  if(timer_data[idx]->device_available == false){
+    try{
+      timer_data[idx]->proxy->ping();
+      timer_data[idx]->device_available = true;	
     }
-  else
-    {
+    catch(Tango::DevFailed &e){
+      timer_data[idx]->device_available = false;
       TangoSys_OMemStream o;
-      o << "Simulated controller for controller DGG2Ctrl/" << get_name() << " is NULL" << ends;
-      
+      o << "DGG2Ctrl Device for idx " << idx << " not available" << ends;	
       Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
-				     (const char *)"DGG2Ctrl::AbortOne()");
+				     (const char *)"DGG2Ctrl::AbortOne()"); 
     }
+  }
+
+  timer_data[idx]->proxy->command_inout("Stop");
   
 }
 
@@ -149,32 +188,42 @@ void DGG2::AbortOne(int32_t idx)
 double DGG2::ReadOne(int32_t idx)
 {
   //cout << "[DGG2] Getting Value for timer with index " << idx << " on controller DGG2/" << inst_name << endl;
+
+  Tango::DeviceAttribute d_out;
+
   double returned_time;
   double sample_time;
   double remaining_time;
-  
-  if (dgg2timer_ctrl != NULL)
-    {
-      Tango::DeviceData d_in,d_out;
-      
-      d_in << (Tango::DevLong)idx;
-      
-      d_out = dgg2timer_ctrl->command_inout("GetAxeSampleTime",d_in);
-      d_out >> sample_time;
-      
-      d_out = dgg2timer_ctrl->command_inout("GetAxeRemainingTime",d_in);
-      d_out >> remaining_time;
 
-      returned_time = sample_time - remaining_time;
-    }
-  else
-    {
+  if(timer_data[idx]->proxy == NULL){
       TangoSys_OMemStream o;
-      o << "DGG2Controller for controller DGG2Ctrl/" << get_name() << " is NULL" << ends;
-      
+      o << "DGG2Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
       Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
-				     (const char *)"DGG2Ctrl::ReadOne()");
-    }
+				     (const char *)"DGG2Ctrl::ReadOne()");  
+  }
+  
+  if(timer_data[idx]->device_available == false){
+      try{
+	  timer_data[idx]->proxy->ping();
+	  timer_data[idx]->device_available = true;	
+      }
+      catch(Tango::DevFailed &e){
+	  timer_data[idx]->device_available = false;
+	  TangoSys_OMemStream o;
+	  o << "DGG2Ctrl Device for idx " << idx << " not available" << ends;	
+	  Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
+					 (const char *)"DGG2Ctrl::ReadOne()"); 
+      }
+  }
+
+  d_out = timer_data[idx]->proxy->read_attribute("SampleTime");
+  d_out >> sample_time;
+
+  d_out = timer_data[idx]->proxy->read_attribute("RemainingTime");
+  d_out >> remaining_time;
+  
+  returned_time = sample_time - remaining_time;
+
   return returned_time;
 }
 //-----------------------------------------------------------------------------
@@ -195,32 +244,21 @@ void DGG2::StateOne(int32_t idx,Controller::CtrlState *ct_info_ptr)
 {
   //cout << "[DGG2] Getting state for Timer with index " << idx << " on controller DGG2/" << inst_name << ", thread = " << omni_thread::self()->id() << endl;
 
-  Tango::DevLong state_tmp;
-	
-  if (dgg2timer_ctrl != NULL)
-    {
-      Tango::DeviceData d_in,d_out;
-      d_in << (Tango::DevLong)idx;
-      d_out = dgg2timer_ctrl->command_inout("GetAxeStatus",d_in);
+  Tango::DevState state_tmp;
+	   
+  if(timer_data[idx]->proxy == NULL){
+      state_tmp = Tango::FAULT;
+      return;
+  }
+  
+  state_tmp = timer_data[idx]->proxy->state();
 
-      d_out >> state_tmp;
-
-      ct_info_ptr->state = (int32_t)state_tmp;
-      if(state_tmp == Tango::ON){
-	ct_info_ptr->status = "Timer is in ON state";
-      } else if (state_tmp == Tango::MOVING){
-	ct_info_ptr->status = "Timer is busy";
-      }
-		
-    }
-  else
-    {
-      TangoSys_OMemStream o;
-      o << "DGG2 Controller for controller DGG2Ctrl/" << get_name() << " is NULL" << ends;
-		
-      Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
-				     (const char *)"DGG2Controller::GetStatus()");
-    }
+  ct_info_ptr->state = (int32_t)state_tmp;
+  if(state_tmp == Tango::ON){
+      ct_info_ptr->status = "Timer is in ON state";
+  } else if (state_tmp == Tango::MOVING){
+      ct_info_ptr->status = "Timer is busy";
+  }
 	
 }
 
@@ -237,33 +275,31 @@ void DGG2::StateOne(int32_t idx,Controller::CtrlState *ct_info_ptr)
 
 void DGG2::LoadOne(int32_t idx, double val)
 {
-
-  if (dgg2timer_ctrl != NULL)
-    {
-      Tango::DeviceData d_in;
-
-      vector<double> v_db;
-      v_db.push_back(val);
-
-      vector<string> v_str;
-      convert_stream << (Tango::DevLong)idx;
-      v_str.push_back(convert_stream.str());
-      convert_stream.str("");
-	
-      d_in.insert(v_db,v_str);	
-				
-		
-      dgg2timer_ctrl->command_inout("SetAxeSampleTime",d_in);
-			
+    if(timer_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "DGG2Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"DGG2Ctrl::LoadOne()");  
     }
-  else
-    {
-      TangoSys_OMemStream o;
-      o << "DGG2Ctrl for controller DGG2Ctrl/" << get_name() << " is NULL" << ends;
-		
-      Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
-				     (const char *)"DGG2Ctrl::LoadOne()");
+    
+    if(timer_data[idx]->device_available == false){
+	try{
+	    timer_data[idx]->proxy->ping();
+	    timer_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	    timer_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "DGG2Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"DGG2Ctrl::LoadOne()"); 
+	}
     }
+
+    Tango::DeviceAttribute da("SampleTime", val);
+
+    timer_data[idx]->proxy->write_attribute(da);
+
 }
 
 //-----------------------------------------------------------------------------
@@ -277,22 +313,28 @@ void DGG2::LoadOne(int32_t idx, double val)
 //-----------------------------------------------------------------------------
 void DGG2::StartOneCT(int32_t idx)
 {
+    if(timer_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "DGG2Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"DGG2Ctrl::StartOneCT()");  
+    }
+    
+    if(timer_data[idx]->device_available == false){
+	try{
+	    timer_data[idx]->proxy->ping();
+	    timer_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	    timer_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "DGG2Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"DGG2Ctrl::StartOneCT()"); 
+	}
+    }
 
-  if (dgg2timer_ctrl != NULL)
-    {
-      Tango::DeviceData d_in;
-      d_in << (Tango::DevLong)idx;
-      dgg2timer_ctrl->command_inout("StartAxe",d_in);
-    }
-  else
-    {
-      TangoSys_OMemStream o;
-      o << "DGG2 controller for controller DGG2Ctrl/" << get_name() << " is NULL" << ends;
-		
-      Tango::Except::throw_exception((const char *)"DGG2Ctrl_BadCtrlPtr",o.str(),
-				     (const char *)"DGG2Ctrl::StartOneCT()");
-    }
-	
+    timer_data[idx]->proxy->command_inout("Start");
 
 }
 	
@@ -309,8 +351,9 @@ const char *DGG2_image = " ";
 const char *DGG2_organization = "DESY";
 const char *DGG2_logo = " ";
 
-Controller::PropInfo DGG2_class_prop[] = {{"DevName","The tango device name of the DGG2Ctrl","DevString"},
-					  NULL};
+Controller::PropInfo DGG2_class_prop[] = {
+    {"RootDeviceName","Root name for tango devices","DevString"}, 
+    NULL};
 
 int32_t DGG2_MaxDevice = 97;
 
