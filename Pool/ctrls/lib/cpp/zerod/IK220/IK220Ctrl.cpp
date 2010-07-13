@@ -21,42 +21,31 @@ using namespace std;
 //-----------------------------------------------------------------------------
 
 IK220Ctrl::IK220Ctrl(const char *inst,vector<Controller::Properties> &prop):ZeroDController(inst)
-{
-
-	for (unsigned long loop = 0;loop < prop.size();loop++)
-	{
-		if( prop[loop].name == "DevName" )
-		{
-			DevName = prop[loop].value.string_prop[0];
-		}
+{  
+    max_device = 0;
+    vector<Controller::Properties>::iterator prop_it;
+    for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
+	if(prop_it->name == "RootDeviceName"){
+	    Tango::Database *db = new Tango::Database();
+	    string root_device_name =prop_it->value.string_prop[0];
+	    string add = "*";
+	    string name = root_device_name + add;
+	    Tango::DbDatum db_datum = db->get_device_exported(name);
+	    vector<string> str_vec;
+	    db_datum >> str_vec;  
+	    int index = 1;
+	    for(unsigned long l = 0; l < str_vec.size(); l++){
+		ZeroDData *zerod_data_elem = new ZeroDData;
+		zerod_data_elem->tango_device = str_vec[l];
+		zerod_data_elem->device_available = false;
+		zerod_data_elem->proxy = NULL;
+		zerod_data.insert(make_pair(index, zerod_data_elem));
+		max_device++;
+		index++;
+	    }
 	}
-	
-//
-// Create a DeviceProxy on the ik220 controller and set
-// it in automatic reconnection mode
-//
-	encoder_ctrl = Pool_ns::PoolUtil::instance()->get_device(inst_name, DevName);
-	
-//
-// Ping the device to be sure that it is present
-//
-	if(encoder_ctrl == NULL)
-	{
-		TangoSys_OMemStream o;
-		o << "The PoolAPI did not provide a valid ik220 device" << ends;
-		Tango::Except::throw_exception((const char *)"IK220Ctrl_BadPoolAPI",o.str(),
-									   (const char *)"IK220Ctrl::IK220Ctrl()");
-	}
-	
-	try
-	{
-		encoder_ctrl->ping();
-	}
-	catch (Tango::DevFailed &e)
-	{
-		throw;
-	}
-	
+    }
+    
 }
 
 //-----------------------------------------------------------------------------
@@ -68,7 +57,15 @@ IK220Ctrl::IK220Ctrl(const char *inst,vector<Controller::Properties> &prop):Zero
 //-----------------------------------------------------------------------------
 
 IK220Ctrl::~IK220Ctrl()
-{
+{	
+    map<int32_t, ZeroDData*>::iterator ite = zerod_data.begin();
+    for(;ite != zerod_data.end();ite++)
+    {
+	if(ite->second->proxy != NULL)
+	    delete ite->second->proxy;
+	delete ite->second;		
+    }		
+    zerod_data.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -83,6 +80,26 @@ IK220Ctrl::~IK220Ctrl()
 void IK220Ctrl::AddDevice(int32_t idx)
 {
 	//cout << "[IK220Ctrl] Creating a new Zero D Exp Channel with index " << idx << " on controller IK220Ctrl/" << inst_name << endl;
+ 
+    if(idx > max_device){
+	TangoSys_OMemStream o;
+	o << "The property 'TangoDevices' has no value for index " << idx << ".";
+	o << " Please define a valid tango device before adding a new element to this controller"<< ends;
+	
+	Tango::Except::throw_exception((const char *)"IK220Ctrl_BadIndex",o.str(),
+				       (const char *)"IK220Ctrl::AddDevice()");
+    }
+    if(zerod_data[idx]->device_available == false){
+	if(zerod_data[idx]->proxy == NULL)
+	    zerod_data[idx]->proxy = new Tango::DeviceProxy(zerod_data[idx]->tango_device);
+	try{
+	    zerod_data[idx]->proxy->ping();
+	    zerod_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	    zerod_data[idx]->device_available = false;
+	}
+    } 
 }
 
 //-----------------------------------------------------------------------------
@@ -97,7 +114,20 @@ void IK220Ctrl::AddDevice(int32_t idx)
 
 void IK220Ctrl::DeleteDevice(int32_t idx)
 {
-	//cout << "[IK220Ctrl] Deleting Counter Timer with index " << idx << " on controller IK220Ctrl/" << inst_name  << endl;
+    //cout << "[IK220Ctrl] Deleting Counter Timer with index " << idx << " on controller IK220Ctrl/" << inst_name  << endl;	
+    if(idx > max_device){
+	TangoSys_OMemStream o;
+	o << "Trying to delete an inexisting element(" << idx << ") from the controller." << ends;
+	
+	Tango::Except::throw_exception((const char *)"IK220Ctrl_BadIndex",o.str(),
+				       (const char *)"IK220Ctrl::DeleteDevice()");
+    }	
+    
+    if(zerod_data[idx]->proxy != NULL){
+	delete zerod_data[idx]->proxy;
+	zerod_data[idx]->proxy = NULL;  
+    }
+    zerod_data[idx]->device_available = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -114,26 +144,35 @@ void IK220Ctrl::DeleteDevice(int32_t idx)
 double IK220Ctrl::ReadOne(int32_t idx)
 {
 //	cout << "[IK220Ctrl] Getting value for exp channel with index " << idx << " on controller IK220Ctrl/" << endl;
-	double returned_val;
 
-	if (encoder_ctrl != NULL)
-	{
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
+    Tango::DeviceAttribute d_out;
+    double returned_val;
+    
+    if(zerod_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "IK220Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"IK220Ctrl::ReadOne()");  
+    }
+    
+    if(zerod_data[idx]->device_available == false){
+	try{
+	    zerod_data[idx]->proxy->ping();
+	    zerod_data[idx]->device_available = true;	
+	}
+	catch(Tango::DevFailed &e){
+	    zerod_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "IK220Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"IK220Ctrl::ReadOne()"); 
+	}
+    }
 
-		d_out = encoder_ctrl->command_inout("GetAxePosition",d_in);
-		d_out >> returned_val;
-	}
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "IK220Ctrl for controller IK220Ctrl/" << get_name() << " is NULL" << ends;
-		Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"IK220Ctrl::ReadOne()");
-	}
+    d_out = zerod_data[idx]->proxy->read_attribute("Position");
+    d_out >> returned_val;
 	
-	return returned_val;
+    return returned_val;
 }
 
 
@@ -151,32 +190,21 @@ double IK220Ctrl::ReadOne(int32_t idx)
 
 void IK220Ctrl::StateOne(int32_t idx, Controller::CtrlState *ct_info_ptr)
 {
-	//cout << "[IK220Ctrl] Getting state for Exp Channel with index " << idx << " on controller IK220Ctrl/" << inst_name << endl;
-
-	long state_tmp;
-	
-	if (encoder_ctrl != NULL)
-	{
-		Tango::DeviceData d_in,d_out;
-		d_in << (Tango::DevLong)idx;
-		d_out = encoder_ctrl->command_inout("GetAxeStatus",d_in);
-		
-        d_out >> state_tmp;
-		
-        ct_info_ptr->state = state_tmp;
-        if(state_tmp == Tango::ON){
-			ct_info_ptr->status = "Encoder is in ON state";
-		} 
-	}
-	else
-        {
-			TangoSys_OMemStream o;
-                o << "IK220Encoder Controller for controller IK220Ctrl/" << get_name() << " is NULL" << ends;
-				
-                Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
-											   (const char *)"IK220Ctrl::GetStatus()");
-        }
-	
+    //cout << "[IK220Ctrl] Getting state for Exp Channel with index " << idx << " on controller IK220Ctrl/" << inst_name << endl;
+    
+    Tango::DevState state_tmp;
+    
+    if(zerod_data[idx]->proxy == NULL){
+	state_tmp = Tango::FAULT;
+	return;
+    }
+    
+    state_tmp = zerod_data[idx]->proxy->state();
+    
+    ct_info_ptr->state = (int32_t)state_tmp;
+    if(state_tmp == Tango::ON){
+	ct_info_ptr->status = "Encoder is in ON state";
+    } 
 }
 
 
@@ -195,75 +223,78 @@ void IK220Ctrl::StateOne(int32_t idx, Controller::CtrlState *ct_info_ptr)
   
 Controller::CtrlData IK220Ctrl::GetExtraAttributePar(int32_t idx, string &par_name)
 {
-	Controller::CtrlData par_value;	
-
-    double par_tmp_db;
-    Tango::DevLong   par_tmp_l;
-
-	if (par_name == "Conversion")
-	{
-		if (encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in, d_out;
-			
-			d_in << (Tango::DevLong)idx;
-			d_out = encoder_ctrl->command_inout("GetAxeConversion",d_in);
-			d_out >> par_tmp_db;
-            par_value.db_data = par_tmp_db;
-			par_value.data_type = Controller::DOUBLE;
-		}	
+    Controller::CtrlData par_value;	
+    
+    Tango::DevLong par_tmp_db;
+    Tango::DevLong par_tmp_l;
+        
+    if(zerod_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "IK220Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"IK220Ctrl::GetExtraAttributePar()");  
+    }
+    
+    if(zerod_data[idx]->device_available == false){
+	try{
+	    zerod_data[idx]->proxy->ping();
+	    zerod_data[idx]->device_available = true;	
 	}
-    else if (par_name == "Offset")
-	{
+	catch(Tango::DevFailed &e){
+	    zerod_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "IK220Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"IK220Ctrl::GetExtraAttributePar()"); 
+	}
+    }
+    
+    Tango::DeviceAttribute d_out;
 
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = encoder_ctrl->command_inout("GetAxeOffset",d_in);
-		d_out >> par_tmp_db;
-		par_value.db_data = par_tmp_db;
-		par_value.data_type = Controller::DOUBLE;
+    if (par_name == "Conversion")
+    {
+	d_out = zerod_data[idx]->proxy->read_attribute("Conversion");
+	d_out >> par_value.db_data;
+	par_value.data_type = Controller::DOUBLE;	
+    }
+    else if (par_name == "Offset")
+    {
+	d_out = zerod_data[idx]->proxy->read_attribute("Offset");
+	d_out >> par_value.db_data;
+	par_value.data_type = Controller::DOUBLE;
     }
     else if (par_name == "FlagIgnoreStatus")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = encoder_ctrl->command_inout("GetAxeFlagIgnoreStatus",d_in);
-		d_out >> par_tmp_l;
-		par_value.int32_data = (int32_t)par_tmp_l;
-		par_value.data_type = Controller::INT32;
+    {
+	d_out = zerod_data[idx]->proxy->read_attribute("FlagIgnoreStatus");
+	d_out >> par_tmp_l;
+	par_value.int32_data = (int32_t) par_tmp_l;
+	par_value.data_type = Controller::INT32;
     }
     else if (par_name == "StatusPort")
-	{
-
-		Tango::DeviceData d_in,d_out;
-		
-		d_in << (Tango::DevLong)idx;
-		d_out = encoder_ctrl->command_inout("GetAxeStatusPort",d_in);
-		d_out >> par_tmp_l;
-		par_value.int32_data = (int32_t)par_tmp_l;
-		par_value.data_type = Controller::INT32;
+    {
+	d_out = zerod_data[idx]->proxy->read_attribute("StatusPort");
+	d_out >> par_tmp_l;
+	par_value.int32_data = (int32_t) par_tmp_l;
+	par_value.data_type = Controller::INT32;
     }
     else if ( (par_name == "Calibrate") || (par_name == "CancelReference") || (par_name == "DoReference") || (par_name == "InitEncoder") || (par_name == "SetCorrectionOffOn") )
-	{
-		TangoSys_OMemStream o;
-		o << "Extra attribute " << par_name << " is actually a command. Write to execute it/" << get_name() << ends;
-		
-		Tango::Except::throw_exception((const char *)"Ctrl_BadCtrlPtr",o.str(),
-									   (const char *)"IK220Ctrl::GetExtraAttributePar()");
-	}
-	else
-	{
-		TangoSys_OMemStream o;
-		o << "Extra attribute " << par_name << " is unknown for controller IK220Ctrl/" << get_name() << ends;
-			
-		Tango::Except::throw_exception((const char *)"Ctrl_BadCtrlPtr",o.str(),
-						       			   (const char *)"IK220Ctrl::GetExtraAttributePar()");
-	}
+    {
+	TangoSys_OMemStream o;
+	o << "Extra attribute " << par_name << " is actually a command. Write to execute it/" << get_name() << ends;
 	
-	return par_value;
+	Tango::Except::throw_exception((const char *)"Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"IK220Ctrl::GetExtraAttributePar()");
+    }
+    else
+    {
+	TangoSys_OMemStream o;
+	o << "Extra attribute " << par_name << " is unknown for controller IK220Ctrl/" << get_name() << ends;
+	
+	Tango::Except::throw_exception((const char *)"Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"IK220Ctrl::GetExtraAttributePar()");
+    }
+    
+    return par_value;
 }
 
 
@@ -281,177 +312,102 @@ Controller::CtrlData IK220Ctrl::GetExtraAttributePar(int32_t idx, string &par_na
 //-----------------------------------------------------------------------------
 
 void IK220Ctrl::SetExtraAttributePar(int32_t idx, string &par_name, Controller::CtrlData &new_value)
-{
-	if (par_name == "Conversion")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<double> v_db;
-			if (new_value.data_type == DOUBLE){
-				cout << "[IK220Ctrl] New value for Conversion extra attribute is " << new_value.db_data << endl;
-				v_db.push_back(new_value.db_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            encoder_ctrl->command_inout("SetAxeConversion",d_in);		
-		}
+{    
+    Tango::DeviceData d_in;
+    
+    if(zerod_data[idx]->proxy == NULL){
+	TangoSys_OMemStream o;
+	o << "IK220Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"IK220Ctrl::SetExtraAttributePar()");  
+    }
+    
+    if(zerod_data[idx]->device_available == false){
+	try{
+	    zerod_data[idx]->proxy->ping();
+	    zerod_data[idx]->device_available = true;	
 	}
-	else if (par_name == "Offset")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<double> v_db;
-			if (new_value.data_type == DOUBLE){
-				cout << "[IK220Ctrl] New value for Offset extra attribute is " << new_value.db_data << endl;
-				v_db.push_back(new_value.db_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            encoder_ctrl->command_inout("SetAxeOffset",d_in);		
-		}
+	catch(Tango::DevFailed &e){
+	    zerod_data[idx]->device_available = false;
+	    TangoSys_OMemStream o;
+	    o << "IK220Ctrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
+					   (const char *)"IK220Ctrl::SetExtraAttributePar()"); 
 	}
-	else if (par_name == "Calibrate")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<double> v_db;
-			if (new_value.data_type == DOUBLE){
-				cout << "[IK220Ctrl] New value for Calibrate extra attribute is " << new_value.db_data << endl;
-				v_db.push_back(new_value.db_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            encoder_ctrl->command_inout("AxeCalibrate",d_in);		
-		}
-	}
-	else if (par_name == "FlagIgnoreStatus")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<Tango::DevLong> v_db;
-			if (new_value.data_type == INT32){
-				cout << "[IK220Ctrl] New value for FlagIgnoreStatus extra attribute is " << new_value.db_data << endl;
-				v_db.push_back((Tango::DevLong)new_value.int32_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            encoder_ctrl->command_inout("SetAxeFlagIgnoreStatus",d_in);		
-		}
-	}
-	else if (par_name == "StatusPort")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<Tango::DevLong> v_db;
-			if (new_value.data_type == INT32){
-				cout << "[IK220Ctrl] New value for StatusPort extra attribute is " << new_value.db_data << endl;
-				v_db.push_back((Tango::DevLong)new_value.int32_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            encoder_ctrl->command_inout("SetAxeStatusPort",d_in);		
-		}
-	}
-	else if (par_name == "CancelReference")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			d_in << (Tango::DevLong)idx;
-            encoder_ctrl->command_inout("AxeCancelReference",d_in);		
-		}
-	}
-	else if (par_name == "DoReference")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			d_in << (Tango::DevLong)idx;
-            encoder_ctrl->command_inout("AxeDoReference",d_in);		
-		}
-	}
-	else if (par_name == "InitEncoder")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			d_in << (Tango::DevLong)idx;
-            encoder_ctrl->command_inout("AxeInitEncoder",d_in);		
-		}
-	}
-	else if (par_name == "SetCorrectionOffOn")
-	{
-		if(encoder_ctrl != NULL)
-		{
-			Tango::DeviceData d_in;
-
-			vector<Tango::DevLong> v_db;
-			if (new_value.data_type == INT32){
-				cout << "[IK220Ctrl] New value for StatusPort extra attribute is " << new_value.db_data << endl;
-				v_db.push_back((Tango::DevLong)new_value.int32_data);
-
-			}else
-				bad_data_type(par_name);
-			
-			vector<string> v_str;
-			convert_stream << (Tango::DevLong)idx;
-			v_str.push_back(convert_stream.str());
-			convert_stream.str("");
-			d_in.insert(v_db,v_str);
-            encoder_ctrl->command_inout("AxeSetCorrectionOffOn",d_in);		
-		}
+    }
+    
+    if (par_name == "Conversion")
+    {
+	Tango::DeviceAttribute da_con("Conversion",new_value.db_data );
+	if (new_value.data_type == Controller::DOUBLE)
+	    zerod_data[idx]->proxy->write_attribute(da_con);
+	else
+	    bad_data_type(par_name);
+    } 
+    else if (par_name == "Offset")
+    {
+	Tango::DeviceAttribute da_off("Offset",new_value.db_data );
+	if (new_value.data_type == Controller::DOUBLE)
+	    zerod_data[idx]->proxy->write_attribute(da_off);
+	else
+	    bad_data_type(par_name);
+    }
+    else if (par_name == "Calibrate")
+    {
+	if (new_value.data_type == Controller::DOUBLE){
+	    d_in << new_value.db_data;
+	    zerod_data[idx]->proxy->command_inout("Calibrate", d_in);
 	}
 	else
-	{
-		TangoSys_OMemStream o;
-		o << "Extra attribute " << par_name << " is unknown for controller IK220Ctrl/" << get_name() << ends;
-			
-		Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
-						       			   (const char *)"IK220Ctrl::SetExtraAttributePar()");
+	    bad_data_type(par_name);
+    }
+    else if (par_name == "FlagIgnoreStatus")
+    {
+	Tango::DeviceAttribute da_fis("FlagIgnoreStatus",(Tango::DevLong)new_value.int32_data );
+	if (new_value.data_type == Controller::INT32)
+	    zerod_data[idx]->proxy->write_attribute(da_fis);
+	else
+	    bad_data_type(par_name);
+	
+    }
+    else if (par_name == "StatusPort")
+    {
+	Tango::DeviceAttribute da_sp("StatusPort",(Tango::DevLong)new_value.int32_data );
+	if (new_value.data_type == Controller::INT32)
+	    zerod_data[idx]->proxy->write_attribute(da_sp);
+	else
+	    bad_data_type(par_name);
+	
+    }
+    else if (par_name == "CancelReference")
+    {
+	zerod_data[idx]->proxy->command_inout("CancelReference");
+    }
+    else if (par_name == "DoReference")
+    {
+	zerod_data[idx]->proxy->command_inout("DoReference");
+    }
+    else if (par_name == "InitEncoder")
+    {
+	zerod_data[idx]->proxy->command_inout("InitEncoder");
+    }
+    else if (par_name == "SetCorrectionOffOn")
+    {
+	if (new_value.data_type == Controller::INT32){
+	    d_in << (Tango::DevLong)new_value.int32_data;
+	    zerod_data[idx]->proxy->command_inout("CorrectionOffOn", d_in);
 	}
+	else
+	    bad_data_type(par_name);
+    }
+    else
+    {
+	TangoSys_OMemStream o;
+	o << "Extra attribute " << par_name << " is unknown for controller IK220Ctrl/" << get_name() << ends;
+	
+	Tango::Except::throw_exception((const char *)"IK220Ctrl_BadCtrlPtr",o.str(),
+				       (const char *)"IK220Ctrl::SetExtraAttributePar()");
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -482,20 +438,20 @@ const char *ZeroDExpChannel_Ctrl_class_name[] = {"IK220Ctrl",NULL};
 const char *IK220Ctrl_doc = "This is the C++ controller for the IK220Ctrl class";
 
 
-Controller::PropInfo IK220Ctrl_class_prop[] = {{"DevName","The tango device name of the IK220Ctrl","DevString"},
-															
-															NULL};
+Controller::PropInfo IK220Ctrl_class_prop[] = {
+    {"RootDeviceName","Root name for tango devices","DevString"}, 
+    NULL};
 
 Controller::ExtraAttrInfo IK220Ctrl_ctrl_extra_attributes[] = {{"Conversion","DevDouble","Read_Write"},
-																			{"Calibrate","DevDouble","Read_Write"},
-																			{"Offset","DevDouble","Read_Write"},
-																			{"FlagIgnoreStatus","DevLong","Read_Write"},
-																			{"StatusPort","DevLong","Read"},
-																			{"CancelReference","DevLong","Read_Write"},
-																			{"DoReference","DevLong","Read_Write"},
-																			{"InitEncoder","DevLong","Read_Write"},
-																			{"SetCorrectionOffOn","DevLong","Read_Write"},
-																			NULL};
+							       {"Calibrate","DevDouble","Read_Write"},
+							       {"Offset","DevDouble","Read_Write"},
+							       {"FlagIgnoreStatus","DevLong","Read_Write"},
+							       {"StatusPort","DevLong","Read"},
+							       {"CancelReference","DevLong","Read_Write"},
+							       {"DoReference","DevLong","Read_Write"},
+							       {"InitEncoder","DevLong","Read_Write"},
+							       {"SetCorrectionOffOn","DevLong","Read_Write"},
+							       NULL};
 
 
 int32_t IK220Ctrl_MaxDevice = 97;

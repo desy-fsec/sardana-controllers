@@ -26,10 +26,18 @@ public:
 	virtual void SetExtraAttributePar(int32_t, string &, Controller::CtrlData &);
 
 protected:
-	void bad_data_type(string &);
+	void bad_data_type(string &);	
+
+	struct ZeroDData 
+	{
+	  Tango::DeviceProxy	*proxy;
+	  bool			device_available;
+	  std::string		tango_device;
+	};
+
+	std::map<int32_t, ZeroDData*> zerod_data;
 	
-	string				DevName;
-	Tango::DeviceProxy	*encoder_ctrl;
+	int32_t max_device; 
 	stringstream		convert_stream;
 };
 
