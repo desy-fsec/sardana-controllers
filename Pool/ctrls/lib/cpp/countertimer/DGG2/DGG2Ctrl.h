@@ -41,8 +41,10 @@ protected:
 	int32_t			stop_time_ms;
 	int32_t			remain_ms;
 	struct timeval	last_read;
-       	
-	int32_t max_device;
+	
+	int32_t max_device; 
+	
+	int32_t                 nb_ms;
 
 	int 			start_th;
 	stringstream            convert_stream;	
