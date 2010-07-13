@@ -929,7 +929,7 @@ void OmsVme58Ctrl::bad_data_type(string &par_name)
 //===============================================================================================
 //
 
-const char *Motor_Ctrl_class_name[] = {"OmsVme58Ctrl","Toto","Bidule",NULL};
+const char *Motor_Ctrl_class_name[] = {"OmsVme58Ctrl",NULL};
 const char *OmsVme58Ctrl_doc = "This is the C++ controller for the OmsVme58Ctrl class";
 		
 Controller::ExtraAttrInfo OmsVme58Ctrl_ctrl_extra_attributes[] = {
