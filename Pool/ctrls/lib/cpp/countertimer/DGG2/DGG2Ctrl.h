@@ -38,10 +38,6 @@ protected:
 
 	std::map<int32_t, TimerData*> timer_data;
 
-	int32_t			nb_sec;
-	int32_t			nb_usec;
-	
-	int32_t			nb_ms;
 	int32_t			stop_time_ms;
 	int32_t			remain_ms;
 	struct timeval	last_read;

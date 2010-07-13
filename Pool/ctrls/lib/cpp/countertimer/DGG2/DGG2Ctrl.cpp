@@ -26,8 +26,6 @@ nb_ms(0),stop_time_ms(0),remain_ms(0),start_th(0)
   // Some data member init
   //
   
-  nb_sec = nb_usec = 0;
-  
   max_device = 0;
   vector<Controller::Properties>::iterator prop_it;
   for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
