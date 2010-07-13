@@ -24,7 +24,7 @@ public:
 	SIS3610(const char *, vector<Controller::Properties> &);
 	/// Destructor
 	virtual ~SIS3610();
-
+	
 	/**
 	 *	@name Management
 	 *	Controller add/remove devices related methods
@@ -51,21 +51,21 @@ public:
 	 * 
 	 * @param idx - ioregister id
 	 *
-     * return the readout value
+	 * return the readout value
 	 */
-
+	
 	virtual int32_t ReadOne(int32_t ); 
 	
-		
+	
 	/**
 	 * Write data to an input/output register.
 	 * @param idx - ioregister id
-     * @param data  - write value
+	 * @param data  - write value
 	 *
 	 */
 	virtual void WriteOne(int32_t, int32_t); 
 	
-
+	
 	/**
 	 *	@name State
 	 *	Controller state related methods.
@@ -118,15 +118,24 @@ public:
 	 */
 	virtual string SendToCtrl(string &);
 					
-protected:
+protected:	
+	struct IORegisterData 
+	{
+	  Tango::DeviceProxy	*proxy;
+	  bool			device_available;
+	  std::string		tango_device;
+	};
+
+	std::map<int32_t, IORegisterData*> ioregister_data;
+
 	void bad_data_type(string &);
 	
 	int32_t read_nb;          ///< number of reads invoked on this object
 	int32_t write_nb;         ///< number of writes invoked on this object
+       	
+	int32_t max_device;
 
-	Tango::DeviceProxy      *sis3610_ctrl;
-    string                  DevName;
-    stringstream            convert_stream;
+	stringstream            convert_stream;
 };
 
 #endif /*_SIS3610CTRL_H_*/
