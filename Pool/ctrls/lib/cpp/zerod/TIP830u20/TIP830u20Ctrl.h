@@ -25,9 +25,17 @@ public:
 
 protected:
 	void bad_data_type(string &);
+
+	struct ZeroDData 
+	{
+	  Tango::DeviceProxy	*proxy;
+	  bool			device_available;
+	  std::string		tango_device;
+	};
+
+	std::map<int32_t, ZeroDData*> zerod_data;
 	
-	string				DevName;
-	Tango::DeviceProxy	*adc_ctrl;
+	int32_t max_device; 
 };
 
 #endif /* _TIP830u20CTRL_H */
