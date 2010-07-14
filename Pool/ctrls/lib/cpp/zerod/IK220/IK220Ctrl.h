@@ -38,7 +38,6 @@ protected:
 	std::map<int32_t, ZeroDData*> zerod_data;
 	
 	int32_t max_device; 
-	stringstream		convert_stream;
 };
 
 #endif /* _IK220_H */
