@@ -52,8 +52,7 @@ class cycle_magnets(Macro):
             env = opts.get('env',{})
             self._sScan = SScan(self, generator, moveables, env, [])
         else:
-            self.error('Sorry, it is not possible to cycle these magnets')
-            return False
+            raise Exception('Sorry, it is not possible to cycle these magnets')
 
     def _get_magnets_info(self):
         for magnet in self.magnets:
@@ -89,7 +88,6 @@ class cycle_magnets(Macro):
                     polarity = 'BIPOLAR'
                 else:
                     raise Exception('MIN(%f) and MAX(%f) configuration values do not match UNIPOLAR or BIPOLAR configurations' % (min_value, max_value))
-
 
                 self.magnets_info[magnet_name] = {}
                 self.magnets_info[magnet_name]['ICMAX'] = max_value
@@ -136,7 +134,10 @@ class cycle_magnets(Macro):
             yield step
     
     def run(self,*args):
-        self._sScan.scan()
+        # This allows to have a progress status integrated in a GUI
+        self.nr_points = self.nr_cycles
+        for s in self._sScan.scan():
+            yield s
         self._restore_magnet_positions()
 
     @property
