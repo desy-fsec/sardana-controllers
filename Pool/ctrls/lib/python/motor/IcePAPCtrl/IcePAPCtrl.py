@@ -2,6 +2,7 @@ import PyTango
 import socket
 import errno
 from pool import MotorController
+from pool import PoolUtil
 from pyIcePAP import *
 import time
 
@@ -72,9 +73,13 @@ class IcepapController(MotorController):
                              'StatusStopCode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
                              'StatusVersErr':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              'StatusWarning':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             ## 30/03/2010 ADD THE POSSIBILITY OF HAVING AN EXTERNAL POSITION SOURCE WITH SPECIFIC FORMULA
-                             'PositionSource':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-                             'PositionSourceFormula':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+                             ## 30/03/2010 ADD THE POSSIBILITY OF HAVING AN EXTERNAL ENCODER SOURCE WITH SPECIFIC FORMULA
+                             'UseEncoderSource':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
+                             'EncoderSource':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+                             'EncoderSourceFormula':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+                             'Encoder':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+                             ## 29/07/2010 ALLOW THE USER TO SPECIFY THE SPEED AS A 'FREQUENCY' OF THE MOTOR STEPS
+                             'Frequency':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
                             }
 
 
@@ -97,7 +102,8 @@ class IcepapController(MotorController):
         MotorController.__init__(self,inst,props)
 
         self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
-        self.iPAP.connect()
+        # DO NOT CONNECT BY DEFAULT SINCE THIS CAN RAISE A TANGO TIMEOUT EXCEPTION IN THE POOL COMMAND CreateController.
+        # self.iPAP.connect()
         self.attributes = {}
         self.stateMultiple = []
         self.positionMultiple = []
@@ -113,10 +119,10 @@ class IcepapController(MotorController):
         self.attributes[axis]["last_state_value"] = None
         self.attributes[axis]["position_value"] = None
         self.attributes[axis]["MotorEnabled"] = True
-        self.attributes[axis]['position_source'] = ''
-        self.attributes[axis]['position_source_tango_attribute'] = None
-        self.attributes[axis]['position_source_formula'] = 'VALUE'
-
+        self.attributes[axis]['use_encoder_source'] = False
+        self.attributes[axis]['encoder_source'] = ''
+        self.attributes[axis]['encoder_source_formula'] = 'VALUE'
+        self.attributes[axis]['encoder_source_tango_attribute'] = None
 
         if self.iPAP.connected:
             drivers_alive = self.iPAP.getDriversAlive()
@@ -262,7 +268,7 @@ class IcepapController(MotorController):
         # OF COURSE THIS MEANS THAT ReadAll HAS ALSO TO BE REIMPLEMENTED
         # AND self.positionMultiple HAS TO BE SPLITTED IN ORDER TO QUERY SOME AXIS TO ICEPAP
         # SOME OTHERS TO ONE DEVICE, SOME OTHERS TO ANOTHER DEVICE, ETC....
-        if self.attributes[axis]['MotorEnabled'] == True and self.attributes[axis]['position_source'] == '':
+        if self.attributes[axis]['MotorEnabled'] == True and not self.attributes[axis]['use_encoder_source']:
             self.positionMultiple.append(axis)
 
     def ReadAll(self):
@@ -284,14 +290,8 @@ class IcepapController(MotorController):
         """
         if axis not in self.positionMultiple:
             # IN CASE OF EXTERNAL SOURCE, JUST READ IT AND EVALUATE THE FORMULA
-            if self.attributes[axis]['position_source'] != '':
-                try:
-                    VALUE = self.attributes[axis]['position_source_tango_attribute'].read().value
-                    value = VALUE
-                    return eval(self.attributes[axis]['position_source_formula'])
-                except Exception,e:
-                    self._log.error('ReadOne(%d). Could not read from source\nException:\n%s' % (axis,str(e)))
-                    raise e
+            if self.attributes[axis]['use_encoder_source']:
+                return self.GetExtraAttributePar(axis,'Encoder')
             else:
                 self._log.warning('ReadOne(%d) Not enabled. Check the Driver Board is present in %s.'%(axis,self.Host))
                 raise Exception(self.inst_name,'Axis %d is not enabled: No position value available'%axis)
@@ -321,18 +321,12 @@ class IcepapController(MotorController):
         if self.iPAP.connected:
             desired_absolute_steps_pos = long(pos * self.attributes[axis]["step_per_unit"])
             # CHECK IF THE POSITION SOURCE IS SET, IN THAT CASE POS HAS TO BE RECALCULATED USING SOURCE + FORMULA
-            if self.attributes[axis]['position_source'] != '':
-                try:
-                    VALUE = self.attributes[axis]['position_source_tango_attribute'].read().value
-                    value = VALUE
-                    current_source_pos = eval(self.attributes[axis]['position_source_formula'])                    
-                    position_increment = pos - current_source_pos
-                    steps_increment = long(position_increment * self.attributes[axis]["step_per_unit"])
-                    current_steps_pos = long(self.iPAP.getPosition(axis))
-                    desired_absolute_steps_pos = current_steps_pos + steps_increment
-                except Exception,e:
-                    self._log.error('PreStartOne(%d). Could not read from source\nException:\n%s' % (axis,str(e)))
-                    raise e
+            if self.attributes[axis]['use_encoder_source']:
+                current_source_pos = self.GetExtraAttributePar(axis,'Encoder')
+                position_increment = pos - current_source_pos
+                steps_increment = long(position_increment * self.attributes[axis]["step_per_unit"])
+                current_steps_pos = long(self.iPAP.getPosition(axis))
+                desired_absolute_steps_pos = current_steps_pos + steps_increment
             try:
                 self.moveMultipleValues.append((axis,desired_absolute_steps_pos))
                 return True
@@ -341,7 +335,7 @@ class IcepapController(MotorController):
                 raise
         else:
             self._log.error('PreStartOne(%d,%f). No connection to %s.' % (axis,pos,self.Host))
-
+        
     def StartOne(self,axis,pos):
         pass
 
@@ -366,9 +360,12 @@ class IcepapController(MotorController):
         if self.iPAP.connected:
             try:
                 if name.lower() == "velocity":
-                    self.iPAP.setSpeed(axis, value)
+                    value_steps = value * self.attributes[axis]["step_per_unit"]
+                    self.iPAP.setSpeed(axis, value_steps)
                 elif name.lower() == "base_rate":
-                    pass
+                    # ONLY ALLOWED WHEN CONFIGURING THE MOTOR (IcepapCMS)
+                    self._log.error('SetPar(%d,%s,%s).\nThis is a configuration parameter set by an expert with IcepapCMS\n' % (axis,name,str(value)))
+                    raise Exception('This is a configuration parameter set by an expert with IcepapCMS')
                 elif name.lower() == "acceleration" or name == "deceleration":
                     self.iPAP.setAcceleration(axis, value)
                 elif name.lower() == "step_per_unit":
@@ -389,10 +386,13 @@ class IcepapController(MotorController):
         if self.iPAP.connected:
             try:
                 if name.lower() == "velocity":
-                    return float(self.iPAP.getSpeed(axis))
+                    freq = self.iPAP.getSpeed(axis)
+                    freq_float = 1.0 * float(freq)
+                    return float(freq_float / self.attributes[axis]["step_per_unit"])
                 elif name.lower() == "base_rate":
-                    #return float(self.iPAP.getCfgParameter(axis, "DEFIVEL"))
-                    return float(self.iPAP.getCfgParameter(axis, "STRTVEL"))
+                    start_vel = self.iPAP.getCfgParameter(axis, "STRTVEL")
+                    strt_vel_float = 1.0 * float(start_vel)
+                    return float(strt_vel_float / self.attributes[axis]["step_per_unit"])
                 elif name.lower() == "acceleration" or name.lower() == "deceleration":
                     return float(self.iPAP.getAcceleration(axis))
                 elif name.lower() == "step_per_unit":
@@ -508,10 +508,26 @@ class IcepapController(MotorController):
                         return int(register,16)
                     else:
                         return bool(status_dict[status_key][0])
-                elif name == 'positionsource':
-                    return self.attributes[axis]['position_source']
-                elif name == 'positionsourceformula':
-                    return self.attributes[axis]['position_source_formula']
+                elif name == 'useencodersource':
+                    return self.attributes[axis]['use_encoder_source']
+                elif name == 'encodersource':
+                    return self.attributes[axis]['encoder_source']
+                elif name == 'encodersourceformula':
+                    return self.attributes[axis]['encoder_source_formula']
+                elif name == 'encoder':
+                    try:
+                        if self.attributes[axis]['encoder_source_tango_attribute'] != None:
+                            VALUE = self.attributes[axis]['encoder_source_tango_attribute'].read().value
+                            value = VALUE
+                            current_source_pos = eval(self.attributes[axis]['encoder_source_formula'])
+                            return float(current_source_pos)
+                        else:
+                            return float('NaN')
+                    except Exception,e:
+                        self._log.error('Encoder(%d). Could not read from encoder source (%s)\nException:\n%s' % (axis,self.attributes[axis]['encoder_source'],str(e)))
+                        raise e
+                elif name == 'frequency':
+                    return float(self.iPAP.getSpeed(axis))
                 else:
                     PyTango.Except.throw_exception("IcepapController_GetExtraAttributePar()", "Error getting " + name + ", not implemented", "GetExtraAttributePar()")
             except Exception,e:
@@ -547,8 +563,8 @@ class IcepapController(MotorController):
                     if value:
                         # IN SOME CASES THE POWER CAN BE AUTOMATICALLY SWITCHED OFF BECAUSE CLOSE LOOP FAILURE
                         # POWER ON IS ONLY POSSIBLE IF ENCODERS ARE SYNCHED
-                        # IT COULD BE BETTER CHECKING A FUTURE 'DoEsyncWhenPowerOn' EXTRA ATTRIBUTE
-                        self.iPAP.syncEncoders(axis)
+                        # IT SHOULD BE BETTER CHECKING A FUTURE 'DoEsyncWhenPowerOn' EXTRA ATTRIBUTE
+                        #self.iPAP.syncEncoders(axis)
                         self.iPAP.setPower(axis, IcepapAnswers.ON)
                     else:
                         self.iPAP.setPower(axis, IcepapAnswers.OFF)
@@ -576,18 +592,29 @@ class IcepapController(MotorController):
 
                     #self.iPAP.setInfoSource(axis, name, src, polarity)
                     self.iPAP.setInfo(axis, name, src, polarity)
-                elif name == 'positionsource':
+                elif name == 'useencodersource':
+                    self.attributes[axis]['use_encoder_source'] = value
+                elif name == 'encodersource':
+                    self.attributes[axis]['encoder_source_tango_attribute'] = None
                     try:
-                        if value == '':
-                            self.attributes[axis]['position_source_tango_attribute'] = None
-                        else:
-                            self.attributes[axis]['position_source_tango_attribute'] = PyTango.AttributeProxy(value)
-                        self.attributes[axis]['position_source'] = value
+                        if value != '':
+                            try:
+                                # check if it is an internal attribute
+                                if value.lower().startswith('attribute://'):
+                                    self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, value)
+                                else:
+                                    self.attributes[axis]['encoder_source_tango_attribute'] = PyTango.AttributeProxy(value)
+                            except Exception,e:
+                                self._log.error('SetExtraAttributePar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
+                                self.attributes[axis]['use_encoder_source'] = False
+                        self.attributes[axis]['encoder_source'] = value
                     except Exception,e:
                         raise e
                     
-                elif name == 'positionsourceformula':
-                    self.attributes[axis]['position_source_formula'] = value
+                elif name == 'encodersourceformula':
+                    self.attributes[axis]['encoder_source_formula'] = value
+                elif name == 'frequency':
+                    self.iPAP.setSpeed(axis, value)
                 else:
                     PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()r", "Error setting " + name + ", not implemented", "SetExtraAttributePar()")
             except Exception,e:
@@ -641,3 +668,21 @@ class IcepapController(MotorController):
         if self.iPAP.connected:
             self.iPAP.disconnect()
 
+
+#########################################################
+# THIS TWO CLASSES ARE NEEDED BECAUSE IT IS NOT POSSIBLE
+# TO ACCESS THE DEVICE FROM A DEVICE CALL
+#########################################################
+class FakedAttribute():
+    def __init__(self, value):
+        self.value = value
+
+class FakedAttributeProxy():
+    def __init__(self, controller, axis, attribute):
+        self.ctrl = controller
+        self.axis = axis
+        self.attribute = attribute.replace('attribute://','')
+    def read(self):
+        value = self.ctrl.GetExtraAttributePar(self.axis, self.attribute)
+        return FakedAttribute(value)
+        
