@@ -125,7 +125,7 @@ void MCA8715::DeleteDevice(int32_t idx)
 
 void MCA8715::PreReadOne(int32_t idx)
 {
-  cout << "[MCA8715] In PreReadOne" << endl;
+//  cout << "[MCA8715] In PreReadOne" << endl;
   
   if(mca_data[idx]->proxy == NULL){
     TangoSys_OMemStream o;
@@ -157,7 +157,7 @@ double *MCA8715::ReadOne(int32_t idx)
   double *read_value;
   vector<Tango::DevLong> vector_data;
   
-  cout << "[MCA8715] In ReadOne" << endl;
+//  cout << "[MCA8715] In ReadOne" << endl;
   
   if(mca_data[idx]->proxy == NULL){
     TangoSys_OMemStream o;
@@ -195,7 +195,7 @@ double *MCA8715::ReadOne(int32_t idx)
 void  MCA8715::StartOne(int32_t idx)
 {
   
-  cout << "[MCA8715] In StartOne" << endl;
+//  cout << "[MCA8715] In StartOne" << endl;
   
   if(mca_data[idx]->proxy == NULL){
     TangoSys_OMemStream o;
@@ -225,7 +225,7 @@ void  MCA8715::StartOne(int32_t idx)
 void  MCA8715::AbortOne(int32_t idx)
 {
   
-  cout << "[MCA8715] In AbortOne" << endl;
+//  cout << "[MCA8715] In AbortOne" << endl;
   
   if(mca_data[idx]->proxy == NULL){
     TangoSys_OMemStream o;
@@ -511,7 +511,7 @@ void MCA8715::SetExtraAttributePar(int32_t idx, string &par_name, Controller::Ct
 
 string MCA8715::SendToCtrl(string &in_str)
 {
-	cout << "[MCA8715] I have received the string: " << in_str << endl;
+//	cout << "[MCA8715] I have received the string: " << in_str << endl;
 	string returned_str("Hasta luego");
 	return returned_str;	
 }
