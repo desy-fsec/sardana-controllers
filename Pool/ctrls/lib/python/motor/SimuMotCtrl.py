@@ -65,7 +65,7 @@ class SimuMotorController(MotorController):
             
     def StateOne(self,axis):
         m = self.m[axis]
-        return (m.state, "OK", m.switchstate)
+        return int(m.state), "OK", int(m.switchstate)
 
     def PreReadAll(self):
         pass
