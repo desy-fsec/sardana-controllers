@@ -136,7 +136,7 @@ class cycle_magnets(Macro):
     def run(self,*args):
         # This allows to have a progress status integrated in a GUI
         self.nr_points = self.nr_cycles
-        for s in self._sScan.scan():
+        for s in self._sScan.step_scan():
             yield s
         self._restore_magnet_positions()
 
