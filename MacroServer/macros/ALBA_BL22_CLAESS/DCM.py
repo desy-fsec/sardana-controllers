@@ -58,18 +58,13 @@ class DCM_startup(Macro):
             #ForcedPhasing - P58
             self.pmacEth.command_inout("SetPVariable", [58,1])
             self.debug("""Command 'P58=1 (ForcedPhasing=1)' was send to Pmac""")
-        
-        p96 = 0.0; p86 = 1.0
-        while (p96==0.0 and p86==1.0):
-            time.sleep(1)
-            p96 = self.pmacEth.command_inout("GetPVariable",96)
-            p86 = self.pmacEth.command_inout("GetPVariable",86)
-        if p96:
-            self.debug("AutoStartupCompleted flag was set.")
-        if not p86:
-            self.debug("SystemStartupFlag was reset.")
-        #@todo: Maybe we should also check if all motions are stopped
 
+        #M3306 monitors PLC6 Enabled/Disabled status 0.0 - Enabled, 1.0 - Disabled
+        m3306 = 0.0
+        while (m3306 == 0.0):
+            time.sleep(1)
+            m3306 = self.pmacEth.command_inout("GetMVariable",3306)
+     
         #SystemHomed - P73
         p73 = self.pmacEth.command_inout("GetPVariable", 73)
         if p73:
