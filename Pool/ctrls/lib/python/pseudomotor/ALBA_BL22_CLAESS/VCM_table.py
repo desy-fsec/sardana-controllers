@@ -2,7 +2,7 @@ import math
 
 from pool import PseudoMotorController
   
-class VCM_Z_Pitch_Roll(PseudoMotorController):
+class VCM_Z_Pitch_Roll_Controller(PseudoMotorController):
   """ The PseudoMotor controller for the CLAESS's VCM table: Z, Pitch, Roll.
       User units must be: mm for distances and mrad for angles.
       Pitch rotational axis is in the middle of Y dimension.
@@ -74,7 +74,7 @@ class VCM_Z_Pitch_Roll(PseudoMotorController):
 
     return (z, pit, rol)
 
-class VCM_X_and_Yaw(PseudoMotorController):
+class VCM_X_Yaw_Controller(PseudoMotorController):
     #@todo: crosscheck mx1 and mx2 placement according to beam direction
   """
     The PseudoMotor controller for the CLAESS's VCM table: X, Yaw.
