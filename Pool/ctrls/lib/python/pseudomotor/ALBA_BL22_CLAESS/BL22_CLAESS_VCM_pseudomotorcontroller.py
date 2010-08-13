@@ -64,7 +64,7 @@ class VCM_Z_Pitch_Roll_Controller(PseudoMotorController):
     jack3_m = jack3 / 1000.0
     jack2_m = jack2 / 1000.0
 
-    pit_rad = math.atan2(((jack2_m + jack3_m)/2 - jack1), dim_y_m)
+    pit_rad = math.atan2(((jack2_m + jack3_m)/2 - jack1_m), dim_y_m)
     rol_rad = math.atan2((jack2_m - jack3_m), dim_x_m)
     z_m = jack1_m / 2 + (jack2_m + jack3_m) / 4
 
