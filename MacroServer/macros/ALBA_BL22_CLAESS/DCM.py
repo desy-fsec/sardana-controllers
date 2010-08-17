@@ -108,7 +108,7 @@ class DCM_pre_energy_move(Macro):
         self.pmacEth.command_inout("SendCtrlChar", "A")
         self.info("All motion activities were aborted.")
         bragg_ans = self.pmacEth.command_inout("OnlineCmd", "&1#1->")
-        bragg_ok =bragg_ans.endswith("X") 
+        bragg_ok = bragg_ans.endswith("X") 
         if bragg_ok:
             self.debug("Bragg motor (first axis) is correctly assigned to the coordinate system.")
         else:
@@ -121,13 +121,14 @@ class DCM_pre_energy_move(Macro):
             self.warning("Perpendicular motor (third axis) is not correctly assigned to the coordinate system.")
         if bragg_ok and perp_ok:
             self.info("All motors are correctly assigned to coordinate system. DCM ready for energy move.")
-            return
         else:
             self.error("Coordination system needs to be reassigned. Doing it now...")
-        self.pmacEth.command_inout("OnlineCmd","undefine all")
-        self.pmacEth.command_inout("OnlineCmd", "&1#1->X#3->Y")
-        self.info("Coordination system reassigned.")
-        return5
+            self.pmacEth.command_inout("OnlineCmd","undefine all")
+            self.pmacEth.command_inout("OnlineCmd", "&1#1->X#3->Y")
+            self.info("Coordination system reassigned.")
+        return
+            
+        
         
             
             
