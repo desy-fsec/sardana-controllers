@@ -38,51 +38,180 @@ from pool import MotorController
 
 class PmacController(MotorController):
     """This class is the Tango Sardana motor controller for the Pmac motor controller device."""
-
-    class_prop = {'DevName':{'Description' : 'Device name of the PmacEth DS','Type' : 'PyTango.DevString'}}
-    
-    ctrl_extra_attributes = {'PowerOn':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'}}
-
     MaxDevice = 32
-
+    class_prop = {'PmacEthDevName':{'Type' : 'PyTango.DevString', 'Description' : 'Device name of the PmacEth DS'}}
+    attributeNames = ["motoractivated", "negativeendlimitset", "positiveendlimitset", "handwheelenabled",
+                      "phasedmotor", "openloopmode", "runningdefine-timemove", "integrationmode",
+                      "dwellinprogress", "datablockerror", "desiredvelocityzero", "abortdeceleration", 
+                      "blockrequest", "homesearchinprogress", "assignedtocoordinatesystem","coordinatesystem", "amplifierenabled",
+                      "stoppedonpositionlimit", "homecomplete", "phasingsearcherror", "triggermove",
+                      "integratedfatalfollowingerror", "i2t_amplifierfaulterror", "backlashdirectionflag",
+                      "amplifierfaulterror", "fatalfollowingerror", "warningfollowingerror", "inposition",
+                      "motionprogramrunning"]
+    
+    motor_extra_attributes = {"MotorActivated":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "NegativeEndLimitSet":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "PositiveEndLimitSet":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "HandwheelEnabled":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "PhasedMotor":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "OpenLoopMode":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "RunningDefine-timeMove":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "IntegrationMode":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "DwellInProgress":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "DataBlockError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "DesiredVelocityZero":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "AbortDeceleration":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "BlockRequest":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "HomeSearchInProgress":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "AssignedToCoordinateSystem":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "CoordinateSystem":{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
+                             "AmplifierEnabled":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
+                             "StoppedOnPositionLimit":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "HomeComplete":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "PhasingSearchError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "TriggerMove":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "IntegratedFatalFollowingError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "I2T_amplifierFaultError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "BacklashDirectionFlag":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "AmplifierFaultError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "FatalFollowingError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "WarningFollowingError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "InPosition":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
+    
+    cs_extra_attributes = {"MotionProgramRunning":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
+    
+    ctrl_extra_attributes = {}
+    ctrl_extra_attributes.update(motor_extra_attributes)
+    ctrl_extra_attributes.update(cs_extra_attributes)
+    
     def __init__(self,inst,props):
         MotorController.__init__(self,inst,props)
-        self.pmacEth = PyTango.DeviceProxy(self.DevName)
+        self.pmacEth = PyTango.DeviceProxy(self.PmacEthDevName)
+        self.axesList = []
+        self.startMultiple = {}
+        self.positionMultiple = {}
+        self.attributes = {}  
 
     def AddDevice(self, axis):
-        pass
+        self.axesList.append(axis)
+        self.attributes[axis] = {}
 
     def DeleteDevice(self, axis):
-        pass
-
+        self.axesList.remove(axis)
+        self.attributes[axis] = None
+    
+    def PreStateAll(self):
+        for axis in self.axesList:
+            self.attributes[axis] = {}
+            
+    def StateAll(self):
+        """ Get State of all axes with just one command to the Pmac Controller. """
+        motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
+        motStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(48,"0") for s in motStateAns.split()]
+        csStateAns = self.pmacEth.command_inout("SendCtrlChar", "C")
+        csStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(48,"0") for s in csStateAns.split()]
+        for axis in self.axesList:
+            motBinState = motStateBinArray[axis-1]
+            #first word
+            self.attributes[axis]["motoractivated"] = bool(int(motBinState[0]))
+            self.attributes[axis]["negativeendlimitset"] = bool(int(motBinState[1])) 
+            self.attributes[axis]["positiveendlimitset"] = bool(int(motBinState[2]))
+            self.attributes[axis]["handwheelenabled"] = bool(int(motBinState[3]))
+            self.attributes[axis]["phasedmotor"] = bool(int(motBinState[4]))
+            self.attributes[axis]["openloopmode"] = bool(int(motBinState[5]))
+            self.attributes[axis]["runningdefine-timemove"] = bool(int(motBinState[6]))
+            self.attributes[axis]["integrationmode"] = bool(int(motBinState[7]))
+            self.attributes[axis]["dwellinprogress"] = bool(int(motBinState[8]))
+            self.attributes[axis]["datablockerror"] = bool(int(motBinState[9]))
+            self.attributes[axis]["desiredvelocityzero"] = bool(int(motBinState[10]))
+            self.attributes[axis]["abortdeceleration"] = bool(int(motBinState[11]))
+            self.attributes[axis]["blockrequest"] = bool(int(motBinState[12]))
+            self.attributes[axis]["homesearchinprogress"] = bool(int(motBinState[13]))
+            #second word
+            self.attributes[axis]["assignedtocoordinatesystem"] = bool(int(motBinState[24]))
+            #We add one because these bits together hold a value equal to the Coordinate System nr minus one
+            self.attributes[axis]["coordinatesystem"] = int(motBinState[25:28],2) + 1 
+            self.attributes[axis]["amplifierenabled"] = bool(int(motBinState[33]))
+            self.attributes[axis]["stoppedonpositionlimit"] = bool(int(motBinState[36]))
+            self.attributes[axis]["homecomplete"] = bool(int(motBinState[37]))
+            self.attributes[axis]["phasingsearcherror"] = bool(int(motBinState[39]))
+            self.attributes[axis]["triggermove"] = bool(int(motBinState[40]))
+            self.attributes[axis]["integratedfatalfollowingerror"] = bool(int(motBinState[41]))
+            self.attributes[axis]["i2t_amplifierfaulterror"] = bool(int(motBinState[42]))
+            self.attributes[axis]["backlashdirectionflag"] = bool(int(motBinState[43]))
+            self.attributes[axis]["amplifierfaulterror"] = bool(int(motBinState[44]))
+            self.attributes[axis]["fatalfollowingerror"] = bool(int(motBinState[45]))
+            self.attributes[axis]["warningfollowingerror"] = bool(int(motBinState[46]))
+            self.attributes[axis]["inposition"] = bool(int(motBinState[47]))
+            
+            csBinState = csStateBinArray[self.attributes[axis]["coordinatesystem"]-1]
+            self.attributes[axis]["motionprogramrunning"] = bool(int(csBinState[23]))
+    
     def StateOne(self, axis):
-        state = PyTango.DevState.ON
         switchstate = 0
-        status = "No limits are active, motor is in position"
-        if not bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d40" % axis))))):
-               state = PyTango.DevState.MOVING
-               status = '\nThe motor is moving'
-        if bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d21" % axis))))):
-               state = PyTango.DevState.ALARM
-               status = '\nAt least one of the lower/upper switches is activated'
-               switchstate += 2
-        if bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d22" % axis))))):
-               state = PyTango.DevState.ALARM
-               status = '\nAt least one of the negative/positive limit is activated'
-               switchstate += 4
+        if not self.attributes[axis]["motoractivated"]:
+            state = PyTango.DevState.FAULT
+            status = "Motor is deactivated - it is not under Pmac control (Check Ix00 variable)."
+        else:
+            state = PyTango.DevState.ON
+            status = "Motor is in ON state."
+            #motion cases
+            if self.attributes[axis]["motionprogramrunning"]:
+                status = "Motor is used by active motion program."
+                state = PyTango.DevState.MOVING
+            elif self.attributes[axis]["inposition"]:
+                status = "Motor is stopped in position"
+                state = PyTango.DevState.ON
+            elif not self.attributes[axis]["desiredvelocityzero"]:
+                    state = PyTango.DevState.MOVING
+                    status = "Motor is moving."
+                    if self.attributes[axis]["homesearchinprogress"]:
+                        status += "\nHome search in progress."
+            #amplifier fault cases
+            if not self.attributes[axis]["amplifierenabled"]:
+                state = PyTango.DevState.ALARM
+                status = "Amplifier disabled."
+                if self.attributes[axis]["amplifierfaulterror"]:
+                    status += "\nAmplifier fault signal received."
+                if self.attributes[axis]["fatalfollowingerror"]:
+                    status += "\nFatal Following / Integrated Following Error exceeded."
+            #limits cases        
+            if self.attributes[axis]["negativeendlimitset"]:
+                   state = PyTango.DevState.ALARM
+                   status += "\nAt least one of the lower/upper switches is activated"
+                   switchstate += 2
+            if self.attributes[axis]["positiveendlimitset"]:
+                   state = PyTango.DevState.ALARM
+                   status += "\nAt least one of the negative/positive limit is activated"
+                   switchstate += 4
         return (state, status, switchstate)
-
+    
+    def PreReadAll(self):
+        self.positionMultiple = {}
+    
+    def ReadAll(self):
+        motPosAns = self.pmacEth.command_inout("SendCtrlChar", "P")
+        motPosFloatArray = [float(s) for s in motPosAns.split()]
+        for axis in self.axesList:
+            self.positionMultiple[axis] = motPosFloatArray[axis-1]
+            
     def ReadOne(self, axis):
-        position = self.pmacEth.command_inout("GetMotorPos",(axis))
-        return float(position)
+        return self.positionMultiple[axis]
+    
+    def PreStartAll(self):
+        self.startMultiple = {}
+
+    def PreStartOne(self, axis, position):
+        self.startMultiple[axis] = position
+        return True
 
     def StartOne(self, axis, position):
-    	if not self.GetExtraAttributePar(axis,"PowerOn"):
-    	    error_msg = '''It's not possible to move motor %d with disabled amplifier ''' % axis
-    	    self._log.error(error_msg)
-    	    raise Exception(error_msg) 
-        self.pmacEth.command_inout("JogToPos",[axis,position])
-
+    	pass
+        
+    def StartAll(self):
+        for axis,position in self.startMultiple.items():
+            self.pmacEth.command_inout("JogToPos",[axis,position])
+        
     def SetPar(self, axis, name, value):
         """ Set the standard pool motor parameters.
         @param axis to set the parameter
@@ -92,6 +221,8 @@ class PmacController(MotorController):
         try:
             if name.lower() == "velocity":
                 self.pmacEth.command_inout("SetIVariable",(float("%d22" % axis), float(value)))
+            if name.lower() == "step_per_unit":
+                self.attributes[axis]["step_per_unit"] = float(value)
         except Exception,e:
             self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
             raise
@@ -105,21 +236,21 @@ class PmacController(MotorController):
         try:
             if name.lower() == "velocity":
                 return float(self.pmacEth.command_inout("GetIVariable",(long("%d22" % axis))))
-            return None
+            if name.lower() == "step_per_unit":
+                return self.attributes[axis]["step_per_unit"]
+            else:
+                return None
         except Exception,e:
             self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
             raise
 
-    def GetExtraAttributePar(self, axis, attr_name):
-        return 0
-
-    def SetExtraAttributePar(self, axis, attr_name, value):
-        pass
-
     def AbortOne(self, axis):
-        self.pmacEth.command_inout("JogStop",[axis])
+        if self.attributes[axis]["motionprogramrunning"]:
+            self.pmacEth.command_inout("OnlineCmd", "&%da" % self.attributes[axis]["coordinatesystem"])
+        else:    
+            self.pmacEth.command_inout("JogStop",[axis])
     
-    def DefinePosition(self,powerConverter, current):
+    def DefinePosition(self, axis, value):
         pass
     
     def GetExtraAttributePar(self, axis, name):
@@ -128,9 +259,7 @@ class PmacController(MotorController):
         @param name of the parameter to retrive
         @return the value of the parameter
         """
-    	name = name.lower()
-    	if name == "poweron":
-    	    return bool(self.pmacEth.command_inout("GetMVariable",int("%d39"%axis)))
+        return self.attributes[axis][name]
 
     def SetExtraAttributePar(self, axis, name, value):
         """ Set Pmac axis particular parameters.
@@ -139,7 +268,7 @@ class PmacController(MotorController):
         @param value to be set
         """
         name = name.lower()
-        if name == "poweron":
+        if name == "amplifierenabled":
             if value:
                 self.pmacEth.command_inout("JogStop", [axis])
             else:
