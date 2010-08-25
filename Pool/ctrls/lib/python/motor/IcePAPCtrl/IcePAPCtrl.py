@@ -58,6 +58,7 @@ class IcepapController(MotorController):
                              'Status5vpower':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              'StatusAlive':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              'StatusCode':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
+                             'StatusPowerOn':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              'StatusDisable':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
                              'StatusHome':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              'StatusIndexer':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
@@ -73,6 +74,7 @@ class IcepapController(MotorController):
                              'StatusStopCode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
                              'StatusVersErr':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              'StatusWarning':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             'StatusDetails':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
                              ## 30/03/2010 ADD THE POSSIBILITY OF HAVING AN EXTERNAL ENCODER SOURCE WITH SPECIFIC FORMULA
                              'UseEncoderSource':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
                              'EncoderSource':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
@@ -120,7 +122,7 @@ class IcepapController(MotorController):
         self.attributes[axis]["position_value"] = None
         self.attributes[axis]["MotorEnabled"] = True
         self.attributes[axis]['use_encoder_source'] = False
-        self.attributes[axis]['encoder_source'] = ''
+        self.attributes[axis]['encoder_source'] = 'attribute://EncEncIn'
         self.attributes[axis]['encoder_source_formula'] = 'VALUE'
         self.attributes[axis]['encoder_source_tango_attribute'] = None
 
@@ -196,8 +198,9 @@ class IcepapController(MotorController):
                     return (PyTango.DevState.ALARM, 'Status Register not available', 0)
 
                 # CHECK POWER LED
+                poweron = status_dict['poweron'][0]
                 disable, status_power = status_dict['disable']
-                if disable == 0:
+                if poweron == 1:
                     state = PyTango.DevState.ON
                     status_state = 'ON'
                 else:
@@ -219,10 +222,11 @@ class IcepapController(MotorController):
                     status_state = 'ALARM_LIMIT_SWITCH'
                         
                 # CHECK READY
+                # Not used because slave axis are 'BUSY' (NOT READY) and should not be an alarm
                 ready, status_ready = status_dict['ready']
-                if ready == 0 and state == PyTango.DevState.ON:
-                    state = PyTango.DevState.ALARM
-                    status_state = 'ALARM_NOT_READY'
+                #if ready == 0 and state == PyTango.DevState.ON:
+                #    state = PyTango.DevState.ALARM
+                #    status_state = 'ALARM_NOT_READY'
 
                 # CHECK MOTION
                 moving, status_moving = status_dict['moving']
@@ -494,6 +498,9 @@ class IcepapController(MotorController):
                     return self.attributes[axis]["MotorEnabled"]
                 elif name == "statusdriverboard":
                     ans = self.iPAP.decodeStatus(self.attributes[axis]["status_value"])
+                    return str(ans)
+                elif name == "statusdetails":
+                    ans = self.iPAP.getVStatus(axis)
                     return str(ans)
                 elif name.startswith('status'):
                     #register = self.iPAP.getStatusFromBoard(axis)
