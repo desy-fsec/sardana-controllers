@@ -122,8 +122,9 @@ class IcepapController(MotorController):
         self.attributes[axis]["position_value"] = None
         self.attributes[axis]["MotorEnabled"] = True
         self.attributes[axis]['use_encoder_source'] = False
-        self.attributes[axis]['encoder_source'] = 'attribute://EncEncIn'
+        self.attributes[axis]['encoder_source'] = 'attr://EncEncIn'
         self.attributes[axis]['encoder_source_formula'] = 'VALUE'
+        self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, 'attr://EncEncIn')
         self.attributes[axis]['encoder_source_tango_attribute'] = None
 
         if self.iPAP.connected:
@@ -602,19 +603,19 @@ class IcepapController(MotorController):
                 elif name == 'useencodersource':
                     self.attributes[axis]['use_encoder_source'] = value
                 elif name == 'encodersource':
+                    self.attributes[axis]['encoder_source'] = value
                     self.attributes[axis]['encoder_source_tango_attribute'] = None
                     try:
                         if value != '':
                             try:
                                 # check if it is an internal attribute
-                                if value.lower().startswith('attribute://'):
+                                if value.lower().startswith('attr://'):
                                     self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, value)
                                 else:
                                     self.attributes[axis]['encoder_source_tango_attribute'] = PyTango.AttributeProxy(value)
                             except Exception,e:
                                 self._log.error('SetExtraAttributePar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                                 self.attributes[axis]['use_encoder_source'] = False
-                        self.attributes[axis]['encoder_source'] = value
                     except Exception,e:
                         raise e
                     
@@ -688,7 +689,7 @@ class FakedAttributeProxy():
     def __init__(self, controller, axis, attribute):
         self.ctrl = controller
         self.axis = axis
-        self.attribute = attribute.replace('attribute://','')
+        self.attribute = attribute.replace('attr://','')
     def read(self):
         value = self.ctrl.GetExtraAttributePar(self.axis, self.attribute)
         return FakedAttribute(value)
