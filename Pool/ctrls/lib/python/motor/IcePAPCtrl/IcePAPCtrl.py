@@ -125,7 +125,6 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source'] = 'attr://EncEncIn'
         self.attributes[axis]['encoder_source_formula'] = 'VALUE'
         self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, 'attr://EncEncIn')
-        self.attributes[axis]['encoder_source_tango_attribute'] = None
 
         if self.iPAP.connected:
             drivers_alive = self.iPAP.getDriversAlive()
