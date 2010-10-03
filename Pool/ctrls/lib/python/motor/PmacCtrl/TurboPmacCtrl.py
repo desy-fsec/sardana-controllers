@@ -36,7 +36,7 @@ import PyTango
 from pool import MotorController
 
 
-class PmacController(MotorController):
+class TurboPmacController(MotorController):
     """This class is the Tango Sardana motor controller for the Turbo Pmac motor controller device."""
     MaxDevice = 32
     class_prop = {'PmacEthDevName':{'Type' : 'PyTango.DevString', 'Description' : 'Device name of the PmacEth DS'}}
@@ -55,12 +55,12 @@ class PmacController(MotorController):
 #                      "motionprogramrunning"]
     
     motor_extra_attributes = {#First Word
-                              "MotorActivated":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "MotorActivated":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "NegativeEndLimitSet":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "PositiveEndLimitSet":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "ExtendedServoAlgorithmEnabled":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              
-                             "AmplifierEnabled":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "AmplifierEnabled":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
                              "OpenLoopMode":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "MoveTimerActive":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "IntegrationMode":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
@@ -75,7 +75,7 @@ class PmacController(MotorController):
                              "User-WrittenPhaseEnable":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "User-WrittenServoEnable":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              
-                             "AlternateSource/Destination":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
+                             "AlternateSource/Destination":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "PhasedMotor":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "FollowingOffsetMode":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "FollowingEnabled":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
@@ -87,7 +87,7 @@ class PmacController(MotorController):
                              #Second Word
                              "CoordinateSystem":{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
     
-                             "CoordinateDefinition":{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
+                             "CoordinateDefinition":{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
                              
                              "AssignedToCoordinateSystem":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              #Reserved for future use
@@ -109,11 +109,11 @@ class PmacController(MotorController):
                              "WarningFollowingError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "InPosition":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
     
-    cs_extra_attributes = {"MotionProgramRunning":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
+    #cs_extra_attributes = {"MotionProgramRunning":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
     
     ctrl_extra_attributes = {}
     ctrl_extra_attributes.update(motor_extra_attributes)
-    ctrl_extra_attributes.update(cs_extra_attributes)
+    #ctrl_extra_attributes.update(cs_extra_attributes)
     
     def __init__(self,inst,props):
         MotorController.__init__(self,inst,props)
@@ -222,10 +222,10 @@ class PmacController(MotorController):
             elif not self.attributes[axis]["DesiredVelocityZero"]:
                     state = PyTango.DevState.MOVING
                     status = "Motor is moving."
-                    if self.attributes[axis]["HomeSearchInpPogress"]:
+                    if self.attributes[axis]["HomeSearchInProgress"]:
                         status += "\nHome search in progress."
             #amplifier fault cases
-            if not self.attributes[axis]["AmplifiErenabled"]:
+            if not self.attributes[axis]["AmplifierEnabled"]:
                 state = PyTango.DevState.ALARM
                 status = "Amplifier disabled."
                 if self.attributes[axis]["AmplifierFaultError"]:
