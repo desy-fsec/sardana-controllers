@@ -40,19 +40,6 @@ class TurboPmacController(MotorController):
     """This class is the Tango Sardana motor controller for the Turbo Pmac motor controller device."""
     MaxDevice = 32
     class_prop = {'PmacEthDevName':{'Type' : 'PyTango.DevString', 'Description' : 'Device name of the PmacEth DS'}}
-#    attributeNames = ["motoractivated", "negativeendlimitset", "positiveendlimitset", "extendedservoalgorithmenabled",
-#                      "amplifierenabled", "openloopmode", "movetimeractive", "integrationmode",
-#                      "dwellinprogress", "datablockerror", "desiredvelocityzero", "abortdeceleration", 
-#                      "blockrequest", "homesearchinprogress", "user-writtenphaseenable","user-writtenservoenable", 
-#                      "alternatesource/destination", "phasedmotor", "followingoffsetmode", "followingenabled", 
-#                      "errortriger", "softwarepositioncapture", "integratorinvelocityloop", "alternatecommand-outputmode", 
-#                      "coordinatesystem", 
-#                      "coordinatedefinition"
-#                      "assignedtocoordinatesystem", "foregroundinposition", "stoppedondesiredpositionlimit",
-#                      "stoppedonpositionlimit", "homecomplete", "phasingsearch/readactive", "phasingreferenceerror",
-#                      "triggermove", "integratedfatalfollowingerror", "i2tamplifierfaulterror", "backlashdirectionflag", 
-#                      "amplifierfaulterror", "fatalfollowingerror", "warningfollowingerror", "inposition",
-#                      "motionprogramrunning"]
     
     motor_extra_attributes = {#First Word
                              "MotorActivated":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
@@ -75,7 +62,7 @@ class TurboPmacController(MotorController):
                              "User-WrittenPhaseEnable":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "User-WrittenServoEnable":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              
-                             "AlternateSource/Destination":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "AlternateSource_Destination":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "PhasedMotor":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "FollowingOffsetMode":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "FollowingEnabled":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
@@ -96,7 +83,7 @@ class TurboPmacController(MotorController):
                              
                              "StoppedOnPositionLimit":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "HomeComplete":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             "Phasing_Search/Read_Active":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
+                             "PhasingSearch_ReadActive":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "PhasingReferenceError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              
                              "TriggerMove":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
@@ -109,11 +96,11 @@ class TurboPmacController(MotorController):
                              "WarningFollowingError":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
                              "InPosition":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
     
-    #cs_extra_attributes = {"MotionProgramRunning":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
+    cs_extra_attributes = {"MotionProgramRunning":{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'}}
     
     ctrl_extra_attributes = {}
     ctrl_extra_attributes.update(motor_extra_attributes)
-    #ctrl_extra_attributes.update(cs_extra_attributes)
+    ctrl_extra_attributes.update(cs_extra_attributes)
     
     def __init__(self,inst,props):
         MotorController.__init__(self,inst,props)
@@ -140,9 +127,10 @@ class TurboPmacController(MotorController):
         motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
         motStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(48,"0") for s in motStateAns.split()]
         csStateAns = self.pmacEth.command_inout("SendCtrlChar", "C")
-        csStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(48,"0") for s in csStateAns.split()]
+        csStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(64,"0") for s in csStateAns.split()]
         for axis in self.axesList:
             motBinState = motStateBinArray[axis-1]
+            self._log.info("Mot %d binary state: %s", axis-1,motBinState)
             #First Word
             self.attributes[axis]["MotorActivated"] = bool(int(motBinState[0]))
             self.attributes[axis]["NegativeEndLimitSet"] = bool(int(motBinState[1])) 
@@ -164,7 +152,7 @@ class TurboPmacController(MotorController):
             self.attributes[axis]["User-WrittenPhaseEnable"] = bool(int(motBinState[14]))
             self.attributes[axis]["User-WrittenServoEnable"] = bool(int(motBinState[15]))
             
-            self.attributes[axis]["AlternateSource/Destination"] = bool(int(motBinState[16]))
+            self.attributes[axis]["AlternateSource_Destination"] = bool(int(motBinState[16]))
             self.attributes[axis]["PhasedMotor"] = bool(int(motBinState[17]))
             self.attributes[axis]["FollowingOffsetMode"] = bool(int(motBinState[18]))
             self.attributes[axis]["FollowingEnabled"] = bool(int(motBinState[19]))
@@ -187,7 +175,7 @@ class TurboPmacController(MotorController):
             
             self.attributes[axis]["StoppedOnPositionLimit"] = bool(int(motBinState[36]))
             self.attributes[axis]["HomeComplete"] = bool(int(motBinState[37]))
-            self.attributes[axis]["Phasing_Search/Read_Active"] = bool(int(motBinState[38]))
+            self.attributes[axis]["PhasingSearch_ReadActive"] = bool(int(motBinState[38]))
             self.attributes[axis]["PhasingReferenceError"] = bool(int(motBinState[39]))
             
             self.attributes[axis]["TriggerMove"] = bool(int(motBinState[40]))
@@ -200,8 +188,8 @@ class TurboPmacController(MotorController):
             self.attributes[axis]["WarningFollowingError"] = bool(int(motBinState[46]))
             self.attributes[axis]["InPosition"] = bool(int(motBinState[47]))
                         
-#            csBinState = csStateBinArray[self.attributes[axis]["coordinatesystem"]-1]
-#            self.attributes[axis]["motionprogramrunning"] = bool(int(csBinState[23]))
+            csBinState = csStateBinArray[self.attributes[axis]["CoordinateSystem"]-1]
+            self.attributes[axis]["MotionProgramRunning"] = bool(int(csBinState[23]))
     
     def StateOne(self, axis):
         switchstate = 0
@@ -212,8 +200,7 @@ class TurboPmacController(MotorController):
             state = PyTango.DevState.ON
             status = "Motor is in ON state."
             #motion cases
-            if False:
-#            if self.attributes[axis]["motionprogramrunning"]:
+            if self.attributes[axis]["MotionProgramRunning"]:
                 status = "Motor is used by active motion program."
                 state = PyTango.DevState.MOVING
             elif self.attributes[axis]["InPosition"]:
@@ -236,26 +223,24 @@ class TurboPmacController(MotorController):
             if self.attributes[axis]["NegativeEndLimitSet"]:
                    state = PyTango.DevState.ALARM
                    status += "\nAt least one of the lower/upper switches is activated"
-                   switchstate += 2
+                   switchstate += 4
             if self.attributes[axis]["PositiveEndLimitSet"]:
                    state = PyTango.DevState.ALARM
                    status += "\nAt least one of the negative/positive limit is activated"
-                   switchstate += 4
+                   switchstate += 2
         return (state, status, switchstate)
     
     def PreReadAll(self):
         self.positionMultiple = {}
     
     def ReadAll(self):
-        pass
-#        motPosAns = self.pmacEth.command_inout("SendCtrlChar", "P")
-#        motPosFloatArray = [float(s) for s in motPosAns.split()]
-#        for axis in self.axesList:
-#            self.positionMultiple[axis] = motPosFloatArray[axis-1]
+        motPosAns = self.pmacEth.command_inout("SendCtrlChar", "P")
+        motPosFloatArray = [float(s) for s in motPosAns.split()]
+        for axis in self.axesList:
+            self.positionMultiple[axis] = motPosFloatArray[axis-1]
             
     def ReadOne(self, axis):
-#        return self.positionMultiple[axis]
-        return 10
+        return self.positionMultiple[axis]
     
     def PreStartAll(self):
         self.startMultiple = {}
@@ -280,8 +265,9 @@ class TurboPmacController(MotorController):
         try:
             if name.lower() == "velocity":
                 self.pmacEth.command_inout("SetIVariable",(float("%d22" % axis), float(value)))
-            if name.lower() == "step_per_unit":
+            elif name.lower() == "step_per_unit":
                 self.attributes[axis]["step_per_unit"] = float(value)
+            #@todo implement acceleration, base_rate
         except Exception,e:
             self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
             raise
@@ -295,19 +281,20 @@ class TurboPmacController(MotorController):
         try:
             if name.lower() == "velocity":
                 return float(self.pmacEth.command_inout("GetIVariable",(long("%d22" % axis))))
-            if name.lower() == "step_per_unit":
+            elif name.lower() == "step_per_unit":
                 return self.attributes[axis]["step_per_unit"]
-            else:
-                return None
+	    #@todo implement acceleration, base_rate
+	    else:
+		return None
         except Exception,e:
             self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
             raise
 
     def AbortOne(self, axis):
-#        if self.attributes[axis]["MotionProgramRunning"]:
-#            self.pmacEth.command_inout("OnlineCmd", "&%da" % self.attributes[axis]["CoordinateSystem"])
-#        else:    
-        self.pmacEth.command_inout("JogStop",[axis])
+        if self.attributes[axis]["MotionProgramRunning"]:
+            self.pmacEth.command_inout("OnlineCmd", "&%da" % self.attributes[axis]["CoordinateSystem"])
+        else:    
+            self.pmacEth.command_inout("JogStop",[axis])
     
     def DefinePosition(self, axis, value):
         pass
@@ -365,4 +352,3 @@ class TurboPmacController(MotorController):
             return "Assigned to UVW axes"
         elif nr == 7:
             return "Assigned to XYZ axes"
-
