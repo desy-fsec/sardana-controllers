@@ -4,12 +4,21 @@ from PyTango import AttributeProxy
 from PyTango import DevFailed
 from pool import MotorController
 from pool import PoolUtil
+
 import math
+import time
 
 TANGO_ATTR = 'TangoAttribute'
 FORMULA_READ = 'FormulaRead'
 FORMULA_WRITE = 'FormulaWrite'
+TANGO_ATTR_ENC = 'TangoAttributeEncoder'
+TANGO_ATTR_ENC_THRESHOLD = 'TangoAttributeEncoderTreshold'
+TANGO_ATTR_ENC_SPEED = 'TangoAttributeEncoderSpeed'
+
 TAU_ATTR = 'TauAttribute'
+TAU_ATTR_ENC = 'TauAttributeEnc'
+MOVE_TO = 'MoveTo'
+MOVE_TIMEOUT = 'MoveTimeout'
 
 class TangoAttrMotorController(MotorController):
     """This controller offers as many motors as the user wants.
@@ -24,6 +33,10 @@ class TangoAttrMotorController(MotorController):
     ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
     ch2.FormulaRead = 'math.sqrt(VALUE)'
     ch2.FormulaWrite = 'math.pow(VALUE,2)'
+
+    +) TangoAttributeEnc - Used in case you have another attribute as encoder
+    +) TangoAttributeEncThresold - Threshold used for the 'MOVING' state.
+    +) TangoAttributeEncSpeed - Speed in units/second of the encoder so 'MOVING' state is computed (sec).
     """
                  
     gender = ""
@@ -46,35 +59,74 @@ class TangoAttrMotorController(MotorController):
                             FORMULA_WRITE:
                             {'Type':'PyTango.DevString'
                              ,'Description':'The Formula to set the desired value from motor position.\ne.g. "math.pow(VALUE,2)"'
+                             ,'R/W Type':'PyTango.READ_WRITE'},
+                            TANGO_ATTR_ENC:
+                            {'Type':'PyTango.DevString'
+                             ,'Description':'The Tango Attribute used as encoder"'
+                             ,'R/W Type':'PyTango.READ_WRITE'},
+                            TANGO_ATTR_ENC_THRESHOLD:
+                            {'Type':'PyTango.DevDouble'
+                             ,'Description':'Maximum difference for considering the motor stopped"'
+                             ,'R/W Type':'PyTango.READ_WRITE'},
+                            TANGO_ATTR_ENC_SPEED:
+                            {'Type':'PyTango.DevDouble'
+                             ,'Description':'Units per second used to wait encoder value within threshold after a movement."'
                              ,'R/W Type':'PyTango.READ_WRITE'}
+
                             }
     
     def __init__(self, inst, props):
         MotorController.__init__(self, inst, props)
-        self.tauAttributes = {}
+        self.axisAttributes = {}
 
     def AddDevice(self, axis):
-        self.tauAttributes[axis] = {}
-        self.tauAttributes[axis][TAU_ATTR] = None
-        self.tauAttributes[axis][FORMULA_READ] = 'VALUE'
-        self.tauAttributes[axis][FORMULA_WRITE] = 'VALUE'
+        self.axisAttributes[axis] = {}
+        self.axisAttributes[axis][TAU_ATTR] = None
+        self.axisAttributes[axis][FORMULA_READ] = 'VALUE'
+        self.axisAttributes[axis][FORMULA_WRITE] = 'VALUE'
+        self.axisAttributes[axis][TAU_ATTR_ENC] = None
+        self.axisAttributes[axis][TANGO_ATTR_ENC_THRESHOLD] = 0
+        self.axisAttributes[axis][TANGO_ATTR_ENC_SPEED] = 1e-6
+        self.axisAttributes[axis][MOVE_TO] = None
+        self.axisAttributes[axis][MOVE_TIMEOUT] = None
 
     def DeleteDevice(self, axis):
-        del self.tauAttributes[axis]
+        del self.axisAttributes[axis]
 
     def StateOne(self, axis):
         try:
             state = DevState.ON
+            status = 'ok'
             switch_state = 0
-            tau_attr = self.tauAttributes[axis][TAU_ATTR]
+            tau_attr = self.axisAttributes[axis][TAU_ATTR]
             if tau_attr is None:
                 return (DevState.ALARM, "attribute proxy is None", 0)
+
             if tau_attr.read().quality == AttrQuality.ATTR_CHANGING:
                 state = DevState.MOVING
 
+            elif self.axisAttributes[axis][MOVE_TIMEOUT] != None:
+                tau_attr_enc = self.axisAttributes[axis][TAU_ATTR_ENC]
+                enc_threshold = self.axisAttributes[axis][TANGO_ATTR_ENC_THRESHOLD]
+                move_to = self.axisAttributes[axis][MOVE_TO]
+                move_timeout = self.axisAttributes[axis][MOVE_TIMEOUT]
+
+                current_pos = self.ReadOne(axis)
+
+                if abs(move_to - current_pos) < abs(enc_threshold):
+                    self.axisAttributes[axis][MOVE_TIMEOUT] = None
+                    self.axisAttributes[axis][MOVE_TO] = None
+                    # Allow last event for position
+                    state = DevState.ON
+                elif time.time() < move_timeout:
+                    state = DevState.MOVING
+                else:
+                    state = DevState.ALARM
+                    status = 'Motor did not reach the desired position. %f not in [%f,%f]' % (current_pos, move_to - enc_threshold, move_to + enc_threshold)
+
             # SHOULD DEAL ALSO ABOUT LIMITS
             switch_state = 0
-            return (state, "OK", switch_state)
+            return (state, status, switch_state)
         except Exception,e:
             self._log.error(" (%d) error getting state: %s"%(axis,str(e)))
             return (DevState.ALARM, "Exception: %s" % str(e), 0)
@@ -90,10 +142,14 @@ class TangoAttrMotorController(MotorController):
 
     def ReadOne(self, axis):
         try:
-            tau_attr = self.tauAttributes[axis][TAU_ATTR]
+            tau_attr = self.axisAttributes[axis][TAU_ATTR]
             if tau_attr is None:
                 raise Exception("attribute proxy is None")
-            formula = self.tauAttributes[axis][FORMULA_READ]
+
+            if self.axisAttributes[axis][TAU_ATTR_ENC] is not None:
+                tau_attr = self.axisAttributes[axis][TAU_ATTR_ENC]
+
+            formula = self.axisAttributes[axis][FORMULA_READ]
             VALUE = tau_attr.read().value
             value = VALUE # just in case 'VALUE' has been written in lowercase in the formula...
             evaluated_value = eval(formula)
@@ -106,16 +162,26 @@ class TangoAttrMotorController(MotorController):
         pass
 
     def PreStartOne(self, axis, pos):
-        return not self.tauAttributes[axis][TAU_ATTR] is None
+        return not self.axisAttributes[axis][TAU_ATTR] is None
 
     def StartOne(self, axis, pos):
         try:
-            tau_attr = self.tauAttributes[axis][TAU_ATTR]
-            formula = self.tauAttributes[axis][FORMULA_WRITE]
+            tau_attr = self.axisAttributes[axis][TAU_ATTR]
+            formula = self.axisAttributes[axis][FORMULA_WRITE]
             VALUE = pos
             value = VALUE # just in case 'VALUE' has been written in lowercase in the formula...
             evaluated_value = eval(formula)
+
+            try:
+                self.axisAttributes[axis][MOVE_TO] = pos
+                move_time = abs(self.ReadOne(axis) - pos) * self.axisAttributes[axis][TANGO_ATTR_ENC_SPEED]
+                self.axisAttributes[axis][MOVE_TIMEOUT] = time.time() + move_time
+            except Exception, e:
+                self._log.error("(%d) error calculating time to wait: %s" % (axis,str(e)))
+
+
             tau_attr.write(evaluated_value)
+
         except Exception,e:
             self._log.error("(%d) error writing: %s" % (axis,str(e)))
 
@@ -129,23 +195,26 @@ class TangoAttrMotorController(MotorController):
         pass
 
     def SetPar(self,axis,name,value):
-        self.tauAttributes[axis][name] = value
+        self.axisAttributes[axis][name] = value
 
     def GetPar(self,axis,name):
-        return self.tauAttributes[axis][name]
+        return self.axisAttributes[axis][name]
 
     def GetExtraAttributePar(self, axis, name):
-        return self.tauAttributes[axis][name]
+        return self.axisAttributes[axis][name]
 
     def SetExtraAttributePar(self,axis, name, value):
         try:
             self._log.debug("SetExtraAttributePar [%d] %s = %s" % (axis, name, value))
-            self.tauAttributes[axis][name] = value
-            if name == TANGO_ATTR:
+            self.axisAttributes[axis][name] = value
+            if name in [TANGO_ATTR, TANGO_ATTR_ENC]:
+                key = TAU_ATTR
+                if name == TANGO_ATTR_ENC:
+                    key = TAU_ATTR_ENC
                 try:
-                    self.tauAttributes[axis][TAU_ATTR] = AttributeProxy(value)
+                    self.axisAttributes[axis][key] = AttributeProxy(value)
                 except Exception, e:
-                    self.tauAttributes[axis][TAU_ATTR] = None
+                    self.axisAttributes[axis][key] = None
                     raise e
         except DevFailed, df:
             de = df[0]
