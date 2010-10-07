@@ -174,7 +174,9 @@ class TangoAttrMotorController(MotorController):
 
             try:
                 self.axisAttributes[axis][MOVE_TO] = pos
-                move_time = abs(self.ReadOne(axis) - pos) * self.axisAttributes[axis][TANGO_ATTR_ENC_SPEED]
+                move_time = 0.5
+                if self.axisAttributes[axis][TANGO_ATTR_ENC_SPEED] > 0:
+                    move_time = abs(self.ReadOne(axis) - pos) / self.axisAttributes[axis][TANGO_ATTR_ENC_SPEED]
                 self.axisAttributes[axis][MOVE_TIMEOUT] = time.time() + move_time
             except Exception, e:
                 self._log.error("(%d) error calculating time to wait: %s" % (axis,str(e)))
