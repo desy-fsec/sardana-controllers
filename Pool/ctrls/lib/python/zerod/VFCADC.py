@@ -80,11 +80,11 @@ class VFCADCController(ZeroDController):
         if self.device_available[ind-1] == 1:
             return self.proxy[ind-1].read_attribute("Value").value
 
-    def PreStartAllCT(self):
-#        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In PreStartAllCT method"
-        self.wantedCT = []
+    def PreStartAll(self):
+#        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In PreStartAll method"
+        self.wanted = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].command_inout("Reset")
             return True
@@ -92,9 +92,9 @@ class VFCADCController(ZeroDController):
             raise RuntimeError,"Ctrl Tango's proxy null!!!"
             return False
 		
-    def StartOneCT(self,ind):
-        #print "PYTHON -> VFCADCCtrl/",self.inst_name,": In StartOneCT method for index",ind
-        self.wantedCT.append(ind)
+    def StartOne(self,ind):
+        #print "PYTHON -> VFCADCCtrl/",self.inst_name,": In StartOne method for index",ind
+        self.wanted.append(ind)
 	
     def GetExtraAttributePar(self,ind,name):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
