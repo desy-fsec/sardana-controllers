@@ -100,13 +100,13 @@ class VFCADCController(ZeroDController):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "Offset":
             if self.device_available[ind-1]:
-                return float(self.proxy[ind-1].read_attribute("Offset").value)
+                return double(self.proxy[ind-1].read_attribute("Offset").value)
         if name == "Gain":
             if self.device_available[ind-1]:
-                return float(self.proxy[ind-1].read_attribute("Gain").value)
+                return double(self.proxy[ind-1].read_attribute("Gain").value)
         if name == "Polarity":
             if self.device_available[ind-1]:
-                return float(self.proxy[ind-1].read_attribute("Polarity").value)
+                return long(self.proxy[ind-1].read_attribute("Polarity").value)
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
