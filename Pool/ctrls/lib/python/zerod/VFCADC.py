@@ -6,8 +6,8 @@ class VFCADCController(ZeroDController):
     "This class is the Tango Sardana Zero D controller for the VFCADC"
 
     ctrl_extra_attributes = {'Gain':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'Offset':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-			     'Polarity':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'}}
+			     'Offset':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
+			     'Polarity':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
 
 			     
     class_prop = {'RootDevName':{'Type':'PyTango.DevString','Description':'The root name of the VFCADC Tango devices'}}
@@ -100,13 +100,13 @@ class VFCADCController(ZeroDController):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "Offset":
             if self.device_available[ind-1]:
-                return double(self.proxy[ind-1].read_attribute("Offset").value)
+                return float(self.proxy[ind-1].read_attribute("Offset").value)
         if name == "Gain":
             if self.device_available[ind-1]:
-                return double(self.proxy[ind-1].read_attribute("Gain").value)
+                return float(self.proxy[ind-1].read_attribute("Gain").value)
         if name == "Polarity":
             if self.device_available[ind-1]:
-                return long(self.proxy[ind-1].read_attribute("Polarity").value)
+                return int(self.proxy[ind-1].read_attribute("Polarity").value)
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
