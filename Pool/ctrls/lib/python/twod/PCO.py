@@ -80,7 +80,7 @@ class PCOController(TwoDController):
             elif stat == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
             elif stat == PyTango.DevState.UNKNOWN:
-                sta = 
+                sta = PyTango.DevState.FAULT
                 tup = (sta,"Camera in UNKNOWN state")
             return tup
 
@@ -139,7 +139,7 @@ class PCOController(TwoDController):
                 return string(self.proxy[ind-1].read_attribute("FilePrefix").value)
         if name == "FileDir":
             if self.device_available[ind-1]:
-                return string(self.proxy[ind-1].read_attribute"FileDir").value)
+                return string(self.proxy[ind-1].read_attribute("FileDir").value)
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
