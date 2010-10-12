@@ -10,7 +10,7 @@ class PCOController(TwoDController):
 			     'ADCs':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'FileStartNum':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'FilePrefix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRRITE'}}
+			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'}}
 
 			     
     class_prop = {'RootDevName':{'Type':'PyTango.DevString','Description':'The root name of the PCO Tango devices'}}
