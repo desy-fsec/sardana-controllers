@@ -97,7 +97,7 @@ class PCOController(TwoDController):
         pass
 
     def ReadOne(self,ind):
-        #print "PYTHON -> PCOCtrl/",self.inst_name,": In ReadOne method for index",ind
+#        print "PYTHON -> PCOCtrl/",self.inst_name,": In ReadOne method for index",ind
         #The PCO return an Image in type encoded
         tmp_value = 0.0
         if self.device_available[ind-1] == 1:
@@ -111,8 +111,8 @@ class PCOController(TwoDController):
         return True
 		
     def StartOne(self,ind):
-        #print "PYTHON -> PCOCtrl/",self.inst_name,": In StartOneCT method for index",ind
-        self.proxy[ind-1].command_inout("StartAcquisition")
+        print "PYTHON -> PCOCtrl/",self.inst_name,": In StartOneCT method for index",ind
+        self.proxy[ind-1].command_inout("StartStandardAcq")
        
     def GetPar(self, ind, par_name):       
         if par_name == "XDim":
