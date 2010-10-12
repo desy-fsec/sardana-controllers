@@ -124,7 +124,6 @@ class PCOController(TwoDController):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "DelayTime":
             if self.device_available[ind-1]:
-                print self.proxy[ind-1].read_attribute("DelayTime").value
                 return self.proxy[ind-1].read_attribute("DelayTime").value
         if name == "ExposureTime":
             if self.device_available[ind-1]:
