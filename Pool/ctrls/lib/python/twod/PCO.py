@@ -6,7 +6,7 @@ class PCOController(TwoDController):
     "This class is the Tango Sardana Zero D controller for the PCO"
 
     ctrl_extra_attributes = {'DelayTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
+			     'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
 			     'ADCs':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'FileStartNum':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'FilePrefix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
