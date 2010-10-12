@@ -50,7 +50,7 @@ class PCOController(TwoDController):
         
         
     def AddDevice(self,ind):
-        print "PYTHON -> PCOCtrl/",self.inst_name,": In AddDevice method for index",ind
+#        print "PYTHON -> PCOCtrl/",self.inst_name,": In AddDevice method for index",ind
         if ind > self.max_device:
             print "False index"
             return
@@ -121,7 +121,7 @@ class PCOController(TwoDController):
             return int(self.proxy[ind-1].read_attribute("Heigth").value)
 	
     def GetExtraAttributePar(self,ind,name):
-        print "PYTHON -> PCOCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
+#        print "PYTHON -> PCOCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "DelayTime":
             if self.device_available[ind-1]:
                 print self.proxy[ind-1].read_attribute("DelayTime").value
