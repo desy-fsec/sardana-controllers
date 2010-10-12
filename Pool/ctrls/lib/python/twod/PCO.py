@@ -7,10 +7,10 @@ class PCOController(TwoDController):
 
     ctrl_extra_attributes = {'DelayTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
 			     'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-			     'NbFrames':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
-			     'FileStartNum':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
-			     'FilePrefix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'}}
+			     'ADCs':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
+			     'FileStartNum':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
+			     'FilePrefix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRRITE'}}
 
 			     
     class_prop = {'RootDevName':{'Type':'PyTango.DevString','Description':'The root name of the PCO Tango devices'}}
@@ -19,7 +19,7 @@ class PCOController(TwoDController):
 
     def __init__(self,inst,props):
         TwoDController.__init__(self,inst,props)
-#        print "PYTHON -> TwoDController ctor for instance",inst
+        print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "PCOCtrl/" + self.inst_name
         self.db = PyTango.Database()
@@ -39,8 +39,8 @@ class PCOController(TwoDController):
         self.DelayTime = []
         self.dft_ExposureTime = 0
         self.ExposureTime = []
-        self.dft_NbFrames = 0
-        self.NbFrames = []
+        self.dft_ADCs = 0
+        self.ADCs = []
         self.dft_FileStartNum = 0
         self.FileStartNum = []
         self.dft_FilePrefix = ""
@@ -50,7 +50,7 @@ class PCOController(TwoDController):
         
         
     def AddDevice(self,ind):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In AddDevice method for index",ind
+        print "PYTHON -> PCOCtrl/",self.inst_name,": In AddDevice method for index",ind
         if ind > self.max_device:
             print "False index"
             return
@@ -58,7 +58,7 @@ class PCOController(TwoDController):
         self.device_available[ind-1] = 1
         self.DelayTime.append(self.dft_DelayTime)
         self.ExposureTime.append(self.dft_ExposureTime)
-        self.NbFrames.append(self.dft_NbFrames)
+        self.ADCs.append(self.dft_ADCs)
         self.FileStartNum.append(self.dft_FileStartNum)
         self.FilePrefix.append(self.dft_FilePrefix)
         self.FileDir.append(self.dft_FileDir)
@@ -116,30 +116,31 @@ class PCOController(TwoDController):
        
     def GetPar(self, ind, par_name):       
         if par_name == "XDim":
-            return self.proxy[ind-1].read_attribute("Width").value
+            return int(self.proxy[ind-1].read_attribute("Width").value)
         elif par_name == "YDim":
-            return self.proxy[ind-1].read_attribute("Width").value
+            return int(self.proxy[ind-1].read_attribute("Heigth").value)
 	
     def GetExtraAttributePar(self,ind,name):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
+        print "PYTHON -> PCOCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "DelayTime":
             if self.device_available[ind-1]:
-                return double(self.proxy[ind-1].read_attribute("DelayTime").value)
+                print self.proxy[ind-1].read_attribute("DelayTime").value
+                return self.proxy[ind-1].read_attribute("DelayTime").value
         if name == "ExposureTime":
             if self.device_available[ind-1]:
-                return double(self.proxy[ind-1].read_attribute("ExposureTime").value)
-        if name == "NbFrames":
+                return self.proxy[ind-1].read_attribute("ExposureTime").value
+        if name == "ADCs":
             if self.device_available[ind-1]:
-                return long(self.proxy[ind-1].read_attribute("NbFrames").value)
+                return self.proxy[ind-1].read_attribute("ADCs").value
         if name == "FileStartNum":
             if self.device_available[ind-1]:
-                return long(self.proxy[ind-1].read_attribute("FileStartNum").value)
+                return self.proxy[ind-1].read_attribute("FileStartNum").value
         if name == "FilePrefix":
             if self.device_available[ind-1]:
-                return string(self.proxy[ind-1].read_attribute("FilePrefix").value)
+                return self.proxy[ind-1].read_attribute("FilePrefix").value
         if name == "FileDir":
             if self.device_available[ind-1]:
-                return string(self.proxy[ind-1].read_attribute("FileDir").value)
+                return self.proxy[ind-1].read_attribute("FileDir").value
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
@@ -149,9 +150,9 @@ class PCOController(TwoDController):
         if name == "ExposureTime":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("ExposureTime",value)
-        if name == "NbFrames":
+        if name == "ADCs":
             if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("NbFrames",value)
+                self.proxy[ind-1].write_attribute("ADCs",value)
         if name == "FileStartNum":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("FileStartNum",value)
