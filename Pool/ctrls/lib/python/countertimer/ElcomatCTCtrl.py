@@ -35,8 +35,6 @@ from pool import CounterTimerController
 from PyTango import DevState
 from pool import PoolUtil
 
-ELCOMAT_FREQ = 25#Hz (samples per second)
-
 class ElcomatCTCtrl(CounterTimerController):
     """CouterTimer Controller for the elcomat device server.
        One controller per elcomat device server, where each ctrl_device means
@@ -45,7 +43,7 @@ class ElcomatCTCtrl(CounterTimerController):
        Controller properties:
        * devName: name of the elcomat device.
        * attList: List of the attributes that will mean each ctrl_device.
-       * nsamples: attr name on the elcomat-dev to setup the number of acquisitions.
+       * acqTimer: attr name on the elcomat-dev to setup the acquisition time.
     """
     
     kls = 'ElComatCTCtrl'
@@ -64,7 +62,7 @@ class ElcomatCTCtrl(CounterTimerController):
                   'attrList':{'Description':'List of attributes to read after the master channel',
                             'Type':'PyTango.DevVarStringArray'},
                             #for example any one of: '{Av,Stdv}_{x,y}_ts'
-                  'nsamples':{'Description':'Name of the attribute who sets the number of samples',
+                  'acqTimer':{'Description':'Name of the attribute who sets the seconds to acquire',
                             'Type':'PyTango.DevString'},
                   }
     
@@ -73,7 +71,7 @@ class ElcomatCTCtrl(CounterTimerController):
     def __init__(self, inst, props):
         CounterTimerController.__init__(self, inst, props)
         try:
-            self.devProxy = PyTango.DeviceProxy(self.devName)
+            self._devProxy = PyTango.DeviceProxy(self.devName)
             self.attr2read = []
             self.attrValues = []
         except:
@@ -81,7 +79,7 @@ class ElcomatCTCtrl(CounterTimerController):
 
     def __del__(self):
         self._log_debug("%s::__del__()"%(self.kls))
-        del self.devProxy
+        del self._devProxy
 
     def AddDevice(self,axis):
         """ add each counter involved"""
@@ -93,14 +91,16 @@ class ElcomatCTCtrl(CounterTimerController):
         self._log.debug("%s::DeleteDevice(%s)"%(self.kls,axis))
 
     def StateAll(self):
-        self._log.debug("%s::StateAll()"%(self.kls))
+        self._log.info("%s::StateAll()"%(self.kls))
         try:
-            self.ctrlState = self.devProxy.State(),""
+            self.ctrlState = self._devProxy.State(),""
+            print(str(self.ctrlState))
         except Exception,e:
             self.ctrlState = PyTango.DevState.DISABLE,str(e)
 
     def StateOne(self,axis):
-        self._log.debug("%s::StateOne(%s)"%(self.kls,axis))
+        self._log.info("%s::StateOne(%s)"%(self.kls,axis))
+        print(str(self.ctrlState))
         if axis > len(self.attrList)+1:
             return PyTango.DevState.DISABLE,"Out of range, review attrList"
         if axis == 1:
@@ -118,7 +118,7 @@ class ElcomatCTCtrl(CounterTimerController):
         self._log.debug("%s::PreReadOne(%s)"%(self.kls,axis))
         #populate the list of what is wanna be read
         if axis == 1:
-            self.attr2read.append(self.nsamples)
+            self.attr2read.append(self.acqTimer)
         else:
             self.attr2read.append(self.attrList[axis-2])#-1 because 1 is master channel
         self._log.debug("%s::PreReadOne(%s) attributes to read = %s"%(self.kls,axis,self.attr2read))
@@ -126,31 +126,31 @@ class ElcomatCTCtrl(CounterTimerController):
     def ReadAll(self):
         self._log.debug("%s::ReadAll()"%(self.kls))
         #only one grouped read of all requested
-        self.attrValues = self.devProxy.read_attributes(self.attr2read)
+        self.attrValues = self._devProxy.read_attributes(self.attr2read)
 
     def ReadOne(self,axis):
         self._log.debug("%s::ReadOne(%s)"%(self.kls,axis))
         #return what has been read
         if axis == 1:
-            return self.attrValues[self.attr2read.index(self.nsamples)].value/ELCOMAT_FREQ
+            return self.attrValues[self.attr2read.index(self.acqTimer)].value
         else:
             return self.attrValues[self.attr2read.index(self.attrList[axis-2])].value
 
     #there is no AbortAll, and one acts like all are aborted
     def AbortOne(self,axis):
         self._log.debug("%s::AbortOne(%s)"%(self.kls,axis))
-        self.devProxy.Stop()
+        self._devProxy.Stop()
 
-    def StartAllCT(self):
-        self._log.debug("%s::StartAllCT()"%(self.kls))
-        self.devProxy.Start()
+    def StartOneCT(self,axis):
+        self._log.debug("%s::StartOneCT(%d)"%(self.kls,axis))
+        if axis == 1:
+            self._devProxy.Start()
 
     #to setup the integration time to the master channel
     def LoadOne(self,axis,value):
-        self._log.info("%s::LoadOne(%s,%s)"%(self.kls,axis,value))
+        self._log.debug("%s::LoadOne(%s,%s)"%(self.kls,axis,value))
         if axis == 1:
-            self.devProxy.write_attribute(self.nsamples,int(value*ELCOMAT_FREQ))#time plus samples per second
-        #@todo: shall we clean this after acq? or flag this to filter startAll?
+            self._devProxy.write_attribute(self.acqTimer,float(value))
 
     def GetExtraAttributePar(self, axis, name):
         self._log.debug("%s::GetExtraAttributePar(%s,%s)"%(self.kls,axis,name))
