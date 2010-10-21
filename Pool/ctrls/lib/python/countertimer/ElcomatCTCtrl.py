@@ -32,7 +32,7 @@
 
 import PyTango
 from pool import CounterTimerController
-from PyTango import DevState
+#from PyTango import DevState,DeviceProxy
 from pool import PoolUtil
 
 class ElcomatCTCtrl(CounterTimerController):
@@ -74,111 +74,84 @@ class ElcomatCTCtrl(CounterTimerController):
             self._devProxy = PyTango.DeviceProxy(self.devName)
             self.attr2read = []
             self.attrValues = []
+            self.__loadOne = False
         except:
             self._log.error("%s::__init__() Exception"%(self.kls))
-
-    def __del__(self):
-        self._log_debug("%s::__del__()"%(self.kls))
-        del self._devProxy
+        import logging
+        self._log.setLevel(logging.DEBUG)
 
     def AddDevice(self,axis):
         """ add each counter involved"""
-        self._log.debug("%s::AddDevice(%s)"%(self.kls,axis))
         if axis > len(self.attrList)+1:
             raise Exception("Not possible with the current length of attributes in the property.")
 
     def DeleteDevice(self,axis):
-        self._log.debug("%s::DeleteDevice(%s)"%(self.kls,axis))
+        pass
 
     def StateAll(self):
-        self._log.info("%s::StateAll()"%(self.kls))
         try:
-            self.ctrlState = self._devProxy.State(),""
-            print(str(self.ctrlState))
+            self.ctrlState = [self._devProxy.State(),""]
+            if self.ctrlState[0] == PyTango.DevState.RUNNING:
+                self.ctrlState[0] = PyTango.DevState.MOVING
         except Exception,e:
-            self.ctrlState = PyTango.DevState.DISABLE,str(e)
+            self.ctrlState = [PyTango.DevState.DISABLE,str(e)]
 
     def StateOne(self,axis):
-        self._log.info("%s::StateOne(%s)"%(self.kls,axis))
-        print(str(self.ctrlState))
         if axis > len(self.attrList)+1:
             return PyTango.DevState.DISABLE,"Out of range, review attrList"
-        if axis == 1:
-            return self.ctrlState
         else:
             return self.ctrlState
 
     def PreReadAll(self):
-        self._log.debug("%s::PreReadAll()"%(self.kls))
         #clean the list of elements to be read
         self.attr2read = []
         self.attrValues = []
     
     def PreReadOne(self,axis):
-        self._log.debug("%s::PreReadOne(%s)"%(self.kls,axis))
         #populate the list of what is wanna be read
         if axis == 1:
             self.attr2read.append(self.acqTimer)
         else:
             self.attr2read.append(self.attrList[axis-2])#-1 because 1 is master channel
-        self._log.debug("%s::PreReadOne(%s) attributes to read = %s"%(self.kls,axis,self.attr2read))
 
     def ReadAll(self):
-        self._log.debug("%s::ReadAll()"%(self.kls))
         #only one grouped read of all requested
         self.attrValues = self._devProxy.read_attributes(self.attr2read)
 
     def ReadOne(self,axis):
-        self._log.debug("%s::ReadOne(%s)"%(self.kls,axis))
         #return what has been read
         if axis == 1:
-            return self.attrValues[self.attr2read.index(self.acqTimer)].value
+            value = self.attrValues[self.attr2read.index(self.acqTimer)].value
         else:
-            return self.attrValues[self.attr2read.index(self.attrList[axis-2])].value
+            value = self.attrValues[self.attr2read.index(self.attrList[axis-2])].value
+        return value
 
-    #there is no AbortAll, and one acts like all are aborted
-    def AbortOne(self,axis):
-        self._log.debug("%s::AbortOne(%s)"%(self.kls,axis))
-        self._devProxy.Stop()
+    def AbortOne(self,ind):
+        if self._devProxy.State() == PyTango.DevState.RUNNING:
+            self._devProxy.Stop()
 
     def StartOneCT(self,axis):
-        self._log.debug("%s::StartOneCT(%d)"%(self.kls,axis))
         if axis == 1:
+            if self.__loadOne == False:
+                self._devProxy.write_attribute(self.acqTimer,600.0) #something like continuous
+            else:
+                self.__loadOne = False
+
+    def StartAllCT(self):
+        if self._devProxy.State() == PyTango.DevState.ON:
             self._devProxy.Start()
 
     #to setup the integration time to the master channel
     def LoadOne(self,axis,value):
-        self._log.debug("%s::LoadOne(%s,%s)"%(self.kls,axis,value))
         if axis == 1:
+            self.__loadOne = True
             self._devProxy.write_attribute(self.acqTimer,float(value))
 
     def GetExtraAttributePar(self, axis, name):
-        self._log.debug("%s::GetExtraAttributePar(%s,%s)"%(self.kls,axis,name))
-#        case = {}
-#        case.get(name,self.getterDefault)(axis,name)
+        pass
 
     def SetExtraAttributePar(self, axis, name, value):
-        self._log.debug("%s::SetExtraAttributePar(%s,%s,%s)"%(self.kls,axis,name,value))
-#        case = {}
-#        case.get(name,self.setterDefault)(axis,name,value)
-
-    ####
-    # Auxiliar methods for the extra attributes
-
-#    def getterDefault(self,axis,name):
-#        self._log.warn("Ignoring the GET on the %s extra attr"%name)
-#        return None
-#    def setterDefault(self,axis,name,value):
-#        self._log.warn("Ignoring the SET on the %s extra attr"%name)
-
-    # end aux for extras
-    ####
-
-    ####
-    # lower level auxiliars
-
-    # end lower level
-    ####
+        pass
 
 if __name__ == "__main__":
     obj = ElcomatCTCtrl('test')
