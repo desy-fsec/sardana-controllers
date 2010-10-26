@@ -5,6 +5,7 @@ from pool import MotorController
 from pool import PoolUtil
 from pyIcePAP import *
 import time
+import math
 
 class IcepapController(MotorController):
     """This class is the Sardana motor controller for the ICEPAP motor controller.
