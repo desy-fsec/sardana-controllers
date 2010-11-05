@@ -116,9 +116,19 @@ class PCOController(TwoDController):
        
     def GetPar(self, ind, par_name):       
         if par_name == "XDim":
-            return int(self.proxy[ind-1].read_attribute("Width").value)
+            if self.device_available[ind-1]:
+                return int(self.proxy[ind-1].read_attribute("Width").value)
         elif par_name == "YDim":
-            return int(self.proxy[ind-1].read_attribute("Heigth").value)
+            if self.device_available[ind-1]:
+                return int(self.proxy[ind-1].read_attribute("Heigth").value)
+
+    def SetPar(self,axis,name,value):
+        if par_name == "XDim":
+            if self.device_available[ind-1]:
+                self.proxy[ind-1].write_attribute("Width",value)
+        elif par_name == "YDim":
+            if self.device_available[ind-1]:
+                self.proxy[ind-1].write_attribute("Heigth",value)
 	
     def GetExtraAttributePar(self,ind,name):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
