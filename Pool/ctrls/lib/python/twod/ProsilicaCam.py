@@ -99,8 +99,7 @@ class ProsilicaCamController(TwoDController):
 		
     def StartOne(self,ind):
         print "PYTHON -> ProsilicaCamCtrl/",self.inst_name,": In StartOneCT method for index",ind
-        # Take images until the command StopAcquisition is executed
-        self.proxy[ind-1].command_inout("StartAcquisition")
+        self.proxy[ind-1].command_inout("StartSingleAcquisition")
        
     def GetPar(self, ind, par_name):       
         if par_name == "XDim":
@@ -128,6 +127,8 @@ class ProsilicaCamController(TwoDController):
         cmd, arg = in_data.split(" ")
         if cmd == "StopAcquisition":
             self.proxy[ind-1].command_inout("StopAcquisition")
+        elif cmd == "StartAcquisition":
+            self.proxy[ind-1].command_inout("StartAcquisition")
             
 
         return "Nothing sent"
