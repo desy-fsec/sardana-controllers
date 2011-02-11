@@ -104,7 +104,10 @@ class TurboPmacController(MotorController):
     
     def __init__(self,inst,props):
         MotorController.__init__(self,inst,props)
-        self.pmacEth = PyTango.DeviceProxy(self.PmacEthDevName)
+        try:
+            self.pmacEth = PyTango.DeviceProxy(self.PmacEthDevName)
+        except PyTango.DevFailed, e:
+            self._log.error("__init__(): Could not create PmacEth device proxy from %s device name. \nException: %s" % (self.PmacEthDevName, e))
         self.axesList = []
         self.startMultiple = {}
         self.positionMultiple = {}
@@ -119,18 +122,26 @@ class TurboPmacController(MotorController):
         self.attributes[axis] = None
     
     def PreStateAll(self):
-        for axis in self.axesList:
-            self.attributes[axis] = {}
+        pass
             
     def StateAll(self):
         """ Get State of all axes with just one command to the Pmac Controller. """
-        motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
+        try:
+            motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
+        except PyTango.DevFailed, e:
+            self._log.error("StateAll(): SendCtrlChar('B') command called on PmacEth DeviceProxy failed. \nException: %s", e)
+            raise
         motStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(48,"0") for s in motStateAns.split()]
-        csStateAns = self.pmacEth.command_inout("SendCtrlChar", "C")
+        
+        try:
+            csStateAns = self.pmacEth.command_inout("SendCtrlChar", "C")
+        except PyTango.DevFailed, e:
+            self._log.error("StateAll(): SendCtrlChar('C') command called on PmacEth DeviceProxy failed. \nException: %s", e)
+            raise
         csStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(64,"0") for s in csStateAns.split()]
+        
         for axis in self.axesList:
             motBinState = motStateBinArray[axis-1]
-            self._log.info("Mot %d binary state: %s", axis-1,motBinState)
             #First Word
             self.attributes[axis]["MotorActivated"] = bool(int(motBinState[0]))
             self.attributes[axis]["NegativeEndLimitSet"] = bool(int(motBinState[1])) 
@@ -234,13 +245,17 @@ class TurboPmacController(MotorController):
         self.positionMultiple = {}
     
     def ReadAll(self):
-        motPosAns = self.pmacEth.command_inout("SendCtrlChar", "P")
+        try:
+            motPosAns = self.pmacEth.command_inout("SendCtrlChar", "P")
+        except PyTango.DevFailed, e:
+            self._log.error("ReadAll(): SendCtrlChar('P') command called on PmacEth DeviceProxy failed. \nException: %s", e)
+            raise
         motPosFloatArray = [float(s) for s in motPosAns.split()]
         for axis in self.axesList:
             self.positionMultiple[axis] = motPosFloatArray[axis-1]
             
     def ReadOne(self, axis):
-        return self.positionMultiple[axis]
+        return self.positionMultiple[axis] / self.attributes[axis]["step_per_unit"]
     
     def PreStartAll(self):
         self.startMultiple = {}
@@ -254,6 +269,7 @@ class TurboPmacController(MotorController):
         
     def StartAll(self):
         for axis,position in self.startMultiple.items():
+            position *= self.attributes[axis]["step_per_unit"]
             self.pmacEth.command_inout("JogToPos",[axis,position])
         
     def SetPar(self, axis, name, value):
@@ -264,10 +280,21 @@ class TurboPmacController(MotorController):
         """
         try:
             if name.lower() == "velocity":
-                self.pmacEth.command_inout("SetIVariable",(float("%d22" % axis), float(value)))
+                pmacVelocity =  (value * self.attributes[axis]["step_per_unit"]) / 1000
+                self._log.info("setting velocity to: %f"%pmacVelocity)
+                self.pmacEth.command_inout("SetIVariable", (float("%d22" % axis), float(pmacVelocity)))
+
+            elif name.lower() == "acceleration":
+                #here we convert acceleration time from sec(Sardana standard) to msec(TurboPmac expected unit)  
+                pmacAcceleration =  value * 1000
+                self._log.info("setting acceleration to: %f" % pmacAcceleration)
+                self.pmacEth.command_inout("SetIVariable", (float("%d20" % axis), float(pmacAcceleration)))
+            
             elif name.lower() == "step_per_unit":
                 self.attributes[axis]["step_per_unit"] = float(value)
-            #@todo implement acceleration, base_rate
+            
+            
+            #@todo implement base_rate
         except Exception,e:
             self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
             raise
@@ -280,21 +307,35 @@ class TurboPmacController(MotorController):
         """
         try:
             if name.lower() == "velocity":
-                return float(self.pmacEth.command_inout("GetIVariable",(long("%d22" % axis))))
+                pmacVelocity = float(self.pmacEth.command_inout("GetIVariable", long("%d22" % axis)))
+                sardanaVelocity = (pmacVelocity * 1000) / self.attributes[axis]["step_per_unit"]
+                return sardanaVelocity
+            
+            elif name.lower() == "acceleration":
+                #here we convert acceleration time from msec(returned by TurboPmac) to sec(Sardana standard)
+                value = float(self.pmacEth.command_inout("GetIVariable",long("%d20" % axis))) 
+                return  (value / 1000)
             elif name.lower() == "step_per_unit":
                 return self.attributes[axis]["step_per_unit"]
-	    #@todo implement acceleration, base_rate
-	    else:
-		return None
+            #@todo implement base_rate
+            else:
+                return None
         except Exception,e:
             self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
             raise
 
     def AbortOne(self, axis):
         if self.attributes[axis]["MotionProgramRunning"]:
-            self.pmacEth.command_inout("OnlineCmd", "&%da" % self.attributes[axis]["CoordinateSystem"])
+            try:
+                self.pmacEth.command_inout("OnlineCmd", "&%da" % self.attributes[axis]["CoordinateSystem"])
+            except PyTango.DevFailed, e:
+                self._log.error("AbortOne(): OnlineCmd(&%da) command called on PmacEth DeviceProxy failed. \nException: %s" %(attributes[axis]["CoordinateSystem"], e))
+                raise
         else:    
-            self.pmacEth.command_inout("JogStop",[axis])
+            try:
+                self.pmacEth.command_inout("JogStop",[axis])
+            except PyTango.DevFailed, e:
+                self._log.error("AbortOne(): JogStop command on %d axis called on PmacEth DeviceProxy failed. \nException: %s" % (axis, e))
     
     def DefinePosition(self, axis, value):
         pass
