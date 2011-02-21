@@ -35,7 +35,9 @@
 import PyTango
 from pool import CounterTimerController
 #from pool import PoolUtil
-#import time
+import time
+
+hackish_IBAProcessSleep = 0.5
 
 class ImgBeamAnalyzerController(CounterTimerController):
     """This class is the Tango Sardana CounterTimer controller for the Tango ImgBeamAnalyzer device.
@@ -75,6 +77,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             self.__flag_loadOne = False
             self.__flag_ccdImgCt = None
             self.__flag_ibaImgCt = None
+            self.__flag_backup = False
             #basic state
             self.ctrlState = [PyTango.DevState.ON,""]
         except:
@@ -93,8 +96,9 @@ class ImgBeamAnalyzerController(CounterTimerController):
     #check state area:
     def StateAll(self):
         try:
-            if self._checkCCDacq(): return
-            self._checkIBAprocess()
+            if self.ctrlState[0] == PyTango.DevState.MOVING:
+                if not self._checkCCDacq(): return
+                self._checkIBAprocess()
         except Exception,e:
             self.ctrlState = [PyTango.DevState.ALARM,str(e)]
 
@@ -114,25 +118,30 @@ class ImgBeamAnalyzerController(CounterTimerController):
     def PreStartOneCT(self,ind):
         """Prepare the iba and the ccd for the acquisition"""
         try:
-            if ind == 1:
+            if not self.__flag_backup:#ind == 1:
+                self.__flag_backup = True
                 self._doBackup()
             else:
                 pass
             return True #I don't know why this expects a boolean feedback
         except Exception,e:
-            print "!    %s"%e
+            self._log.error("PreStartOneCT(%d) exception: %s"%(ind,e))
 
     def StartAllCT(self):
         """Open the ccd to acquire and make process this image by the iba."""
         self.ctrlState = [PyTango.DevState.MOVING,""]
-        self.__flag_ccdImgCt = 0#when snap it resets the counter
+        dictKey = self._ccdProxy.name()+'_state'
+        if self._backupDict.has_key(dictKey) and self._backupDict[dictKey] == PyTango.DevState.RUNNING:
+            self.__flag_ccdImgCt = 0#when snap it resets the counter, no need to read it
+        else:
+            self.__flag_ccdImgCt = self._ccdProxy.read_attribute('ImageCounter').value
         self._ccdProxy.Snap()
 
     def AbortOne(self,ind):
         if ind == 1 :#and self._ccdProxy.State() == PyTango.DevState.RUNNING:
             self._ccdProxy.Stop()
-        self._doRestore()
-        #TODO: this doesn't take care about state of the ctrl
+        if self.__flag_backup: self._doRestore()
+        self.ctrlState = [PyTango.DevState.ON,"Aborted acquisition"]
     # end data acquisition area
     ####
 
@@ -147,7 +156,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             #return what has been read when the image was processed
             else:
                 value = self.attrValues[ind-2].value
-            return value
+            return float(value)
         except Exception,e:
             return float('nan')
     # end data collection area
@@ -175,6 +184,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
     def _checkCCDacq(self):
         current_ccdImgCt = self._ccdProxy.read_attribute('ImageCounter').value
         if self.__flag_ccdImgCt == (current_ccdImgCt-1):#one image has been taken
+            self._log.debug("image has been taken")
             self.__flag_ccdImgCt = None#reset flag
             #due to the image is already take, can be processed
             self.__flag_ibaImgCt = self._ibaProxy.read_attribute('ImageCounter').value
@@ -185,9 +195,12 @@ class ImgBeamAnalyzerController(CounterTimerController):
     def _checkIBAprocess(self):
         current_ibaImgCt = self._ibaProxy.read_attribute('ImageCounter').value
         if self.__flag_ibaImgCt == (current_ibaImgCt-1):#one image has been process
+            self._log.debug("image has been processed")
             self.__flag_ibaImgCt = None#reset flag
+            #hackish: the imgCt changes a few ms before the attr update
+            time.sleep(hackish_IBAProcessSleep)
             self.attrValues = self._ibaProxy.read_attributes(self.attrList)
-            self._doRestore()
+            if self.__flag_backup: self._doRestore()
             self.ctrlState[0] = PyTango.DevState.ON
             return True
         return False
@@ -197,68 +210,77 @@ class ImgBeamAnalyzerController(CounterTimerController):
         self._backup(self._ibaProxy, "Mode", 'prop', 'ONESHOT')
         self._backup(self._ccdProxy, None, 'state', None)
 
+    def _backup(self,dev,vble,vbletype,value):
+        self._log.debug("backup the %s %s of the %s and set value %s"%(vbletype,vble,dev.name(),value))
+        case = {'prop':self._backupProperty,
+                'attr':self._backupAttribute,
+                'state':self._backupState}
+        case.get(vbletype,self._backupException)(dev,vble,value)
+
+    def _backupException(self,dev,vble,value):
+        raise Exception("unknown how to backup %s of %s"%(vble,dev.name()))
+
+    def _backupProperty(self,dev,vble,value):
+        dictKey = dev.name()+'_prop_'+vble
+        current_value = dev.get_property(vble)[vble][0]
+        if not current_value == value:#only backup and modify if it's need
+            self._backupDict[dictKey] = current_value
+            dev.put_property({vble:value})
+            dev.Init()
+
+    def _backupAttribute(self,dev,vble,value):
+        dictKey = dev.name()+'_attr_'+vble
+        current_value = dev.read_attribute(vble).value
+        if not current_value == value:
+            self._backupDict[dictKey] = current_value
+            dev.write_attribute(vble,value)
+
+    def _backupState(self,dev,vble,value):
+        dictKey = dev.name()+'_state'
+        current_value = dev.State()
+        self._backupDict[dictKey] = current_value
+        if current_value == PyTango.DevState.RUNNING:
+            dev.Stop()
+
     def _doRestore(self):
         self._restore(self._ccdProxy, "ExposureTime", "attr")
         self._restore(self._ccdProxy, "TriggerMode", "attr")
         self._restore(self._ibaProxy, "Mode", "prop")
         self._restore(self._ccdProxy, None, "state")
-
-    def _backup(self,dev,vble,vbletype,value):
-        print("backup the %s %s of the %s and set value %s"%(vbletype,vble,dev.name(),value))
-        case = {'prop':self._backupProperty,
-                'attr':self._backupAttribute,
-                'state':self._backupState}
-        case.get(vbletype,self._backupException)(dev,vble,value)
-    def _backupException(self,dev,vble,value):
-        raise Exception("unknown how to backup %s of %s"%(vble,dev.name()))
-    def _backupProperty(self,dev,vble,value):
-        self._backupDict[dev.name()+'_prop_'+vble] = dev.get_property(vble)[vble][0]
-        dev.put_property({vble:value})
-        dev.Init()
-    def _backupAttribute(self,dev,vble,value):
-        self._backupDict[dev.name()+'_attr_'+vble] = dev.read_attribute(vble).value
-        dev.write_attribute(vble,value)
-    def _backupState(self,dev,vble,value):
-        self._backupDict[dev.name()+'_state'] = dev.State()
-        if dev.State() == PyTango.DevState.RUNNING:
-            dev.Stop()
+        self.__flag_backup = False
 
     def _restore(self,dev,vble,vbletype):
-        print("restore the %s %s of the %s"%(vbletype,vble,dev.name()))
+        self._log.debug("restore the %s %s of the %s"%(vbletype,vble,dev.name()))
         case = {'prop':self._restoreProperty,
                 'attr':self._restoreAttribute,
                 'state':self._restoreState}
-        try:
-            case.get(vbletype,self._restoreException)(dev,vble)
-        except Exception,e:
-            print("ARRR! %s"%e)
+        case.get(vbletype,self._restoreException)(dev,vble)
+
     def _restoreException(self,dev,vble):
         raise Exception("unknown how to restore %s of %s"%(vble,dev.name()))
+
     def _restoreProperty(self,dev,vble):
         dictKey = dev.name()+'_prop_'+vble
-        if not self._backupDict.has_key(dictKey):
-            raise Exception("not possible to restore property %s of %s"%(vble,dev.name()))
-        value = self._backupDict[dictKey]
-        dev.put_property({vble:value})
-        dev.Init()
+        if self._backupDict.has_key(dictKey):
+            value = self._backupDict[dictKey]
+            dev.put_property({vble:value})
+            dev.Init()
+
     def _restoreAttribute(self,dev,vble):
         dictKey = dev.name()+'_attr_'+vble
-        if not self._backupDict.has_key(dictKey):
-            raise Exception("not possible to restore attribute %s of %s"%(vble,dev.name()))
-        value = self._backupDict[dictKey]
-        dev.write_attribute(vble,value)
+        if self._backupDict.has_key(dictKey):
+            value = self._backupDict[dictKey]
+            dev.write_attribute(vble,value)
+
     def _restoreState(self,dev,vble):
         dictKey = dev.name()+'_state'
-        if not self._backupDict.has_key(dictKey):
-            raise Exception("not possible to restore state %s of %s"%(vble,dev.name()))
-        value = self._backupDict[dictKey]
-        if value == PyTango.DevState.RUNNING:
-            i = 0
-            while i < 10 and not dev.State() == PyTango.DevState.RUNNING:
-                print("Start try %d"%i)
-                dev.start()
-                i += 1
-            
+        if self._backupDict.has_key(dictKey):
+            value = self._backupDict[dictKey]
+            if value == PyTango.DevState.RUNNING:
+                for i in range(10):
+                    dev.start()
+                    if dev.State() == PyTango.DevState.RUNNING: break
+                if i == 9: self._log.info("After 10 attempts, it was not possible to restart the ccd")
 
     # end auxiliar
     ####
