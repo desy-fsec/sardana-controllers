@@ -1,8 +1,6 @@
 import math
 from pool import PseudoMotorController
-from taurus.core.util import Singleton
 import logging
-
 
 def rotate_x(y, z, cosangle, sinangle):
     """3D rotaion around *x* (pitch). *y* and *z* are values or arrays.
@@ -16,6 +14,58 @@ def rotate_z(x, y, cosangle, sinangle):
     """3D rotaion around *z*. *x* and *y* are values or arrays.
     Positive rotation is for positive *sinangle*. Returns *xNew, yNew*."""
     return cosangle * x - sinangle * y, sinangle * x + cosangle * y
+
+class TwoXStageController(PseudoMotorController):
+    """This is a pseudomotor controller for a stage with two lateral translation motors.
+    It expects two physical motors: mx1, mx2 and provides 2 pseudomotors: x, yaw.
+    Motor mx1 is the upstream one, and yaw angle is increasing with increasing its position.
+     
+    It requires definition of of 3 properties:
+    Tx1Coordinates - a string representing Tx1 x,y coordinates in local system e.g. "-711.9, 0" 
+    Tx2Coordinates - a string representing Tx2 x,y coordinates in local system e.g. "689, 0"
+    Dx - nominal x shift of the center in local system."""
+
+    pseudo_motor_roles = ('x', 'yaw')
+    motor_roles = ('mx1', 'mx2')
+
+    class_prop = {'Tx1Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx1 coordination: x,y in local system'},
+                         'Tx2Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx2 coordination: x,y in local system'},
+                         'Dx' : {'Type' : 'PyTango.DevFloat', 'Description' : 'nominal x shift of the center in local system'}}
+
+    def __init__(self, inst, props):  
+        PseudoMotorController.__init__(self, inst, props)
+        self._log.setLevel(logging.DEBUG)
+
+        try:
+            self.tx1 = [float(c) for c in props['Tx1Coordinates'].split(',')]
+            self.tx2 = [float(c) for c in props['Tx2Coordinates'].split(',')]
+            self.dx = float(props['Dx'])
+        except ValueError, e:
+            self._log.error('Could not parse class properties to generate coordinates.')
+            raise e
+
+        if self. tx1[1] == self.tx2[1]:
+            raise ValueError('The mirror must be initially horizontal!')
+
+    def calc_physical(self, index, pseudos):
+        return self.calc_all_physical(pseudos)[index - 1]
+
+    def calc_pseudo(self, index, physicals):
+        return self.calc_all_pseudo(physicals)[index - 1]
+
+    def calc_all_physical(self, pseudos):
+        x, yaw = pseudos 
+        tanYaw = math.tan(yaw)
+        tx1 = -tanYaw * self.tx1[1] + x
+        tx2 = -tanYaw * self.tx2[1] + x
+        return tx1, tx2
+
+    def calc_all_pseudo(self, physicals):
+        tx1, tx2 = physicals
+        x = tx1 - (tx2 - tx1) * self.tx1[1] / (self.tx2[1] - self.tx1[1])
+        yaw = -math.atan((tx2 - tx1) / (self.tx2[1] - self.tx1[1]))
+        yaw /= 1000 # conversion to mrad
+        return x, yaw
 
 
 class TripodTableController(PseudoMotorController):
@@ -31,7 +81,7 @@ class TripodTableController(PseudoMotorController):
     cosAzimuth = 0.70710681665463704
     sinAzimuth = -0.70710674571845633
 
-    def __init__(self, inst, props):  
+    def __init__(self, inst, props):
         PseudoMotorController.__init__(self, inst, props)
         self._log.setLevel(logging.DEBUG)
 
@@ -59,15 +109,14 @@ class TripodTableController(PseudoMotorController):
         self._log.debug("jack1local: %s" %repr(self.jack1local))
         self._log.debug("jack2local: %s" %repr(self.jack2local))
         self._log.debug("jack3local: %s" %repr(self.jack3local))
-        
+
     def calc_physical(self, index, pseudos):
         return self.calc_all_physical(pseudos)[index - 1]
-    
+
     def calc_pseudo(self, index, physicals):
         return self.calc_all_pseudo(physicals)[index - 1]
-    
+
     def calc_all_physical(self, pseudos):
-        self._log.debug("Entering calc_all_physical...")
         z, pitch, roll = pseudos
 #      Ax + By + Cz = D in local system:
         A, B, C = 0.0, 0.0, 1.0
@@ -106,7 +155,6 @@ class TripodTableController(PseudoMotorController):
         return jack1, jack2, jack3 
 
     def calc_all_pseudo(self, physicals):
-        self._log.debug("Entering calc_all_pseudo...")
         jack1, jack2, jack3 = physicals
 
 #      Ax + By + Cz = D in global system:
