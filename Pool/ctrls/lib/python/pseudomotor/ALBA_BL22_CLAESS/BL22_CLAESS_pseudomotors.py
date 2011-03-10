@@ -1,3 +1,5 @@
+
+
 import math
 from pool import PseudoMotorController
 import logging
@@ -135,8 +137,8 @@ class TripodTableController(PseudoMotorController):
 #      D of balls plane:
 #           D -= self.jackToMirrorInvariant * (A ** 2 + B ** 2 + C ** 2) ** 0.5
 #           but because rotations are unitary (A ** 2 + B ** 2 + C ** 2) = 1 and:
-        #D -= self.jackToMirrorInvariant
-        D -= (self.center[2] - z)
+        D -= self.jackToMirrorInvariant
+        #D -= (self.center[2] - z)
 
         self._log.debug("Plane equation in local system A: %f, B: %f, C: %f, D: %f" % (A,B,C,D))
 
@@ -148,9 +150,9 @@ class TripodTableController(PseudoMotorController):
         self._log.debug("jack2_local: %s" %repr(jack2_local))
         self._log.debug("jack3_local: %s" %repr(jack3_local))
 
-        jack1 = jack1_local + self.center[2]
-        jack2 = jack2_local + self.center[2]
-        jack3 = jack3_local + self.center[2]
+        jack1 = jack1_local + z#self.center[2]
+        jack2 = jack2_local + z#self.center[2]
+        jack3 = jack3_local + z#self.center[2]
 
         return jack1, jack2, jack3 
 
@@ -172,7 +174,7 @@ class TripodTableController(PseudoMotorController):
         D = A * self.jack1[0] + B * self.jack1[1] + C * jack1
 
         #jackToMirrorInvariant = self.center[2] - jack1
-        #D += self.jackToMirrorInvariant# of optical plane
+        D += self.jackToMirrorInvariant# of optical plane
 
         self._log.debug("Plane equation in global system A: %f, B: %f, C: %f, D: %f" % (A,B,C,D))
         # C is never 0, i.e. the normal to the optical element is never horizontal
