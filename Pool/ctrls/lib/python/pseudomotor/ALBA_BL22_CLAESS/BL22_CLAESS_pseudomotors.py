@@ -1,8 +1,10 @@
+__all__ = ["TwoXStageController", "TripodTableController"]
 
+__docformat__ = 'restructuredtext'
 
-import math
+import math, logging
 from pool import PseudoMotorController
-import logging
+
 
 def rotate_x(y, z, cosangle, sinangle):
     """3D rotaion around *x* (pitch). *y* and *z* are values or arrays.
@@ -16,6 +18,7 @@ def rotate_z(x, y, cosangle, sinangle):
     """3D rotaion around *z*. *x* and *y* are values or arrays.
     Positive rotation is for positive *sinangle*. Returns *xNew, yNew*."""
     return cosangle * x - sinangle * y, sinangle * x + cosangle * y
+
 
 class TwoXStageController(PseudoMotorController):
     """This is a pseudomotor controller for a stage with two lateral translation motors.
@@ -32,23 +35,27 @@ class TwoXStageController(PseudoMotorController):
 
     class_prop = {'Tx1Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx1 coordination: x,y in local system'},
                          'Tx2Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx2 coordination: x,y in local system'},
-                         'Dx' : {'Type' : 'PyTango.DevFloat', 'Description' : 'nominal x shift of the center in local system'}}
+                         'Dx' : {'Type' : 'PyTango.DevDouble', 'Description' : 'nominal x shift of the center in local system'}}
 
     def __init__(self, inst, props):  
         PseudoMotorController.__init__(self, inst, props)
-        self._log.setLevel(logging.DEBUG)
+        #self._log.setLevel(logging.DEBUG)
 
         try:
             self.tx1 = [float(c) for c in props['Tx1Coordinates'].split(',')]
             self.tx2 = [float(c) for c in props['Tx2Coordinates'].split(',')]
             self.dx = float(props['Dx'])
+            
+            if len(self.tx1) != 2 or len(self.tx2) != 2:
+                raise ValueError("Tx1 and Tx2 Coordinates properties must be x,y coordinates in local system")
+            
+            if self.tx1[1] == self.tx2[1]:
+                raise ValueError('The mirror must be initially horizontal!')
+            
         except ValueError, e:
             self._log.error('Could not parse class properties to generate coordinates.')
             raise e
-
-        if self. tx1[1] == self.tx2[1]:
-            raise ValueError('The mirror must be initially horizontal!')
-
+        
     def calc_physical(self, index, pseudos):
         return self.calc_all_physical(pseudos)[index - 1]
 
@@ -71,7 +78,15 @@ class TwoXStageController(PseudoMotorController):
 
 
 class TripodTableController(PseudoMotorController):
-
+    """This is a pseudomotor controller for a three-legs table.
+    It expects three physical motors: jack1, jack2, jack3 and provides 3 pseudomotors: z, pitch and roll.
+    Jack1 is the most upstream one and Jack3 is the most downstream. If two of the jacks 
+    have the same distance to the source the left one comes first. 
+     
+    It requires definition of of 4 properties (all of them are strings with comma separated float values
+    representing x,y,z coordinates in global coordinate system e.g. "3123.09, -3232.33, 1400"): 
+    Jack1Coordinates, Jack2Coordinates, Jack3Coordinates, CenterCoordinates"""
+    
     pseudo_motor_roles = ('z', 'pitch', 'roll')
     motor_roles = ('jack1', 'jack2', 'jack3')
 
@@ -79,35 +94,43 @@ class TripodTableController(PseudoMotorController):
                          'Jack2Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'jack2 coordination: x,y,z'},
                          'Jack3Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'jack3 coordination: x,y,z'},
                          'CenterCoordinates': {'Type' : 'PyTango.DevString', 'Description' : 'center coordination: x,y,z'}}
-
+    
+    #This is azimuth angle for BL22-CLAESS (Synchrotron ALBA) which is 45 degrees indeed  
+    #for your beamline change it accordingly to your azimuth angle 
     cosAzimuth = 0.70710681665463704
     sinAzimuth = -0.70710674571845633
 
     def __init__(self, inst, props):
         PseudoMotorController.__init__(self, inst, props)
-        self._log.setLevel(logging.DEBUG)
+        #self._log.setLevel(logging.DEBUG)
 
         try:
             self.jack1 = [float(c) for c in props['Jack1Coordinates'].split(',')]
             self.jack2 = [float(c) for c in props['Jack2Coordinates'].split(',')]
             self.jack3 = [float(c) for c in props['Jack3Coordinates'].split(',')]
             self.center = [float(c) for c in props['CenterCoordinates'].split(',')]
+            
+            if len(self.jack1) != 3 or len(self.jack2) != 3 or len(self.jack3) != 3:
+                raise ValueError("Jack1, Jack2, Jack3 and Center Coordinates properties must be x,y,z coordinates in global system")
+            
+            if not (self. jack1[2] == self.jack2[2] == self.jack3[2]):
+                raise ValueError('The mirror must be initially horizontal!')
+            
         except ValueError, e:
             self._log.error('Could not parse class properties to generate coordinates.')
             raise e  
 
-        if not (self. jack1[2] == self.jack2[2] == self.jack3[2]):
-            raise ValueError('The mirror must be initially horizontal!')
-
         self.jackToMirrorInvariant = self.center[2] - self.jack1[2]
 
-        # jacks in local virgin system
+        # jacks in local virgin system, where point (0,0,0) is a center of a optical surface
         self.jack1local = [ji - ci for ji, ci in zip(self.jack1, self.center)]
         self.jack2local = [ji - ci for ji, ci in zip(self.jack2, self.center)]
         self.jack3local = [ji - ci for ji, ci in zip(self.jack3, self.center)]
 
+        #rotating the table on z axis over azimuth angle 
         for jl in [self.jack1local, self.jack2local, self.jack3local]:
             jl[0], jl[1] = rotate_z(jl[0], jl[1], self.cosAzimuth, self.sinAzimuth)
+            
         self._log.debug("jack1local: %s" %repr(self.jack1local))
         self._log.debug("jack2local: %s" %repr(self.jack2local))
         self._log.debug("jack3local: %s" %repr(self.jack3local))
@@ -120,7 +143,7 @@ class TripodTableController(PseudoMotorController):
 
     def calc_all_physical(self, pseudos):
         z, pitch, roll = pseudos
-#      Ax + By + Cz = D in local system:
+        # Ax + By + Cz = D in local system:
         A, B, C = 0.0, 0.0, 1.0
 
         if roll != 0:
@@ -132,11 +155,11 @@ class TripodTableController(PseudoMotorController):
             sinPitch = math.sin(pitch)
             B, C = rotate_x(B, C, cosPitch, sinPitch)
 
-#        D of optical plane = 0 because (0, 0, 0) belongs to it:
+        #D of optical plane = 0 because (0, 0, 0) belongs to it
         D = 0
-#      D of balls plane:
-#           D -= self.jackToMirrorInvariant * (A ** 2 + B ** 2 + C ** 2) ** 0.5
-#           but because rotations are unitary (A ** 2 + B ** 2 + C ** 2) = 1 and:
+        #D of balls plane:
+        #D -= self.jackToMirrorInvariant * (A ** 2 + B ** 2 + C ** 2) ** 0.5
+        #but because rotations are unitary (A ** 2 + B ** 2 + C ** 2) = 1 and:
         D -= self.jackToMirrorInvariant
         #D -= (self.center[2] - z)
 
@@ -150,9 +173,9 @@ class TripodTableController(PseudoMotorController):
         self._log.debug("jack2_local: %s" %repr(jack2_local))
         self._log.debug("jack3_local: %s" %repr(jack3_local))
 
-        jack1 = jack1_local + z#self.center[2]
-        jack2 = jack2_local + z#self.center[2]
-        jack3 = jack3_local + z#self.center[2]
+        jack1 = jack1_local + z
+        jack2 = jack2_local + z
+        jack3 = jack3_local + z
 
         return jack1, jack2, jack3 
 
