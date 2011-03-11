@@ -34,8 +34,8 @@ class TwoXStageController(PseudoMotorController):
     motor_roles = ('mx1', 'mx2')
 
     class_prop = {'Tx1Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx1 coordination: x,y in local system'},
-                         'Tx2Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx2 coordination: x,y in local system'},
-                         'Dx' : {'Type' : 'PyTango.DevDouble', 'Description' : 'nominal x shift of the center in local system'}}
+                  'Tx2Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx2 coordination: x,y in local system'},
+                  'Dx'             : {'Type' : 'PyTango.DevDouble', 'Description' : 'nominal x shift of the center in local system', 'DefaultValue' : 0}}
 
     def __init__(self, inst, props):  
         PseudoMotorController.__init__(self, inst, props)
