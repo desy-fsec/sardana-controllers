@@ -16,7 +16,14 @@ def rotate_y(x, z, cosangle, sinangle):
     return cosangle * x + sinangle * z, -sinangle * x + cosangle * z
 def rotate_z(x, y, cosangle, sinangle):
     """3D rotaion around *z*. *x* and *y* are values or arrays.
-    Positive rotation is for positive *sinangle*. Returns *xNew, yNew*."""
+    Positive rotation is for positive *sinangle*. Returns *xNew, yNew*.
+
+    :param x: (float or list) value of the x coordinate 
+    :param y: (float or list) value of the y coordinate 
+    :param cosangle: (float) cosinus of the rotation angle
+    :param sinangle: (float) sinus of the rotation angle
+
+    :return: (tuple<float>) new (rotated) x and y """
     return cosangle * x - sinangle * y, sinangle * x + cosangle * y
 
 
