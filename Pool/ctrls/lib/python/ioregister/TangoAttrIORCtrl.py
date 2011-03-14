@@ -36,11 +36,12 @@ from pool import PoolUtil
 
 TANGO_ATTR = 'TangoAttribute'
 DEVICE = 'Device'
-DPROXY = 'DeviceProxy'
+#DPROXY = 'DeviceProxy'
 ATTRIBUTE = 'Attribute'
 CALIBRATION = 'Calibration'
 LABELS = 'Labels'
 READFAILED = 'readFailed'
+VALUELABEL = 'ValueLabel'
 
 def agrupate(l,n):
     #print "agrupate(%s,%s) "%(l,n)
@@ -65,14 +66,14 @@ def flatten(l):
 
 
 class TangoAttrIORController(IORegisterController):
-    """This controller offers as many channels as the user wants.
-    Each channel _MUST_HAVE_ extra attributes:
-    +) TangoAttribute - Tango attribute to retrieve the value of the counter
+    """This controller offers as many IORegisters as the user wants.
+    Each IORegisters _MUST_HAVE_ extra attributes:
+    +) TangoAttribute - Tango attribute to retrieve the value of the IORegister
     As examples you could have:
     ch1.TangoExtraAttribute = 'my/tango/device/attribute1'
     ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
     ch3.TangoExtraAttribute = 'my_other/tango/device/attribute1'
-    Each channel _MAY_HAVE_ extra attributes:
+    Each IORegisters _MAY_HAVE_ extra attributes:
     +) Calibration - String of the triples min,cal,max
     As examples you could have:
     ch1.Calibration = "-50 0 50 950 1000 1050 1950 2000 2050 2950 3000 3050 3950 4000 4050 4950 5000 5050"
@@ -87,6 +88,9 @@ class TangoAttrIORController(IORegisterController):
     As examples you have:
     ch1.Labels: "16.66% 33.33% 50% 66.66% 83.33% 100%"
     That means: {0:'16.66%',1:'33.33%',2:'50%',3:'66.66%',4:'83.33%',5'100%']
+    Another extra attibute will be usable if the IORegisters is well configured:
+    ValueLabel: string based attribute to move the IORegister using an string 
+                (it must correspond with the Labels list)
     """
 
     gender = ""
@@ -107,6 +111,10 @@ class TangoAttrIORController(IORegisterController):
                             LABELS:#type hackish until arrays supported
                             {'Type':'PyTango.DevString',#{'Type':'PyTango.DevVarStringArray',
                              'Description':'String list with the meaning of each discrete position',
+                             'R/W Type':'PyTango.READ_WRITE'},
+                            VALUELABEL:
+                            {'Type':'PyTango.DevString',
+                             'Description':'String to move the discrete motor in terms of the label.',
                              'R/W Type':'PyTango.READ_WRITE'},
                            }
     MaxDevice = 1024
@@ -139,7 +147,7 @@ class TangoAttrIORController(IORegisterController):
             return(DevState.DISABLE,
                    "Bad configuration of the extra attributes, this cannot be operated")
         else:
-            dev_proxy = self.devsExtraAttributes[axis][DPROXY]
+            dev_proxy = self._buildProxy(axis)
             dev_state = dev_proxy.state()
             if readFailed and not dev_state == DevState.MOVING:
                 return (DevState.ALARM,
@@ -152,14 +160,15 @@ class TangoAttrIORController(IORegisterController):
     def ReadOne(self, axis):
         dev = self.devsExtraAttributes[axis][DEVICE]
         attr = self.devsExtraAttributes[axis][ATTRIBUTE]
-        dev_proxy = self.devsExtraAttributes[axis][DPROXY]
+        dev_proxy = self._buildProxy(axis)
+        if dev_proxy == None: return #anything can be done
         labels = self.devsExtraAttributes[axis][LABELS]
         llabels = len(labels)
         calibration = self.devsExtraAttributes[axis][CALIBRATION]
         lcalibration = len(calibration)
         try:
             if llabels == 0 and lcalibration == 0:
-                value = self.devsExtraAttributes[axis][DPROXY].read_attribute(attr).value
+                value = dev_proxy.read_attribute(attr).value
                 self.devsExtraAttributes[axis][READFAILED] = False
                 return int(value)
             elif llabels == lcalibration:
@@ -180,7 +189,7 @@ class TangoAttrIORController(IORegisterController):
     def WriteOne(self, axis, value):
         dev = self.devsExtraAttributes[axis][DEVICE]
         attr = self.devsExtraAttributes[axis][ATTRIBUTE]
-        dev_proxy = self.devsExtraAttributes[axis][DPROXY]
+        dev_proxy = self._buildProxy(axis)
         labels = self.devsExtraAttributes[axis][LABELS]
         llabels = len(labels)
         calibration = self.devsExtraAttributes[axis][CALIBRATION]
@@ -199,6 +208,7 @@ class TangoAttrIORController(IORegisterController):
         return {TANGO_ATTR:self.getTangoAttr,
                 CALIBRATION:self.getCalibration,
                 LABELS:self.getLabels,
+                VALUELABEL:self.getValueLabel,
                }[name](axis,name)
         
 
@@ -208,6 +218,7 @@ class TangoAttrIORController(IORegisterController):
         {TANGO_ATTR:self.setTangoAttr,
          CALIBRATION:self.setCalibration,
          LABELS:self.setLabels,
+         VALUELABEL:self.setValueLabel,
         }[name](axis,name,value)
 
     def SendToCtrl(self,in_data):
@@ -225,8 +236,15 @@ class TangoAttrIORController(IORegisterController):
         dev = value[:idx]
         attr = value[idx+1:]
         self.devsExtraAttributes[axis][DEVICE] = dev
-        self.devsExtraAttributes[axis][DPROXY] = PoolUtil().get_device(self.inst_name, dev)
+        #self.devsExtraAttributes[axis][DPROXY] = self._buildProxy(axis)
         self.devsExtraAttributes[axis][ATTRIBUTE] = attr
+    def _buildProxy(self,axis):
+        '''Try to create a device proxy, or return None to mark it (to try when available).'''
+        try:
+            return PoolUtil().get_device(self.inst_name, self.devsExtraAttributes[axis][DEVICE])
+        except:
+            self._log.warn("Cannot create the proxy for the device %s (axis %d)"%(self.devsExtraAttributes[axis][DEVICE],axis))
+            return None
 
     def getCalibration(self,axis,name):
         bar = "".join("%s "%e for e in flatten(self.devsExtraAttributes[axis][CALIBRATION]))
@@ -250,6 +268,17 @@ class TangoAttrIORController(IORegisterController):
         #hackish until we support DevVarStringArray in extra attrs
         value = value.split()
         self.devsExtraAttributes[axis][LABELS] = value
+
+    def getValueLabel(self,axis,name):
+        IOR_value = self.ReadOne(axis)
+        return self.devsExtraAttributes[axis][LABELS][IOR_value]
+
+    def setValueLabel(self,axis,name,value):
+        try:
+            IOR_value = self.devsExtraAttributes[axis][LABELS].index(value)#find the string in the list of labels
+            self.WriteOne(axis, IOR_value)
+        except:
+            return "Invalid position"#if is not in the list
 
     # end aux for extras
     ####
