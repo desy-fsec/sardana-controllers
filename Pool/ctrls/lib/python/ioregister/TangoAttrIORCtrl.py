@@ -30,67 +30,67 @@
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 
-from PyTango import DevState
+from PyTango import DevState,DevFailed
 from pool import IORegisterController
 from pool import PoolUtil
+
+import json
 
 TANGO_ATTR = 'TangoAttribute'
 DEVICE = 'Device'
 DPROXY = 'DeviceProxy'
 ATTRIBUTE = 'Attribute'
-CALIBRATION = 'Calibration'
 LABELS = 'Labels'
+POSITIONS = 'Positions'
+CALIBRATION = 'Calibration'
 READFAILED = 'readFailed'
-#VALUELABEL = 'ValueLabel'
 
-def agrupate(l,n):
-    #print "agrupate(%s,%s) "%(l,n)
-    res = []
-    if not len(l)%n == 0: raise Exception("Impossible for this length.")
-    for i in range(len(l)/n):
-        sub = []
-        for j in range(n):
-            sub.append(l[(i*n)+j])
-        res.append(sub)
-    return res
+#def agrupate(l,n):
+#    #print "agrupate(%s,%s) "%(l,n)
+#    res = []
+#    if not len(l)%n == 0: raise Exception("Impossible for this length.")
+#    for i in range(len(l)/n):
+#        sub = []
+#        for j in range(n):
+#            sub.append(l[(i*n)+j])
+#        res.append(sub)
+#    return res
 
-def flatten(l):
-    #print "flatten(%s) "%(l)
-    result = []
-    for el in l:
-        if hasattr(el, "__iter__") and not isinstance(el, basestring):
-            result.extend(flatten(el))
-        else:
-            result.append(el)
-    return result
+#def flatten(l):
+#    #print "flatten(%s) "%(l)
+#    result = []
+#    for el in l:
+#        if hasattr(el, "__iter__") and not isinstance(el, basestring):
+#            result.extend(flatten(el))
+#        else:
+#            result.append(el)
+#    return result
 
 
 class TangoAttrIORController(IORegisterController):
     """This controller offers as many IORegisters as the user wants.
     Each IORegisters _MUST_HAVE_ extra attributes:
     +) TangoAttribute - Tango attribute to retrieve the value of the IORegister
-    As examples you could have:
-    ch1.TangoExtraAttribute = 'my/tango/device/attribute1'
-    ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
-    ch3.TangoExtraAttribute = 'my_other/tango/device/attribute1'
+        As examples you could have:
+        ch1.TangoExtraAttribute = 'my/tango/device/attribute1'
+        ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
+        ch3.TangoExtraAttribute = 'my_other/tango/device/attribute1'
     Each IORegisters _MAY_HAVE_ extra attributes:
-    +) Calibration - String of the triples min,cal,max
-    As examples you could have:
-    ch1.Calibration = "-50 0 50 950 1000 1050 1950 2000 2050 2950 3000 3050 3950 4000 4050 4950 5000 5050"
-    That means: [[-50.0, 0.0, 50.0],
-                 [950.0, 1000.0, 1050.0],
-                 [1950.0, 2000.0, 2050.0],
-                 [2950.0, 3000.0, 3050.0],
-                 [3950.0, 4000.0, 4050.0],
-                 [4950.0, 5000.0, 5050.0]]
-    +) Labels - Human readable way to understand the positions. This is what
-                the user will know about positions.
-    As examples you have:
-    ch1.Labels: "16.66% 33.33% 50% 66.66% 83.33% 100%"
-    That means: {0:'16.66%',1:'33.33%',2:'50%',3:'66.66%',4:'83.33%',5'100%']
-    Another extra attibute will be usable if the IORegisters is well configured:
-    ValueLabel: string based attribute to move the IORegister using an string 
-                (it must correspond with the Labels list)
+    +) Labels - Human readable tag followed to the corresponding position (integer) value.
+        As examples you have:
+        ch1.Labels: "16.66%:16 33.33%:33 50%:50 66.66%:66 83.33%:83 100%:100"
+        That means: The possible values for the IOR are {16,33,50,66,83,100}
+    +) Calibration - String of the triples min,pos,max
+        This is extra and dependent that the Labels exists
+        As examples you could have:
+        ch1.Calibration = "[[0.4,0.5,0.6],[1.4,1.5,1.6],
+                            [2.4,2.5,2.6],[3.4,3.5,3.6],
+                            [4.4,4.5,4.6],[5.4,5.5,5.6]]"
+        That means: set position of the IOR 83, will write 4.5 to the TangoAttr.
+                    when the reading of the TangoAttr is between [1.4,1.6] the
+                    IOR value will be 33.
+        Note: bounds included, in case of no fussy area but needs calibration,
+              you can use the same value for all in the triples.
     """
 
     gender = ""
@@ -112,10 +112,6 @@ class TangoAttrIORController(IORegisterController):
                             {'Type':'PyTango.DevString',#{'Type':'PyTango.DevVarStringArray',
                              'Description':'String list with the meaning of each discrete position',
                              'R/W Type':'PyTango.READ_WRITE'},
-#                            VALUELABEL:
-#                            {'Type':'PyTango.DevString',
-#                             'Description':'String to move the discrete motor in terms of the label.',
-#                             'R/W Type':'PyTango.READ_WRITE'},
                            }
     MaxDevice = 1024
 
@@ -127,9 +123,10 @@ class TangoAttrIORController(IORegisterController):
         self._log.debug('AddDevice %d' % axis)
         self.devsExtraAttributes[axis] = {}
         self.devsExtraAttributes[axis][TANGO_ATTR] = None
-        self.devsExtraAttributes[axis][CALIBRATION] = []
-        self.devsExtraAttributes[axis][LABELS] = []
         self.devsExtraAttributes[axis][DPROXY] = None
+        self.devsExtraAttributes[axis][LABELS] = []
+        self.devsExtraAttributes[axis][POSITIONS] = []
+        self.devsExtraAttributes[axis][CALIBRATION] = []
         #When the ReadOne raise an exception, inform the state
         self.devsExtraAttributes[axis][READFAILED] = False
 
@@ -138,17 +135,18 @@ class TangoAttrIORController(IORegisterController):
 
     def StateOne(self, axis):
         tango_attr = self.devsExtraAttributes[axis][TANGO_ATTR]
+        try: dev_proxy = self.devsExtraAttributes[axis][DPROXY] or self._buildProxy(axis)
+        except Exception,e: return (DevState.INIT,str(e))
         llabels = len(self.devsExtraAttributes[axis][LABELS])
         lcalibration = len(self.devsExtraAttributes[axis][CALIBRATION])
         readFailed = self.devsExtraAttributes[axis][READFAILED]
-        if tango_attr == None:
+        if tango_attr == None or dev_proxy == None:
             return (DevState.DISABLE,
-                    "Not yet configured the Tango Attribute")
-        if not llabels == lcalibration:
+                    "Not yet configured the Tango Attribute, or cannot proxy it")
+        if not lcalibration == 0 and not llabels == lcalibration:
             return(DevState.DISABLE,
                    "Bad configuration of the extra attributes, this cannot be operated")
         else:
-            dev_proxy = self.devsExtraAttributes[axis][DPROXY] or self._buildProxy(axis)
             dev_state = dev_proxy.state()
             if readFailed and not dev_state == DevState.MOVING:
                 return (DevState.ALARM,
@@ -157,56 +155,79 @@ class TangoAttrIORController(IORegisterController):
                     "The tango device status says: %s"%dev_proxy.status())
 
     def ReadOne(self, axis):
-        dev = self.devsExtraAttributes[axis][DEVICE]
         attr = self.devsExtraAttributes[axis][ATTRIBUTE]
         dev_proxy = self.devsExtraAttributes[axis][DPROXY] or self._buildProxy(axis)
-        labels = self.devsExtraAttributes[axis][LABELS]
-        llabels = len(labels)
+        llabels = len(self.devsExtraAttributes[axis][LABELS])
+        positions = self.devsExtraAttributes[axis][POSITIONS]
         calibration = self.devsExtraAttributes[axis][CALIBRATION]
         lcalibration = len(calibration)
         try:
-            if llabels == 0 and lcalibration == 0:
-                value = dev_proxy.read_attribute(attr).value
-                self.devsExtraAttributes[axis][READFAILED] = False
+            value = dev_proxy.read_attribute(attr).value
+            self.devsExtraAttributes[axis][READFAILED] = False
+            #case 0: nothing to translate, only round about integer the attribute value
+            if llabels == 0:
                 return int(value)
+            #case 1: only uses the labels. Available positions in POSITIONS
+            elif lcalibration == 0:
+                value = int(value)
+                try: positions.index(value)
+                except: raise Exception("Invalid position.")
+                else: return value
+            #case 1+fussy: the read from the attribute must be in one of the 
+            #              defined ranges, and the IOR position is defined in labels
             elif llabels == lcalibration:
-                value = dev_proxy.read_attribute(attr).value
                 for fussyPos in calibration:
                     if value >= fussyPos[0] and value <= fussyPos[2]:
-                        self.devsExtraAttributes[axis][READFAILED] = False
-                        return int(calibration.index(fussyPos))
+                        return positions[calibration.index(fussyPos)]
+                #if the loop ends, current value is not in the fussy areas.
                 self.devsExtraAttributes[axis][READFAILED] = True
                 raise Exception("Invalid position.")
             else:
                 raise Exception("Bad configuration on optional extra attributes.")
         except Exception,e:
-            self._log.error('Exception reading attribute:%s.%s' % (dev,attr))
+            self._log.error('Exception reading attribute:%s.%s'
+                            %(self.devsExtraAttributes[axis][DEVICE],attr))
             try: self.devsExtraAttributes[axis][READFAILED] = True
             except: pass
 
     def WriteOne(self, axis, value):
-        dev = self.devsExtraAttributes[axis][DEVICE]
+        #If Labels is well defined, the write value must be one this struct
         attr = self.devsExtraAttributes[axis][ATTRIBUTE]
         dev_proxy = self.devsExtraAttributes[axis][DPROXY] or self._buildProxy(axis)
-        labels = self.devsExtraAttributes[axis][LABELS]
-        llabels = len(labels)
+        llabels = len(self.devsExtraAttributes[axis][LABELS])
+        positions = self.devsExtraAttributes[axis][POSITIONS]
         calibration = self.devsExtraAttributes[axis][CALIBRATION]
         lcalibration = len(calibration)
         try:
-            if llabels == 0 and lcalibration == 0:
+            dev = self.devsExtraAttributes[axis][DEVICE]#to be removed after debug
+            #case 0: nothing to translate, what is written goes to the attribute
+            if llabels == 0:
                 dev_proxy.write_attribute(attr, value)
+            #case 1: only uses the labels. Available positions in POSITIONS
+            elif lcalibration == 0:
+                print("%s value = %s"%(dev,value))
+                try: positions.index(value)
+                except: raise Exception("Invalid position.")
+                dev_proxy.write_attribute(attr, value)
+            #case 1+fussy: the write to the to the IOR is translated to the 
+            #              central position of the calibration.
             elif llabels == lcalibration:
-                if value >= len(labels): raise Exception("Out of range.")
-                dev_proxy.write_attribute(attr,calibration[value][1])
+                print("%s value = %s"%(dev,value))
+                try: ior_destination = positions.index(value)
+                except: raise Exception("Invalid position.")
+                print("%s ior_destination = %s"%(dev,ior_destination))
+                calibrated_position = calibration[ior_destination][1]#central element
+                print("%s calibrated_position = %s"%(dev,calibrated_position))
+                dev_proxy.write_attribute(attr,calibrated_position)
         except Exception, e:
-            self._log.error('Exception writing attribute:%s.%s' % (dev,attr))
+            self._log.error('Exception writing attribute:%s.%s'
+                            %(self.devsExtraAttributes[axis][DEVICE],attr))
 
     def GetExtraAttributePar(self, axis, name):
         #case to apply the correspondant method per each extra attr
         return {TANGO_ATTR:self.getTangoAttr,
-                CALIBRATION:self.getCalibration,
                 LABELS:self.getLabels,
-                #VALUELABEL:self.getValueLabel,
+                CALIBRATION:self.getCalibration,
                }[name](axis,name)
         
 
@@ -214,9 +235,8 @@ class TangoAttrIORController(IORegisterController):
         self._log.debug('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
         #case to apply the correspondant method per each extra attr
         {TANGO_ATTR:self.setTangoAttr,
-         CALIBRATION:self.setCalibration,
          LABELS:self.setLabels,
-         #VALUELABEL:self.setValueLabel,
+         CALIBRATION:self.setCalibration,
         }[name](axis,name,value)
 
     def SendToCtrl(self,in_data):
@@ -233,7 +253,7 @@ class TangoAttrIORController(IORegisterController):
         idx = value.rfind("/")
         dev = value[:idx]
         attr = value[idx+1:]
-        self.devsExtraAttributes[axis][DEVICE] = dev
+        self.devsExtraAttributes [axis][DEVICE] = dev
         try: self.devsExtraAttributes[axis][DPROXY] = self._buildProxy(axis)
         except: self.devsExtraAttributes[axis][DPROXY] = None
         self.devsExtraAttributes[axis][ATTRIBUTE] = attr
@@ -245,41 +265,39 @@ class TangoAttrIORController(IORegisterController):
         except:
             msg = "Cannot create the proxy for the device %s (axis %d)"%(self.devsExtraAttributes[axis][DEVICE],axis)
             self._log.warn(msg)
-            raise PyTango.DevFailed(msg)
-
-    def getCalibration(self,axis,name):
-        bar = "".join("%s "%e for e in flatten(self.devsExtraAttributes[axis][CALIBRATION]))
-        return bar[:-1]
-        #hackish until we support DevVarDoubleArray in extra attrs
-        #return flatten(self.devsExtraAttributes[axis][CALIBRATION])
-
-    def setCalibration(self,axis,name,value):
-        #hackish until we support DevVarDoubleArray in extra attrs
-        value = value.split()
-        for i in range(len(value)): value[i] = float(value[i])
-        self.devsExtraAttributes[axis][CALIBRATION] = agrupate(value,3)
+            raise DevFailed(msg)
 
     def getLabels(self,axis,name):
-        bar = "".join("%s "%e for e in self.devsExtraAttributes[axis][LABELS])
-        return bar[:-1]
         #hackish until we support DevVarDoubleArray in extra attrs
-        #return self.devsExtraAttributes[axis][LABELS]
+        labels = self.devsExtraAttributes[axis][LABELS]
+        positions = self.devsExtraAttributes[axis][POSITIONS]
+        labels_str = ""
+        for i in range(len(labels)):
+            labels_str += "%s:%d "%(labels[i],positions[i])
+        return labels_str[:-1]#remove the final space
 
     def setLabels(self,axis,name,value):
         #hackish until we support DevVarStringArray in extra attrs
-        value = value.split()
-        self.devsExtraAttributes[axis][LABELS] = value
+        labels = []
+        positions = []
+        for pair in value.split():
+            l,p = pair.split(':')
+            labels.append(l)
+            positions.append(int(p))
+        if len(labels) == len(positions):
+            self.devsExtraAttributes[axis][LABELS] = labels
+            self.devsExtraAttributes[axis][POSITIONS] = positions
+        else:
+            raise Exception("Rejecting labels: invalid structure")
 
-#    def getValueLabel(self,axis,name):
-#        IOR_value = self.ReadOne(axis)
-#        return self.devsExtraAttributes[axis][LABELS][IOR_value]
-#
-#    def setValueLabel(self,axis,name,value):
-#        try:
-#            IOR_value = self.devsExtraAttributes[axis][LABELS].index(value)#find the string in the list of labels
-#            self.WriteOne(axis, IOR_value)
-#        except:
-#            return "Invalid position"#if is not in the list
+    def getCalibration(self,axis,name):
+        return json.dumps(self.devsExtraAttributes[axis][CALIBRATION])
+
+    def setCalibration(self,axis,name,value):
+        try:
+            self.devsExtraAttributes[axis][CALIBRATION] = json.loads(value)
+        except:
+            raise Exception("Rejecting calibration: invalid structure")
 
     # end aux for extras
     ####
