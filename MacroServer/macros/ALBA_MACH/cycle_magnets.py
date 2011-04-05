@@ -12,10 +12,8 @@ class cycle_magnets(Macro):
     For each magnet, it will retrive the min and max values of the
     CurrentSetPoint Tango Attribute.
     If min and max are set:
-    +) abs(min) == max -> Bipolar cycling (not available)
-    +) min == 0        -> Unipolar cycling (not available)
-    +) min to max      -> full rang cycling
-    +) any other condition will raise an exception providing enough
+    +) min to max  -> full range cycling
+    Any other condition will raise an exception providing enough
        info to fix the problem.
        
     WARNING: This macro will not set waveforms so do not use it with
@@ -83,24 +81,28 @@ class cycle_magnets(Macro):
                 except Exception,e:
                     raise Exception('%s does not have properly defined min and max values'% tango_attr_name)
                 
-                polarity = None
-                if min_value == 0:
-                    polarity = 'UNIPOLAR'
-                elif abs(min_value) == max_value:
-                    polarity = 'BIPOLAR' 
-                else: 
-                    polarity = 'MINMAX'
-                    #raise Exception('MIN(%f) and MAX(%f) configuration values do not match UNIPOLAR or BIPOLAR configurations' % (min_value, max_value))
+#                polarity = None
+#                if min_value == 0:
+#                    polarity = 'UNIPOLAR'
+#                elif abs(min_value) == max_value:
+#                    polarity = 'BIPOLAR' 
+#                else: 
+#                    polarity = 'MINMAX'
+#                    #raise Exception('MIN(%f) and MAX(%f) configuration values do not match UNIPOLAR or BIPOLAR configurations' % (min_value, max_value))
 
                 self.magnets_info[magnet_name] = {}
                 self.magnets_info[magnet_name]['ICMIN'] = min_value
                 self.magnets_info[magnet_name]['ICMAX'] = max_value
-                self.magnets_info[magnet_name]['CYCLE_POLARITY'] = polarity
+ #               self.magnets_info[magnet_name]['CYCLE_POLARITY'] = polarity
                 
-                self.info('%s: ICMAX = %f ; POLARITY = (%s)' %
+                self.info('%s: ICMIN = %f ; ICMAX = %f' %
                           (magnet_name,
-                           self.magnets_info[magnet_name]['ICMAX'],
-                           self.magnets_info[magnet_name]['CYCLE_POLARITY']))
+                           self.magnets_info[magnet_name]['ICMIN'],
+                           self.magnets_info[magnet_name]['ICMAX']))
+#                self.info('%s: ICMAX = %f ; POLARITY = (%s)' %
+#                          (magnet_name,
+#                           self.magnets_info[magnet_name]['ICMAX'],
+#                           self.magnets_info[magnet_name]['CYCLE_POLARITY']))
             except Exception,e:
                 e_str = str(e)
                 msg = "An error occurred getting info for %s: %s" %(magnet_name, e_str)
