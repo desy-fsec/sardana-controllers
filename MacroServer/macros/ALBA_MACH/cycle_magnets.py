@@ -2,6 +2,7 @@ import time
 from macro import Macro, ParamRepeat, Type
 from macro import SScan
 import tau
+import traceback
 
 class cycle_magnets(Macro):
     """ This macro is intended to be used for cycling the magnets.  It
@@ -11,8 +12,9 @@ class cycle_magnets(Macro):
     For each magnet, it will retrive the min and max values of the
     CurrentSetPoint Tango Attribute.
     If min and max are set:
-    +) abs(min) == max -> Bipolar cycling
-    +) min == 0        -> Unipolar cycling
+    +) abs(min) == max -> Bipolar cycling (not available)
+    +) min == 0        -> Unipolar cycling (not available)
+    +) min to max      -> full rang cycling
     +) any other condition will raise an exception providing enough
        info to fix the problem.
        
@@ -58,7 +60,7 @@ class cycle_magnets(Macro):
         for magnet in self.magnets:
             magnet_name = magnet.getName()
             if magnet_name.upper() in ['BO_PC_BEND', 'BO_PC_QH01', 'BO_PC_QH02', 'BO_PC_QV01', 'BO_PC_QV02']:
-                self.error("This macro is not intended to cycle using waveforms ('%s' magned needs a waveform for cycling)." % magnet_name)
+                self.error("This macro is not intended to cycle using waveforms ('%s' magnet needs a waveform for cycling)." % magnet_name)
                 return False
             try:
                 # TO ACCESS TO SPECIFIC INFORMATION FOR CYCLING
@@ -85,11 +87,13 @@ class cycle_magnets(Macro):
                 if min_value == 0:
                     polarity = 'UNIPOLAR'
                 elif abs(min_value) == max_value:
-                    polarity = 'BIPOLAR'
-                else:
-                    raise Exception('MIN(%f) and MAX(%f) configuration values do not match UNIPOLAR or BIPOLAR configurations' % (min_value, max_value))
+                    polarity = 'BIPOLAR' 
+                else: 
+                    polarity = 'MINMAX'
+                    #raise Exception('MIN(%f) and MAX(%f) configuration values do not match UNIPOLAR or BIPOLAR configurations' % (min_value, max_value))
 
                 self.magnets_info[magnet_name] = {}
+                self.magnets_info[magnet_name]['ICMIN'] = min_value
                 self.magnets_info[magnet_name]['ICMAX'] = max_value
                 self.magnets_info[magnet_name]['CYCLE_POLARITY'] = polarity
                 
@@ -115,29 +119,48 @@ class cycle_magnets(Macro):
     def _generator(self):
         step = {}
         step["integ_time"] =  self.integ_time
-        step['hooks'] = []
         cycles = 0
+        step["positions"] = []
         while cycles < self.nr_cycles:
-            sign = 1.0
-            if cycles % 2 == 1:
-                sign = -1.0
-            step["positions"] = []
             for magnet in self.magnets:
                 magnet_name = magnet.getName()
-                i_cycle_max = self.magnets_info[magnet_name]['ICMAX']
-                cycle_polarity = self.magnets_info[magnet_name]['CYCLE_POLARITY']
-                next_magnet_position = sign * i_cycle_max
-                if cycle_polarity == 'UNIPOLAR' and sign == -1.0:
-                    next_magnet_position = 0
-                step['positions'].append(next_magnet_position)
-            cycles += 1
+                mi = self.magnets_info[magnet_name]
+                i_min = mi['ICMIN']
+                i_max = mi['ICMAX']
+                i_next = i_max if cycles % 2 == 1 else i_min    
+                step['positions'].append(i_next)
+                cycles += 1
+                self.info(repr(step))
             yield step
-    
+        self.info('start %s'%step)
+
+#    def _generator0(self):
+#        step = {}
+#        step["integ_time"] =  self.integ_time
+#        step['hooks'] = []
+#        cycles = 0
+#        while cycles < self.nr_cycles:
+#            sign = 1.0
+#            if cycles % 2 == 1:
+#                sign = -1.0
+#            step["positions"] = []
+#            for magnet in self.magnets:
+#                magnet_name = magnet.getName()
+#                i_cycle_max = self.magnets_info[magnet_name]['ICMAX']
+#                cycle_polarity = self.magnets_info[magnet_name]['CYCLE_POLARITY']
+#                next_magnet_position = sign * i_cycle_max
+#                if cycle_polarity == 'UNIPOLAR' and sign == -1.0:
+#                    next_magnet_position = 0
+#                step['positions'].append(next_magnet_position)
+#            cycles += 1
+#            yield step
+
     def run(self,*args):
         # This allows to have a progress status integrated in a GUI
         self.nr_points = self.nr_cycles
-        for s in self._sScan.step_scan():
-            yield s
+        #for s in self._sScan.scan():
+        #    yield s
+        self._sScan.scan()
         self._restore_magnet_positions()
 
     @property
