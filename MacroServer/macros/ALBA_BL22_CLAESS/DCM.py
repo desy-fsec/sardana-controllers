@@ -17,9 +17,9 @@ class DCM_startup(Macro):
         ['phasing_mode', Type.String, None, 'Phasing mode: soft or forced']
     ]
     
-#    result_def = [
-#        ['homed',  Type.Bool, None, 'Motor homed state']
-#    ]
+    result_def = [
+        ['homed',  Type.Boolean, None, 'Motor homed state']
+    ]
     env = ('PmacEth',)
     
     def prepare(self, phasing_mode):
@@ -69,7 +69,7 @@ class DCM_startup(Macro):
         p73 = self.pmacEth.command_inout("GetPVariable", 73)
         if p73:
             self.info("System homed successfully. DCM is ready for working. Exiting...")
-            return
+            return True
         else:
             #p117 Bragg Phased Flag
             p117 = self.pmacEth.command_inout("GetPVariable", 117)
@@ -84,7 +84,7 @@ class DCM_startup(Macro):
             if m68:
                 self.warning("Process skipped.")    
             self.info("System could not be homed. DCM is not ready for working. Please rerun macro. Exiting...")
-            return
+            return False
                 
     def on_abort(self):
         pass
