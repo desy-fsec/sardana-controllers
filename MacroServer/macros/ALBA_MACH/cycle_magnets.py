@@ -1,7 +1,7 @@
 import time
 from macro import Macro, ParamRepeat, Type
 from macro import SScan
-import tau
+import taurus
 import traceback
 
 class cycle_magnets(Macro):
@@ -33,7 +33,8 @@ class cycle_magnets(Macro):
     ]
 
     def prepare(self, *args, **opts):
-        self.nr_cycles = args[0]
+        # self.nr_cycles = args[0] 
+        self.nr_cycles = 5
         self.integ_time = args[1]
         self.magnets = args[2:]
         
@@ -68,11 +69,11 @@ class cycle_magnets(Macro):
                 tango_dev = magnet.getAttribute('TangoDevice').read().value
                 
                 tango_attr_name = tango_dev+'/CurrentSetpoint'
-                tau_attr = tau.Attribute(tango_attr_name)
+                taurus_attr = taurus.Attribute(tango_attr_name)
                 
-                min_value = float(tau_attr.getMinValue())
-                max_value = float(tau_attr.getMaxValue()) 
-                setpoint = float(tau_attr.getValueObj().w_value)
+                min_value = float(taurus_attr.getMinValue())
+                max_value = float(taurus_attr.getMaxValue()) 
+                setpoint = float(taurus_attr.getValueObj().w_value)
                 
                 self.magnets_info[magnet_name] = {}
                 self.magnets_info[magnet_name]['ICMIN'] = min_value
@@ -91,7 +92,7 @@ class cycle_magnets(Macro):
         return True
 
     def _restore_magnet_positions(self):
-        self.info('Restoring magnet currents: '+str(self.magnets_start_positions))
+        #self.info('Restoring magnet currents: '+str(self.magnets_start_positions))
         self.magnets_motion_group.move(self.magnets_start_positions)
         
     def on_abort(self):
@@ -129,19 +130,20 @@ class cycle_magnets(Macro):
                 mi = self.magnets_info[magnet_name]
                 i_min = mi['ICMIN']
                 i_max = mi['ICMAX']
-                i_next = i_min if cycles % 2 == 0 else i_max    
+                i_next = i_max if cycles % 2 == 0 else i_min    
                 step['positions'].append(i_next)
             cycles += 1
-            self.debug(repr(step))
+            #self.debug(repr(step))
             yield step
 	      
 
     def run(self,*args):
         # This allows to have a progress status integrated in a GUI
         self.nr_points = self.nr_cycles
-        #for s in self._sScan.scan():
-        #    yield s
-        self._sScan.scan()
+        for s in self._sScan.step_scan():
+            yield s
+        #self._sScan.scan()
+        self.info('Restoring magnet currents: '+str(self.magnets_start_positions))
         self._restore_magnet_positions()
 
     @property
