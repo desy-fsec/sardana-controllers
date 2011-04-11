@@ -33,8 +33,7 @@ class cycle_magnets(Macro):
     ]
 
     def prepare(self, *args, **opts):
-        # self.nr_cycles = args[0] 
-        self.nr_cycles = 5
+        self.nr_cycles = args[0] 
         self.integ_time = args[1]
         self.magnets = args[2:]
         
@@ -142,7 +141,6 @@ class cycle_magnets(Macro):
         self.nr_points = self.nr_cycles
         for s in self._sScan.step_scan():
             yield s
-        #self._sScan.scan()
         self.info('Restoring magnet currents: '+str(self.magnets_start_positions))
         self._restore_magnet_positions()
 
