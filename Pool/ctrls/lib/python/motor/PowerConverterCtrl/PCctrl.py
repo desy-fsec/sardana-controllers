@@ -51,8 +51,10 @@ class PowerConverterController(MotorController):
         self.extra_attributes[axis][TANGO_DEV] = None
 
     def DeleteDevice(self, axis):
-        del self.powerConverterProxys[axis]
-        del self.extra_attributes[axis]
+        if self.powerConverterProxys.has_key(axis):
+            del self.powerConverterProxys[axis]
+        if self.extra_attributes.has_key(axis):
+            del self.extra_attributes[axis]
 
     def StateOne(self, axis):
         try:
@@ -78,7 +80,8 @@ class PowerConverterController(MotorController):
     def GetPar(self, axis, name):
         #print "[PowerConverterController]",self.inst_name,": In GetPar method for powerConverter",axis," name=",name
         if name.lower()=='velocity':
-            return self.getPowerConverter(axis).read_attribute('CurrentRamp').value
+            dp = self.getPowerConverter(axis)
+            return dp.read_attribute('CurrentRamp').value
 
     def GetExtraAttributePar(self, axis, name):
         if name in [TANGO_DEV,]:
@@ -91,7 +94,7 @@ class PowerConverterController(MotorController):
     def AbortOne(self, axis):
         pc = self.getPowerConverter(axis)
         current = pc.read_attribute('Current')
-        pc.write_attribute('CurrentSetpoint', current)
+        pc.write_attribute('CurrentSetpoint', current.value)
 
     def StopOne(self, axis):
         #print "[PowerConverterController]",self.inst_name,": In StopOne for powerConverter",axis
