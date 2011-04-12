@@ -1,75 +1,183 @@
-import math
+import math, logging
 
 import PyTango
 from pool import PseudoMotorController, PoolUtil
-  
-class DCM_energy(PseudoMotorController):
+
+def siliconBondLength(ior_value):
+    """Returns silicon bond length depending on the ior_value parameter. 
+       Allowed values for ior_value parameter are: 311, 1111. When receives other value raise
+       ValueError exception. 
+
+       :param ior_value: (int) representing silicon type, 311 coresponds to si311 and 111 do si111
+
+       :return: (float) silicon bond length in Angstroms units (1e-10m) """
+
+    if ior_value == 311:
+        return 1.637418 #Angstroms
+    elif ior_value == 111:
+        return 3.1354161 #Angstroms
+    else:
+        raise ValueError("Wrong ior value")
+
+class DCM_ExitOffset_Controller(PseudoMotorController):
     """This pseudomotor controller does the calculation of Bragg
-    and 2nd Xtal perpendicular position according to desired energy in keV."""
+    and 2nd Xtal perpendicular position according to desired energy in eV.
+    It works only with ClaesDcmTurboPmacCtrl motors"""
     
-    pseudo_motor_roles = ('energy')
-    motor_roles = ('bragg')
+    pseudo_motor_roles = ('exitOffset',)
+    motor_roles = ('perp',)
+                             
+    class_prop = { 'DCMBraggName':{'Type' : 'PyTango.DevString', 'Description' : 'DCM bragg motor name'}}
+
+    def __init__(self, inst, props):    
+        PseudoMotorController.__init__(self, inst, props)
+        #self._log.setLevel(logging.DEBUG)
+
+        try:
+            self.dcm_bragg = PoolUtil().get_motor(self.inst_name, self.DCMBraggName)
+        except Exception, e:
+            self._log.error("Couldn't create DeviceProxy for %s motor." % self.DCMBraggName)
+            raise e
+        
+    def calc_physical(self, index, pseudos):
+        return self.calc_all_physical(pseudos)[index - 1]
     
-    class_prop = { 'VCMPitchName':{'Type' : 'PyTango.DevString', 'Description' : 'VCM_pitch pseudomotor'}}
+    def calc_pseudo(self, index, physicals):
+        return self.calc_all_pseudo(physicals)[index - 1]
     
-    ctrl_extra_attributes = {"Silicon":{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'}}
+    def calc_all_physical(self, pseudos):
+        exitOffset, = pseudos
+        bragg_deg = self.dcm_bragg.position
+        bragg_rad = math.radians(bragg_deg)
+        perp =exitOffset/2/math.cos(bragg_rad)
+        return (perp,)
+        
+    def calc_all_pseudo(self, physicals):
+        perp_mm, = physicals
+        bragg_deg = self.dcm_bragg.position
+        bragg_rad = math.radians(bragg_deg)
+        exitOffset = 2 * perp_mm * math.cos(bragg_rad)
+        return (exitOffset,)
+  
+class DCM_Energy_Controller(PseudoMotorController):
+    """This pseudomotor controller does the calculation of Bragg
+    and 2nd Xtal perpendicular position according to desired energy in eV.
+    It works only with ClaesDcmTurboPmacCtrl motors"""
     
+    pseudo_motor_roles = ('energy',)
+    motor_roles = ('bragg', 'perp')
+    
+    class_prop = { 'VCMPitchName':{'Type' : 'PyTango.DevString', 'Description' : 'VCM_pitch pseudomotor'},
+                   'DCMCrystalIORName' :{'Type' : 'PyTango.DevString', 'Description' : 'DCM_crystal IOR'}}
+
+    ctrl_extra_attributes = {"ExitOffset":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
+     
     hc = 12398.419 #eV *Angstroms
-    si111 = 3.1354161 #Angstroms            
-    si311 =  1.637418 #Angstroms
                              
     def __init__(self, inst, props):    
         PseudoMotorController.__init__(self, inst, props)
+        #self._log.setLevel(logging.DEBUG)
         self.attributes = {}
-        self.attributes[1] = {"Silicon":"si311", "VCM_pitch_pseudomotor":"vcm_pitch"}
-        self.d = self.si311
+        self.attributes[1] = {'ExitOffset':18.5}
         try:
-            self.vcm_pitch = PoolUtil.get_motor(self, self.VCMPitchName)
+            self.vcm_pitch = PoolUtil().get_motor(self.inst_name, self.VCMPitchName)
         except Exception, e:
-            self._log.error("Couldn't create DeviceProxy for vcm_pitch motor, please check this class property.")
-            self._log.error(repr(e))
-            
+            self._log.error("Couldn't create DeviceProxy for %s motor." % self.VCMPitchName)
+            raise e
+
+        try:
+            self.dcm_crystal = PoolUtil().get_ioregister(self.inst_name, self.DCMCrystalIORName)
+        except Exception, e:
+            self._log.error("Couldn't create DeviceProxy for %s ior." % self.DCMCrystalIORName)
+            raise e
+
     def calc_physical(self, index, pseudos):
-        self.calc_all_physical(pseudos)[index - 1]
+        return self.calc_all_physical(pseudos)[index - 1]
     
     def calc_pseudo(self, index, physicals):
-        self.calc_all_pseudos(physicals)[index - 1]
+        return self.calc_all_pseudo(physicals)[index - 1]
     
     def calc_all_physical(self, pseudos):
-        energy = pseudos
-        bragg = math.asin(self.hc/2/self.d/energy)
-        return (bragg,)
+        energy, = pseudos
+
+        try:
+            vcm_pitch_mrad = self.vcm_pitch.Position
+        except PyTango.DevFailed, e:
+            self._log.error("Couldn't read %s motor position." % self.VCMPitchName)
+            raise e
+        vcm_pitch_rad = vcm_pitch_mrad / 1000
+        self._log.debug("       VCM pitch: %f rad." % vcm_pitch_rad)
+
+        try:
+            crystal_ior = self.dcm_crystal.Value
+            d = siliconBondLength(crystal_ior)
+        except PyTango.DevFailed, e:
+            self._log.error("Couldn't read %s ior value." % self.DCMCrystalIORName)
+            raise e
+        self._log.debug("       d: %f Angstroms." % d)
         
-    def calc_all_pseudos(self, physicals):
-        bragg = physicals
-        vcm_pitch_mrad = self.vcm_pitch.read_attribute("Position")
-        vcm_pitch_deg = math.degrees(vcm_pitch_mrad * 1000) 
-        energy = hc / (2 * self.d * math.sin(bragg + 2 * vcm_pitch_deg))
+        try:
+            bragg_rad = math.asin(self.hc/2/d/energy) + 2 * vcm_pitch_rad
+        except ZeroDivisionError,e:
+            bragg_rad = float('nan')
+        bragg_deg = math.degrees(bragg_rad)
+        
+        try: 
+            exitOffset = self.attributes[1]["ExitOffset"]
+            #@todo also include P178 - perp axis offset for fixed exit move
+            #                   P179 - crystal separation offset
+            #to calculate perp position
+            perp = exitOffset/2/math.cos(bragg_rad) #mm
+        except ZeroDivisionError,e:
+            perp = float('nan')
+            
+        return (bragg_deg,perp)
+        
+    def calc_all_pseudo(self, physicals):
+        
+        bragg_deg,perp_mm = physicals
+        bragg_rad = math.radians(bragg_deg)
+        self._log.debug("       Bragg: %f rad." % bragg_rad)
+        try:
+            vcm_pitch_mrad = self.vcm_pitch.Position
+        except PyTango.DevFailed, e:
+            self._log.error("Couldn't read %s motor position." % self.VCMPitchName)
+            raise e
+        vcm_pitch_rad = vcm_pitch_mrad / 1000
+        self._log.debug("       VCM pitch: %f rad." % vcm_pitch_rad)
+        try:
+            crystal_ior = self.dcm_crystal.Value
+            d = siliconBondLength(crystal_ior)
+        except PyTango.DevFailed, e:
+            self._log.error("Couldn't read %s ior value." % self.DCMCrystalIORName)
+            raise e
+        self._log.debug("       d: %f Angstroms." % d)
+        try:
+            energy = self.hc / (2 * d * math.sin(bragg_rad - 2 * vcm_pitch_rad))
+        except ZeroDivisionError, e:
+            energy = float('nan')
+
         return (energy,)
         
     def GetExtraAttributePar(self, axis, name):
-        """ Get Energy pseudo motor particular parameters.
-        @param axis to get the parameter
-        @param name of the parameter to retrive
-        @return the value of the parameter
+        """Get Energy pseudomotor extra attribute.
+
+        :param axis: (int) axis nr to get an extra attribute
+        :param name: (string) attribute name to retrieve
+
+        :return: value of the attribute
         """
+        #if axis == 1 and name.lower() == 'exitoffset':
+        #    self._log.debug("&&&&&&&&&" + repr(self.get_motor_role(1)))
+        #    return 2 * PoolUtil().get_motor(self.get_motor_role(1)).position * math.cos(math.radians(PoolUtil().get_motor(self.get_motor_role(0)).position)) #mm
         return self.attributes[axis][name]
 
     def SetExtraAttributePar(self, axis, name, value):
-        """ Set Pmac axis particular parameters.
-        @param axis to set the parameter
-        @param name of the parameter
-        @param value to be set
+        """Set Energy pseudomotor extra attribute.
+
+        :param axis: (int) axis nr to set an extra attribute
+        :param name: (string) attribute name to retrieve
+        :param value: an extra attribute value to be set
+
         """
-        if name == "Silicon":
-            value = value.lower()
-            if value == "si111":
-                self.attributes[axis][value]
-                self.d = self.si111
-            elif value == "si311":
-                self.attributes[axis][value]
-                self.d = self.si311
-            else:
-                PyTango.Except.throw_exception("DCM_energy_SetExtraAttributePar()", "Error setting " + name + ", value should be either si111 or si311 ", "SetExtraAttributePar()") 
-        
-        
+        self.attributes[axis][name] = value
