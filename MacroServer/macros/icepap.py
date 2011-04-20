@@ -7,6 +7,7 @@
 import pyIcePAP
 import time
 from macro import *
+from macroserver.macro_utils.icepap import create_motor_info_dict, home, home_group, home_strict, home_group_strict
 
 
 class ipap_get_closed_loop(Macro):
@@ -207,18 +208,22 @@ class ipap_set_steps_per_turn(Macro):
             return False
 
 class ipap_homing(Macro):
-    """Macro to do the homing procedure in more than one axis at the same time.
-       Given a list of motors to do the home and the direction (in pool motor sense) in which you want
-       to move, this macro will move all the motors at the same time waiting to 
-       recieve the home signal.
-       The macro ends when the home signal is detected or any axis receive an alarm
+    """This macro will execute an icepap homing routine for all motors passed as arguments in directions passes as arguments.
+       Directions are considered in pool sense. 
+       Icepap homing routine is parametrizable in group and strict sense, so it has 4 possible configurations. 
+       Macro result depends on the configuration which you have chosen:
+       - HOME (macro result is True if all the motors finds home, otherwise result is False) 
+       - HOME GROUP (macro result is True if all the motors finds home, otherwise result is False)
+       - HOME STRICT (macro result is True when first motor finds home, otherwise result is False)
+       - HOME GROUP STRICT (macro result is True when first motor finds home, otherwise result is False) 
     """
 
     param_def = [
+        ["group",  Type.Boolean, False, "If performed group homing."],         
         ["strict",  Type.Boolean, False, "If performed strict homing."],         
         ['motor_direction_list',
-        ParamRepeat(['motor', Type.Motor, None, 'Motor to perform the homing procedure.'],
-                    ['direction', Type.Integer, None, 'Direction in which you will look for the home signal <-1|1>']),
+        ParamRepeat(['motor', Type.Motor, None, 'Motor to be homed.'],
+                    ['direction', Type.Integer, None, 'Direction of homing (in pool sense) <-1|1>']),
         None, 'List of motors and homing directions.']
     ]
 
@@ -226,83 +231,122 @@ class ipap_homing(Macro):
         ['homed',  Type.Boolean, None, 'Motors homed state']
     ]
     
-    CMD_HOME = '#home%s' #if pool throws the exception properly in case of starting the homing in config mode it doesn't need to start with #
-    CMD_HOME_GROUP_STRICT = 'home group strict%s' 
-    CMD_HOME_STAT = '?homestat%s'
-    CMD_HOME_POS = '?homepos%s' #only works if all queried motors have found home 
-    CMD_HOMEENC_ENCIN = '?homeenc encin%s' #only works if all queried motors have found home
-    CMD_ABORT = 'abort%s'
-
 
     def prepare(self, *args, **opts):
-        
-        self.strict = args[0]
+        self.group = args[0]
+        self.strict = args[1]
         self.motors = []
 
-        motors_directions = args[1:]
-        motors_axis_str = ''
-        motors_directions_str = ''
-        for motor_direction in motors_directions:
-            motor = motor_direction[0]
-            self.motors.append(motor)
-            motor_axis = motor.getAxis()
-            #if necessary we change homing direction from pool to icepap sense
-            motor_sign = motor.getSign()
-            direction = motor_direction[1] * motor_sign
-            motors_directions_str += ' %d %d' % (motor_axis, direction)
-            motors_axis_str += ' %d' % motor_axis 
+        motors_directions = args[2:]
+        self.motorsInfoList = [create_motor_info_dict(m,d) for m,d in motors_directions]
         
-        if self.strict:
-            self.cmd_home = self.CMD_HOME_GROUP_STRICT % motors_directions_str
-        else:
-            self.cmd_home = self.CMD_HOME % motors_directions_str
-        self.cmd_home_stat = self.CMD_HOME_STAT % motors_axis_str
-        self.cmd_home_pos = self.CMD_HOME_POS % motors_axis_str
-        self.cmd_abort = self.CMD_ABORT % motors_axis_str
+    def run(self, *args, **opts):
+        if self.group and self.strict:
+            return home_group_strict(self, self.motorsInfoList)
+        elif self.group:
+            return home_group(self, self.motorsInfoList)
+        elif self.strict:
+            return home_strict(self, self.motorsInfoList)
+        else: 
+            return home(self, self.motorsInfoList)
+     
+#class ipap_homing(Macro):
+    """Macro to do the homing procedure in more than one axis at the same time.
+       Given a list of motors to do the home and the direction (in pool motor sense) in which you want
+       to move, this macro will move all the motors at the same time waiting to 
+       recieve the home signal.
+       The macro ends when the home signal is detected or any axis receive an alarm
+    """
 
-        self.debug('Homing command: %s' % self.cmd_home)
-        self.debug('Homing status command: %s' % self.cmd_home_stat)        
+#    param_def = [
+#        ["strict",  Type.Boolean, False, "If performed strict homing."],         
+#        ['motor_direction_list',
+#        ParamRepeat(['motor', Type.Motor, None, 'Motor to perform the homing procedure.'],
+#                    ['direction', Type.Integer, None, 'Direction in which you will look for the home signal <-1|1>']),
+#        None, 'List of motors and homing directions.']
+#    ]
+
+#    result_def = [
+#        ['homed',  Type.Boolean, None, 'Motors homed state']
+#    ]
+    
+#    CMD_HOME = '#home%s' #if pool throws the exception properly in case of starting the homing in config mode it doesn't need to start with #
+#    CMD_HOME_GROUP_STRICT = 'home group strict%s' 
+#    CMD_HOME_STAT = '?homestat%s'
+#    CMD_HOME_POS = '?homepos%s' #only works if all queried motors have found home 
+#    CMD_HOMEENC_ENCIN = '?homeenc encin%s' #only works if all queried motors have found home
+#    CMD_ABORT = 'abort%s'
+
+
+#    def prepare(self, *args, **opts):
+        
+#        self.strict = args[0]
+#        self.motors = []
+
+#        motors_directions = args[1:]
+#        motors_axis_str = ''
+#        motors_directions_str = ''
+#        for motor_direction in motors_directions:
+#            motor = motor_direction[0]
+#            self.motors.append(motor)
+#            motor_axis = motor.getAxis()
+            #if necessary we change homing direction from pool to icepap sense
+#            motor_sign = motor.getSign()
+#            direction = motor_direction[1] * motor_sign
+#            motors_directions_str += ' %d %d' % (motor_axis, direction)
+#            motors_axis_str += ' %d' % motor_axis 
+        
+#        if self.strict:
+#            self.cmd_home = self.CMD_HOME_GROUP_STRICT % motors_directions_str
+#        else:
+#            self.cmd_home = self.CMD_HOME % motors_directions_str
+#        self.cmd_home_stat = self.CMD_HOME_STAT % motors_axis_str
+#        self.cmd_home_pos = self.CMD_HOME_POS % motors_axis_str
+#        self.cmd_abort = self.CMD_ABORT % motors_axis_str
+
+#        self.debug('Homing command: %s' % self.cmd_home)
+#        self.debug('Homing status command: %s' % self.cmd_home_stat)        
         
         #@todo: group motors by icepapcontrollers and perform motion on particular controllers
-        first_motor = motors_directions[0][0]
-        self.pool = first_motor.getPoolObj()
-        self.ctrl_name = first_motor.getControllerName()
-        self.home_pos_dict = {}
-        self.debug('Pool: %s, Controller: %s' % (repr(self.pool), self.ctrl_name))
+#        first_motor = motors_directions[0][0]
+#        self.pool = first_motor.getPoolObj()
+#        self.ctrl_name = first_motor.getControllerName()
+#        self.home_pos_dict = {}
+#        self.debug('Pool: %s, Controller: %s' % (repr(self.pool), self.ctrl_name))
 
-    def run(self, *args, **opts):
-        self.info('Starting the homing procedure')
-        self.execute_homing()
+#    def run(self, *args, **opts):
+#        self.info('Starting the homing procedure')
+#        self.execute_homing()
 
-    def on_abort(self):
-        self.aborted = True
+#    def on_abort(self):
+#        self.aborted = True
         
-    def execute_homing(self):
-        self.aborted = False
+#    def execute_homing(self):
+#        self.aborted = False
         #@todo: pool should throw an exception in case of starting homing in a config mode and it should be caught here
-        ans = self.pool.SendToController([self.ctrl_name , self.cmd_home])  
-        if ans.startswith('HOME ERROR'):
-            self.error(ans)
-            return False
-        while (not self.aborted):
-            ans = self.pool.SendToController([self.ctrl_name, self.cmd_home_stat])
-            home_stats = ans.split()[1::2]
-            self.debug('Home stats: %s' % repr(home_stats))
-            if self.strict:
-                pass
-            else:
-                if any([stat == 'MOVING' for stat in home_stats]):
-                    self.debug('Homing in progress...')
-                elif any([stat == 'NOTFOUND' for stat in home_stats]):
-                    ans = self.pool.SendToController([self.ctrl_name, self.cmd_home_pos])
-                    self.debug(ans)
-                    self.info('Homing precedure failed.')
-                    return False
-                else: 
-                    ans = self.pool.SendToController([self.ctrl_name, self.cmd_home_pos])
-                    home_positions = ans.split()[1:]
-                    self.debug('Home positions: %s' % repr(home_positions))
-                    for i,motor in enumerate(self.motors):
-                        self.debug('Motor: %s, home position: %d' % (motor.getName(), int(home_positions[i])))
-                    return True
-            time.sleep(1)
+#        ans = self.pool.SendToController([self.ctrl_name , self.cmd_home])  
+#        if ans.startswith('HOME ERROR'):
+#            self.error(ans)
+#            return False
+#        while (not self.aborted):
+#            ans = self.pool.SendToController([self.ctrl_name, self.cmd_home_stat])
+#            home_stats = ans.split()[1::2]
+#            self.debug('Home stats: %s' % repr(home_stats))
+#            if self.strict:
+#                pass
+#            else:
+#                if any([stat == 'MOVING' for stat in home_stats]):
+#                    self.debug('Homing in progress...')
+#                elif any([stat == 'NOTFOUND' for stat in home_stats]):
+#                    ans = self.pool.SendToController([self.ctrl_name, self.cmd_home_pos])
+#                    self.debug(ans)
+#                    self.info('Homing precedure failed.')
+#                    return False
+#                else: 
+#                    ans = self.pool.SendToController([self.ctrl_name, self.cmd_home_pos])
+#                    home_positions = ans.split()[1:]
+#                    self.debug('Home positions: %s' % repr(home_positions))
+#                    for i,motor in enumerate(self.motors):
+#                        self.debug('Motor: %s, home position: %d' % (motor.getName(), int(home_positions[i])))
+#                    return True
+#            time.sleep(1)
