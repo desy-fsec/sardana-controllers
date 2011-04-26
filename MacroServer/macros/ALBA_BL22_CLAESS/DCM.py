@@ -14,7 +14,7 @@ class DCM_startup(Macro):
  
     """
     param_def = [
-        ['phasing_mode', Type.String, None, 'Phasing mode: soft or forced']
+        ['phasing_mode', Type.String, "soft", 'Phasing mode: soft or forced']
     ]
     
     result_def = [
