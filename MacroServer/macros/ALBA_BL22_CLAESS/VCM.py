@@ -3,8 +3,8 @@ import PyTango
 
 from macro import Macro, Type
 #from icepap import home_group_strict, home_group, create_motor_info_dict
-from macroserver.macro_utils.motors import moveToPosHardLim, moveToNegHardLim
-from macroserver.macro_utils.icepap import *
+from macro_utils.motors import moveToPosHardLim, moveToNegHardLim
+from macro_utils.icepap import *
             
 class vcm_homing_vert(Macro):
     """ 

@@ -7,7 +7,7 @@
 import pyIcePAP
 import time
 from macro import *
-from macroserver.macro_utils.icepap import create_motor_info_dict, home, home_group, home_strict, home_group_strict
+from macro_utils.icepap import create_motor_info_dict, home, home_group, home_strict, home_group_strict
 
 
 class ipap_get_closed_loop(Macro):
