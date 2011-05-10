@@ -8,11 +8,15 @@ import sys
 TANGO_DEV = 'TangoDevice'
 
 class PowerConverterController(MotorController):
-    """This class is the Tango Sardana motor controller for the Tango Power Converter device. The common 'axis' in a classical motor, here is the current in the PowerConverter"""
+    """This class is the Tango Sardana motor controller for the 
+       Tango Power Converter device. The common 'axis' in a classical motor, 
+       here is the current in the PowerConverter"""
 
     
     #Each 'axis' ('PowerConverter') have a particular 'ctrl_extra_attributes'
-    ctrl_extra_attributes = { TANGO_DEV:{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE','Description':'Tango-ds name.'}}
+    ctrl_extra_attributes = { TANGO_DEV:{'Type':'PyTango.DevString',
+                                         'R/W Type':'PyTango.READ_WRITE',
+                                         'Description':'Tango-ds name.'}}
 
     gender = "PowerConverter"
     model = "Simulator"
@@ -25,6 +29,7 @@ class PowerConverterController(MotorController):
         MotorController.__init__(self, inst, props)
         self.extra_attributes = {}
         self.powerConverterProxys = {}
+        self.MotionCmdFlag = {}
 
     def getPowerConverter(self, axis, raiseOnConnError=True):
         proxy = self.powerConverterProxys.get(axis)
@@ -49,8 +54,11 @@ class PowerConverterController(MotorController):
     def AddDevice(self, axis):
         self.extra_attributes[axis] = {}
         self.extra_attributes[axis][TANGO_DEV] = None
+        self.MotionCmdFlag[axis] = False
 
     def DeleteDevice(self, axis):
+        if self.MotionCmdFlag.has_key(axis):
+            del self.MotionCmdFlag[axis]
         if self.powerConverterProxys.has_key(axis):
             del self.powerConverterProxys[axis]
         if self.extra_attributes.has_key(axis):
@@ -59,7 +67,17 @@ class PowerConverterController(MotorController):
     def StateOne(self, axis):
         try:
             pc = self.getPowerConverter(axis)
-            state = pc.read_attribute("State").value
+            if self.MotionCmdFlag[axis]:
+                curr,setp = pc.read_attributes(['Current','currentsetpoint'])
+                if int(curr.value) == int(setp.value):
+                    #it mean that this was moving and now is too close to the 
+                    #final position, and can be assumed that the movement is done
+                    self.MotionCmdFlag[axis] = False
+                    state = PyTango.DevState.ON
+                else:
+                    state = PyTango.DevState.MOVING
+            else:
+                state = PyTango.DevState.ON
             return state, "OK", 0
         except Exception,e:
             return PyTango.DevState.ALARM, str(e), 0
@@ -67,12 +85,15 @@ class PowerConverterController(MotorController):
 
     def ReadOne(self, axis):
         #Read the specific current that the PowerConverter supplies related to this axis corresponds.
-        return self.getPowerConverter(axis).read_attribute('Current').value
-
+        pc = self.getPowerConverter(axis)
+        position = pc.read_attribute('Current').value
+        return position
     def StartOne(self, axis, current):
-        self.getPowerConverter(axis).write_attribute('CurrentSetpoint', current)
+        pc = self.getPowerConverter(axis)
+        pc.write_attribute('CurrentSetpoint', current)
+        #force to change to moving when this motion starts.
+        self.MotionCmdFlag[axis] = True
 
-  
     def SetPar(self, axis, name, value):
         #print "[PowerConverterController]",self.inst_name,": In SetPar method for powerConverter",axis," name=",name," value=",value
         pass
@@ -80,8 +101,13 @@ class PowerConverterController(MotorController):
     def GetPar(self, axis, name):
         #print "[PowerConverterController]",self.inst_name,": In GetPar method for powerConverter",axis," name=",name
         if name.lower()=='velocity':
-            dp = self.getPowerConverter(axis)
-            return dp.read_attribute('CurrentRamp').value
+            try:
+                dp = self.getPowerConverter(axis)
+                if not dp == None:
+                    return dp.read_attribute('CurrentRamp').value
+            except Exception,e:
+                self._log.error("Exception on attr %s of magnet %s: %s"%(name,dp.name(),e))
+                return float('nan')
 
     def GetExtraAttributePar(self, axis, name):
         if name in [TANGO_DEV,]:
@@ -93,6 +119,7 @@ class PowerConverterController(MotorController):
 
     def AbortOne(self, axis):
         pc = self.getPowerConverter(axis)
+        self.MotionCmdFlag[axis] = False
         current = pc.read_attribute('Current')
         pc.write_attribute('CurrentSetpoint', current.value)
 
