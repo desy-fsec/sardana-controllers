@@ -7,6 +7,10 @@ import sys
 
 TANGO_DEV = 'TangoDevice'
 
+#The threshold to decide if the magnet has finish a movement
+THRESHOLD = 1#Amper
+#FIXME: this may have to be a extra attribute
+
 class PowerConverterController(MotorController):
     """This class is the Tango Sardana motor controller for the 
        Tango Power Converter device. The common 'axis' in a classical motor, 
@@ -30,6 +34,7 @@ class PowerConverterController(MotorController):
         self.extra_attributes = {}
         self.powerConverterProxys = {}
         self.MotionCmdFlag = {}
+        self.MotionCmdTimeStamp = {}
 
     def getPowerConverter(self, axis, raiseOnConnError=True):
         proxy = self.powerConverterProxys.get(axis)
@@ -55,8 +60,11 @@ class PowerConverterController(MotorController):
         self.extra_attributes[axis] = {}
         self.extra_attributes[axis][TANGO_DEV] = None
         self.MotionCmdFlag[axis] = False
+        self.MotionCmdTimeStamp[axis] = None #only have sense if a motion is going.
 
     def DeleteDevice(self, axis):
+        if self.MotionCmdTimeStamp.has_key(axis):
+            del self.MotionCmdTimeStamp[axis]
         if self.MotionCmdFlag.has_key(axis):
             del self.MotionCmdFlag[axis]
         if self.powerConverterProxys.has_key(axis):
@@ -68,12 +76,18 @@ class PowerConverterController(MotorController):
         try:
             pc = self.getPowerConverter(axis)
             if self.MotionCmdFlag[axis]:
-                curr,setp = pc.read_attributes(['Current','currentsetpoint'])
-                if int(curr.value) == int(setp.value):
-                    #it mean that this was moving and now is too close to the 
-                    #final position, and can be assumed that the movement is done
-                    self.MotionCmdFlag[axis] = False
-                    state = PyTango.DevState.ON
+                t_diff = time.time() - self.MotionCmdTimeStamp[axis]
+                if t_diff >= 1:#last complete check a second a go
+                    self.MotionCmdTimeStamp[axis] = time.time()
+                    curr,setp = pc.read_attributes(['Current','currentsetpoint'])
+                    currdiff = curr.value - setp.value
+                    if currdiff > -THRESHOLD and currdiff < THRESHOLD:
+                        #it mean that this was moving and now is too close to the 
+                        #final position, and can be assumed that the movement is done
+                        self.MotionCmdFlag[axis] = False
+                        state = PyTango.DevState.ON
+                    else:
+                        state = PyTango.DevState.MOVING
                 else:
                     state = PyTango.DevState.MOVING
             else:
@@ -93,6 +107,7 @@ class PowerConverterController(MotorController):
         pc.write_attribute('CurrentSetpoint', current)
         #force to change to moving when this motion starts.
         self.MotionCmdFlag[axis] = True
+        self.MotionCmdTimeStamp[axis] = time.time()#get current time for crosscheck
 
     def SetPar(self, axis, name, value):
         #print "[PowerConverterController]",self.inst_name,": In SetPar method for powerConverter",axis," name=",name," value=",value
@@ -120,6 +135,7 @@ class PowerConverterController(MotorController):
     def AbortOne(self, axis):
         pc = self.getPowerConverter(axis)
         self.MotionCmdFlag[axis] = False
+        self.MotionCmdTimeStamp[axis] = None
         current = pc.read_attribute('Current')
         pc.write_attribute('CurrentSetpoint', current.value)
 
