@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import PyTango
 from pool import ZeroDController
 
@@ -48,6 +50,8 @@ class TiltZeroDController(ZeroDController):
         return (sta,status)
 
     def ReadAll(self):
+        #clean input before reading, to make sure we read the latest data
+        self.dev.DevSerFlush(0)
         answer = self.dev.DevSerReadLine()
         while not answer[0] == "$":
             answer = self.dev.DevSerReadLine()

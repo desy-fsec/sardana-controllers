@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import PyTango
 from pool import CounterTimerController
 
@@ -52,7 +54,7 @@ class TiltCounterController(CounterTimerController):
 
     def PreReadAll(self):
         pass
-        
+
     def PreReadOne(self, axis):
         pass
 
@@ -73,12 +75,12 @@ class TiltCounterController(CounterTimerController):
 
     def PreStartAllCT(self):
         pass
-    
+
     def StartOneCT(self,ind):
         pass
-    
+
     def StartAllCT(self):
         pass
-    
+
     def LoadOne(self,ind,value):
         pass
