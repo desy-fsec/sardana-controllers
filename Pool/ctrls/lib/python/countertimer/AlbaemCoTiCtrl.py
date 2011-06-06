@@ -3,7 +3,7 @@ import numpy
 import PyTango
 from pool import CounterTimerController
 import time
-from albaemlib import albaem
+from AlbaEmLib import albaem
 
 
 
