@@ -6,7 +6,7 @@ from macro import *
 import PyTango
 #from pylab import *
 #import array
-from albaemlib import albaem 
+from AlbaEmLib import albaem 
 
 #ActivealbaemDev is the serial devices ('ws/bl01/serial0')
 class albaemMacro():
