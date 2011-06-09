@@ -132,6 +132,10 @@ class AlbaemCoTiCtrl(CounterTimerController):
         for measure in self.measures:
             if measure[0] == '%s'%axis:
                 return float(measure[1])
+
+        if axis == 1:
+            return self.integrationTime
+
         '''
         state = self.AemDevice.getState() 
         mean = 0
@@ -216,9 +220,9 @@ class AlbaemCoTiCtrl(CounterTimerController):
         """Here we are keeping a reference to the master channel, so later in StartAll() 
         we can distinguish if we are starting only the master channel."""
         self._log.debug("PreLoadOne(%d, %f): Entering...", axis, value)
-        '''
+        
         self.master = None
-        '''
+        
         return True
         
     def LoadOne(self, axis, value):
