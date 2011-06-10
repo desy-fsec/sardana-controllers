@@ -129,12 +129,12 @@ class AlbaemCoTiCtrl(CounterTimerController):
         
     def ReadOne(self, axis):
         self._log.debug("ReadOne(%d): Entering...", axis)
-        for measure in self.measures:
-            if measure[0] == '%s'%axis:
-                return float(measure[1])
-
         if axis == 1:
             return self.integrationTime
+        for measure in self.measures:
+            auxAxis = axis-1
+            if measure[0] == '%s'%auxAxis:
+                return float(measure[1])
 
         '''
         state = self.AemDevice.getState() 
