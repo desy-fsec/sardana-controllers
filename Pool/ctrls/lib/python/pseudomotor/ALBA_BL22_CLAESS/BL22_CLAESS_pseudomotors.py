@@ -1,29 +1,41 @@
-__all__ = ["TwoXStageController", "TripodTableController"]
-
-__docformat__ = 'restructuredtext'
-
 import math, logging
 from pool import PseudoMotorController
 
 
 def rotate_x(y, z, cosangle, sinangle):
     """3D rotaion around *x* (pitch). *y* and *z* are values or arrays.
-    Positive rotation is for positive *sinangle*. Returns *yNew, zNew*."""
+    Positive rotation is for positive *sinangle*. Returns *yNew, zNew*.
+    
+    :param y: (float or list<float>) value of the y coordinate 
+    :param z: (float or list<float>) value of the z coordinate 
+    :param cosangle: (float) cosinus of the rotation angle
+    :param sinangle: (float) sinus of the rotation angle
+
+    :return: (tuple<float>) new (rotated) y and z"""
     return cosangle * y - sinangle * z, sinangle * y + cosangle * z
+
 def rotate_y(x, z, cosangle, sinangle):
     """3D rotaion around *y* (roll). *x* and *z* are values or arrays.
-    Positive rotation is for positive *sinangle*. Returns *xNew, zNew*."""
+    Positive rotation is for positive *sinangle*. Returns *xNew, zNew*.
+    
+    :param x: (float or list<float>) value of the x coordinate 
+    :param z: (float or list<float>) value of the z coordinate 
+    :param cosangle: (float) cosinus of the rotation angle
+    :param sinangle: (float) sinus of the rotation angle
+
+    :return: (tuple<float>) new (rotated) x and z"""
     return cosangle * x + sinangle * z, -sinangle * x + cosangle * z
+
 def rotate_z(x, y, cosangle, sinangle):
     """3D rotaion around *z*. *x* and *y* are values or arrays.
     Positive rotation is for positive *sinangle*. Returns *xNew, yNew*.
 
-    :param x: (float or list) value of the x coordinate 
-    :param y: (float or list) value of the y coordinate 
+    :param x: (float or list<float>) value of the x coordinate 
+    :param y: (float or list<float>) value of the y coordinate 
     :param cosangle: (float) cosinus of the rotation angle
     :param sinangle: (float) sinus of the rotation angle
 
-    :return: (tuple<float>) new (rotated) x and y """
+    :return: (tuple<float>) new (rotated) x and y"""
     return cosangle * x - sinangle * y, sinangle * x + cosangle * y
 
 
@@ -32,7 +44,7 @@ class TwoXStageController(PseudoMotorController):
     It expects two physical motors: mx1, mx2 and provides 2 pseudomotors: x, yaw.
     Motor mx1 is the upstream one, and yaw angle is increasing with increasing its position.
      
-    It requires definition of of 3 properties:
+    It requires definition of 3 properties:
     Tx1Coordinates - a string representing Tx1 x,y coordinates in local system e.g. "-711.9, 0" 
     Tx2Coordinates - a string representing Tx2 x,y coordinates in local system e.g. "689, 0"
     Dx - nominal x shift of the center in local system."""
@@ -71,7 +83,7 @@ class TwoXStageController(PseudoMotorController):
 
     def calc_all_physical(self, pseudos):
         x, yaw = pseudos 
-        tanYaw = math.tan(yaw)
+        tanYaw = math.tan(yaw/1000)#converts back to radians
         tx1 = -tanYaw * self.tx1[1] + x
         tx2 = -tanYaw * self.tx2[1] + x
         return tx1, tx2
@@ -80,7 +92,7 @@ class TwoXStageController(PseudoMotorController):
         tx1, tx2 = physicals
         x = tx1 - (tx2 - tx1) * self.tx1[1] / (self.tx2[1] - self.tx1[1])
         yaw = -math.atan((tx2 - tx1) / (self.tx2[1] - self.tx1[1]))
-        yaw /= 1000 # conversion to mrad
+        yaw *= 1000 # conversion to mrad
         return x, yaw
 
 
@@ -90,7 +102,7 @@ class TripodTableController(PseudoMotorController):
     Jack1 is the most upstream one and Jack3 is the most downstream. If two of the jacks 
     have the same distance to the source the left one comes first. 
      
-    It requires definition of of 4 properties (all of them are strings with comma separated float values
+    It requires definition of 4 properties (all of them are strings with comma separated float values
     representing x,y,z coordinates in global coordinate system e.g. "3123.09, -3232.33, 1400"): 
     Jack1Coordinates, Jack2Coordinates, Jack3Coordinates, CenterCoordinates"""
     
@@ -127,8 +139,8 @@ class TripodTableController(PseudoMotorController):
             self._log.error('Could not parse class properties to generate coordinates.')
             raise e  
 
-        self.jackToMirrorInvariant = self.center[2] - self.jack1[2]
-
+        #self.jackToMirrorInvariant = self.center[2] - self.jack1[2]
+        
         # jacks in local virgin system, where point (0,0,0) is a center of a optical surface
         self.jack1local = [ji - ci for ji, ci in zip(self.jack1, self.center)]
         self.jack2local = [ji - ci for ji, ci in zip(self.jack2, self.center)]
@@ -137,6 +149,8 @@ class TripodTableController(PseudoMotorController):
         #rotating the table on z axis over azimuth angle 
         for jl in [self.jack1local, self.jack2local, self.jack3local]:
             jl[0], jl[1] = rotate_z(jl[0], jl[1], self.cosAzimuth, self.sinAzimuth)
+
+        #self.zOffset = 1400 - self.jack1[2]
             
         self._log.debug("jack1local: %s" %repr(self.jack1local))
         self._log.debug("jack2local: %s" %repr(self.jack2local))
@@ -151,6 +165,9 @@ class TripodTableController(PseudoMotorController):
     def calc_all_physical(self, pseudos):
         z, pitch, roll = pseudos
         # Ax + By + Cz = D in local system:
+        pitch = pitch / 1000
+        roll = roll / 1000
+
         A, B, C = 0.0, 0.0, 1.0
 
         if roll != 0:
@@ -167,7 +184,7 @@ class TripodTableController(PseudoMotorController):
         #D of balls plane:
         #D -= self.jackToMirrorInvariant * (A ** 2 + B ** 2 + C ** 2) ** 0.5
         #but because rotations are unitary (A ** 2 + B ** 2 + C ** 2) = 1 and:
-        D -= self.jackToMirrorInvariant
+        #D -= self.jackToMirrorInvariant
         #D -= (self.center[2] - z)
 
         self._log.debug("Plane equation in local system A: %f, B: %f, C: %f, D: %f" % (A,B,C,D))
@@ -180,9 +197,9 @@ class TripodTableController(PseudoMotorController):
         self._log.debug("jack2_local: %s" %repr(jack2_local))
         self._log.debug("jack3_local: %s" %repr(jack3_local))
 
-        jack1 = jack1_local + z
-        jack2 = jack2_local + z
-        jack3 = jack3_local + z
+        jack1 = jack1_local + z #+ self.zOffset
+        jack2 = jack2_local + z #+ self.zOffset
+        jack3 = jack3_local + z #+ self.zOffset
 
         return jack1, jack2, jack3 
 
@@ -204,20 +221,23 @@ class TripodTableController(PseudoMotorController):
         D = A * self.jack1[0] + B * self.jack1[1] + C * jack1
 
         #jackToMirrorInvariant = self.center[2] - jack1
-        D += self.jackToMirrorInvariant# of optical plane
-
+        #D += self.jackToMirrorInvariant# of optical plane
+        #self._log.debug('$$$$$$$$$$$$$$$$zOffset = %f', self.zOffset)
+        #self._log.debug('$$$$$$$$$$$$$$$$jackToMirrorInv = %f; center = %f', self.jackToMirrorInvariant, self.center[2])
         self._log.debug("Plane equation in global system A: %f, B: %f, C: %f, D: %f" % (A,B,C,D))
         # C is never 0, i.e. the normal to the optical element is never horizontal
         z = (D - A * self.center[0] - B * self.center[1]) / C
+#        z -= self.zOffset
+        
         self._log.debug("z: %f" % z)
 
         # A  and B in local system (C is unchanged):
         locA, locB = rotate_z(A, B, self.cosAzimuth, self.sinAzimuth)
         self._log.debug("A, B in local subsystem (rotated on z axiz) A: %f, locB: %f" % (locA, locB))
         tanRoll = locA / C
-        roll = math.atan(tanRoll)
+        roll = math.atan(tanRoll) 
 
         tanPitch = -locB / (locA * math.sin(roll) + C * math.cos(roll))
-        pitch = math.atan(tanPitch)
-
+        pitch = math.atan(tanPitch) * 1000
+        roll *= 1000
         return z, pitch, roll
