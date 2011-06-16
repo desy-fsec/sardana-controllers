@@ -51,8 +51,8 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def __init__(self, inst, props):
         #        self._log.setLevel(logging.DEBUG)
         CounterTimerController.__init__(self,inst,props)
-        self._log.setLevel(logging.DEBUG)
-        self._log.debug("__init__(%s, %s): Entering...", repr(inst), repr(props))
+        self._log.setLevel(logging.INFO)
+        self._log.debug( "__init__(%s, %s): Entering...", repr(inst), repr(props))
         #self.sd = {}
         self.master = None
         self.integrationTime = 0
