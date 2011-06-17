@@ -98,8 +98,8 @@ def home(macro, motorsInfoList):
 
     ans = pool.SendToController([ctrlName , HM_CMD])
     if ans.startswith('HOME ERROR'):
-        self.error('Could not start icepap homing routine: %s', HM_CMD)
-        self.error('Icepap response: %s', ans)
+        macro.error('Could not start icepap homing routine: %s', HM_CMD)
+        macro.error('Icepap response: %s', ans)
         return False
     timeouts = 0
     try:
@@ -164,8 +164,8 @@ def home_group(macro, motorsInfoList):
 
     ans = pool.SendToController([ctrlName , HM_CMD])
     if ans.startswith('HOME ERROR'):
-        self.error('Could not start icepap homing routine: %s', HM_CMD)
-        self.error('Icepap response: %s', ans)
+        macro.error('Could not start icepap homing routine: %s', HM_CMD)
+        macro.error('Icepap response: %s', ans)
         return False
     timeouts = 0
     try:
@@ -229,8 +229,8 @@ def home_strict(macro, motorsInfoList):
 
     ans = pool.SendToController([ctrlName , HM_CMD])
     if ans.startswith('HOME ERROR'):
-        self.error('Could not start icepap homing routine: %s', HM_CMD)
-        self.error('Icepap response: %s', ans)
+        macro.error('Could not start icepap homing routine: %s', HM_CMD)
+        macro.error('Icepap response: %s', ans)
         return False
     timeouts = 0
     try:
@@ -294,8 +294,8 @@ def home_group_strict(macro, motorsInfoList):
 
     ans = pool.SendToController([ctrlName , HM_CMD])
     if ans.startswith('HOME ERROR'):
-        self.error('Could not start icepap homing routine: %s', HM_CMD)
-        self.error('Icepap response: %s', ans)
+        macro.error('Could not start icepap homing routine: %s', HM_CMD)
+        macro.error('Icepap response: %s', ans)
         return False
     timeouts = 0
     try:
