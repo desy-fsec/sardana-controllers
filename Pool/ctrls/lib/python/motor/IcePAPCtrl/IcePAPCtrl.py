@@ -166,7 +166,9 @@ class IcepapController(MotorController):
             except Exception,e:
                 self._log.error('StateAll(%s) Hint: some driver board not present?.\nException:\n%s' % (str(self.stateMultiple),str(e)))
         else:
-            self._log.error('StateAll(). No connection to %s.' % (self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('StateAll(). No connection to %s.' % (self.Host))
+            pass
 
     def StateOne(self,axis):
         """ Connect to the hardware and check the state. If no connection available, return ALARM.
@@ -257,7 +259,9 @@ class IcepapController(MotorController):
                 raise
 
         else:
-            self._log.error('StateOne(%d). No connection to %s.' % (axis,self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('StateOne(%d). No connection to %s.' % (axis,self.Host))
+            pass
         return (PyTango.DevState.ALARM, 'Icepap Not Connected', 0)
 
     def PreReadAll(self):
@@ -632,7 +636,7 @@ class IcepapController(MotorController):
             self._log.error('SetExtraAttributePar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
 
 
-    def AbortOne(self,axis):
+    def AbortOne(self, axis):
         if self.iPAP.connected:
             #self.iPAP.abortMotor(axis)
             self.iPAP.abort(axis)
@@ -654,22 +658,25 @@ class IcepapController(MotorController):
     #    else:
     #        self._log.error('GOAbsolute(%d,%f). No connection to %s.' % (axis,finalPos,self.Host))
 
-    def SendToCtrl(self,cmd):
+    def SendToCtrl(self, cmd):
         """ Send the icepap native commands.
         @param command to send to the Icepap controller
         @return the result received
         """
         if self.iPAP.connected:
+            res = None
             cmd = cmd.upper()
             if cmd.find("?") >= 0 or cmd.find("#")>= 0:
                 res = self.iPAP.sendWriteReadCommand(cmd)
             elif cmd.find("HELP")>=0:
                 res = self.iPAP.sendWriteReadCommand(cmd)
             else:
-                res = self.iPAP.sendWriteCommand(cmd)
-            return res
+                self.iPAP.sendWriteCommand(cmd)
+            if res is not None:
+                return res
         else:
-            self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd,self.Host))
+            self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd, self.Host))
+            return 'SendToCtrl(%s). No connection to %s.' % (cmd, self.Host)
 
 
     def __del__(self):
