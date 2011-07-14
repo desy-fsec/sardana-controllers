@@ -299,3 +299,140 @@ class M4_X_and_Yaw(MX_Pseudos):
 
   #DIM_Y = 1088.50 
   
+  
+class EnergyCffFixed(PseudoMotorController):
+    """Energy pseudomotor controller. Used for scans with Cff fixed"""
+
+    pseudo_motor_roles = ('EnergyCffFixed',)#,'EnergyIncludedAngle')
+    motor_roles = ("m3", "gr")
+
+    class_prop = { 'hc':{'Type':'PyTango.DevDouble',
+                         'Description':'hc',
+                         'DefaultValue':12398.41856
+                        },
+                   'offsetG':{'Type':'PyTango.DevDouble',
+                              'Description':'Offset to apply in the calculation of beta',
+                              'DefaultValue':0.0
+                        },
+                   'offsetM':{'Type':'PyTango.DevDouble',
+                              'Description':'Offset to apply in the calculation of tetha',
+                              'DefaultValue':0.0
+                        },
+                    }
+
+    ctrl_extra_attributes = {"Cff":
+                                  {'Type':'PyTango.DevDouble', 
+                                   'R/W Type':'PyTango.READ_WRITE', 
+                                   'DefaultValue':1.0
+                                  },
+                             "DiffrOrder":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                   'DefaultValue':1.0
+                                  },
+                             "Alpha":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ',
+                                  },
+                             "Beta":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ',
+                                  },
+                             "Theta":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ',
+                                  }
+                            }
+
+    
+    def __init__(self, inst, props):
+        PseudoMotorController.__init__(self,inst,props)
+
+        self.Cff = 1.0
+        self.DiffrOrder = 1.0
+        self.IncludedAngle = 1.0
+        self.lineDensity = 600.0* 1E-7
+
+    def calc_physical(self, index, pseudos):
+        return self.calc_all_physical(pseudos)[index - 1]
+
+    def calc_pseudo(self, index, physicals):
+        return self.calc_all_pseudo(physicals)
+    
+    def calc_all_physical(self, pseudo_pos, param=None):
+        """From a given energy, we calculate the physical
+         position for the real motors."""
+
+        energy = pseudo_pos[0]
+
+        waveLen = self.hc / energy
+        f1 = self.Cff**2 + 1
+        f2 = 1 - self.Cff**2
+        K = self.DiffrOrder * waveLen * self.lineDensity
+        
+        CosAlpha = math.sqrt(-1*K**2 * f1 + 2*math.fabs(K) * math.sqrt(f2**2 + self.Cff**2 * K**2))/math.fabs(f2)
+
+        self.alpha = math.acos(CosAlpha)
+        CosBeta = self.Cff * CosAlpha
+        self.beta = -math.acos(CosBeta)
+        self.theta = (self.alpha - self.beta) * 0.5
+
+        m = ((math.pi/2.0) - self.theta + self.offsetM)*1000 #angle*1000 to have it in mrad
+        g = (self.beta + (math.pi/2.0) + self.offsetG)*1000
+        return (m,g)
+
+#        if index == 2:
+#            energy = pseudo_pos[1]
+#            waveLen = self.hc / energy
+
+#            Theta = self.theta
+            
+#            mkl = self.DiffrOrder * self.lineDensity * waveLen
+#            A1 = mkl/2.0 * math.tan(Theta/2)
+#            A2 = math.sqrt((math.cos(Theta/2)**2) - (mkl/2.0)**2)
+
+#            beta = -math.acos(A2 - A1)
+#            alpha = Theta + beta
+
+#            self.Cff = math.cos(beta) / math.cos(alpha)
+            
+#            m = ((math.pi/2.0) - Theta/2.0 + self.offsetM)*1000 #angle*1000 to have it in mrad
+#            g = (beta + (math.pi/2.0) - self.offsetG)*1000
+#            return (m,g)
+            
+    def calc_all_pseudo(self, physical_pos, param=None):
+        """From the real motor positions, we calculate the pseudomotors positions."""
+
+        beta = (physical_pos[1]/1000) - (math.pi/2.0) - self.offsetG
+        theta = (math.pi/2.0) - (physical_pos[0]/1000) - self.offsetM
+        alpha = (2.0*theta) + beta
+        wavelength = (math.sin(alpha) + math.sin(beta)) / (self.DiffrOrder * self.lineDensity)
+        
+        if wavelength == 0.0:
+            energy = 0
+        else:
+            energy = self.hc / wavelength
+        return energy
+
+    def GetExtraAttributePar(self, axis, name):
+        
+        if name.lower() == "cff":
+            return self.Cff
+
+        if name.lower() == "diffrorder":
+            return self.DiffrOrder
+        
+        if name.lower() == "alpha":
+            return self.alpha
+        if name.lower() == "beta":
+            return self.beta
+        if name.lower() == "theta":
+            return self.theta
+
+    def SetExtraAttributePar(self, axis, name, value):
+        if name.lower() == "cff":
+            self.Cff = value
+
+        if name.lower() == "diffrorder":
+            self.DiffrOrder = value
+  
