@@ -205,19 +205,19 @@ class TangoAttrIORController(IORegisterController):
                 dev_proxy.write_attribute(attr, value)
             #case 1: only uses the labels. Available positions in POSITIONS
             elif lcalibration == 0:
-                print("%s value = %s"%(dev,value))
+                self._log.debug("%s value = %s"%(dev,value))
                 try: positions.index(value)
                 except: raise Exception("Invalid position.")
                 dev_proxy.write_attribute(attr, value)
             #case 1+fussy: the write to the to the IOR is translated to the 
             #              central position of the calibration.
             elif llabels == lcalibration:
-                print("%s value = %s"%(dev,value))
+                self._log.debug("%s value = %s"%(dev,value))
                 try: ior_destination = positions.index(value)
                 except: raise Exception("Invalid position.")
-                print("%s ior_destination = %s"%(dev,ior_destination))
+                self._log.debug("%s ior_destination = %s"%(dev,ior_destination))
                 calibrated_position = calibration[ior_destination][1]#central element
-                print("%s calibrated_position = %s"%(dev,calibrated_position))
+                self._log.debug("%s calibrated_position = %s"%(dev,calibrated_position))
                 dev_proxy.write_attribute(attr,calibrated_position)
         except Exception, e:
             self._log.error('Exception writing attribute:%s.%s'
