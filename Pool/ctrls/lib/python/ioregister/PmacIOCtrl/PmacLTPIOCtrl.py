@@ -251,7 +251,7 @@ class SimuPmacLTPIOController(IORegisterController):
 
     def GetExtraAttributePar(self, axis, name):
         if name.lower() == 'labels':
-            if axis == 1: return "air_open:0 air_closed:1"
+            if axis == 1: return "closed:0 opened:1"
             elif axis == 2: return "lifted:0 landed:63"
             elif axis == 3: return "lifted:0 landed:3"
             else: PyTango.Except.throw_exception("PmacLTPIOCtrl GetExtraAttributePar() exception",
