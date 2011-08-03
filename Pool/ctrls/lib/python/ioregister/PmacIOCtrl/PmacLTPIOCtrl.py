@@ -31,7 +31,7 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-import copy
+import copy, logging
 
 import PyTango
 from pool import IORegisterController
@@ -71,6 +71,8 @@ class PmacLTPIOController(IORegisterController):
     
     MaxDevice = 3
 
+    ctrl_extra_attributes = {"Labels":{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},}
+    
     def __init__(self, inst, props):
         IORegisterController.__init__(self, inst, props)
         self.pmacEth = PoolUtil().get_device(self.inst_name, self.PmacDevName)
@@ -141,7 +143,13 @@ class PmacLTPIOController(IORegisterController):
         self.pmacEth.command_inout("setmvariable", [101, write_value])
 
     def GetExtraAttributePar(self, axis, name):
-        pass
+        if name.lower() == 'labels':
+            if axis == 1: return "closed:0 opened:1"
+            elif axis == 2: return "lifted:0 landed:63"
+            elif axis == 3: return "lifted:0 landed:3"
+            else: PyTango.Except.throw_exception("PmacLTPIOCtrl GetExtraAttributePar() exception",
+                                           "%d is not allowed axis nr" % axis,
+                                           "PmacLTPIOCtrl.GetExtraAttributePar()")
 
     def SetExtraAttributePar(self,axis, name, value):
         pass
@@ -169,8 +177,12 @@ class SimuPmacLTPIOController(IORegisterController):
     
     MaxDevice = 3
 
+    ctrl_extra_attributes = {"Labels":{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},}
+                                      
     def __init__(self, inst, props):
         IORegisterController.__init__(self, inst, props)
+        self._log.setLevel(logging.DEBUG)
+        self._log.debug('In SimuPmacLTPIOController.__init__()')
         self.array = 1
         
     def AddDevice(self, axis):
@@ -238,13 +250,21 @@ class SimuPmacLTPIOController(IORegisterController):
         self.array = copy.copy(write_value)
 
     def GetExtraAttributePar(self, axis, name):
-        pass
+        if name.lower() == 'labels':
+            if axis == 1: return "air_open:0 air_closed:1"
+            elif axis == 2: return "lifted:0 landed:63"
+            elif axis == 3: return "lifted:0 landed:3"
+            else: PyTango.Except.throw_exception("PmacLTPIOCtrl GetExtraAttributePar() exception",
+                                           "%d is not allowed axis nr" % axis,
+                                           "PmacLTPIOCtrl.GetExtraAttributePar()")            
 
-    def SetExtraAttributePar(self,axis, name, value):
+    def SetExtraAttributePar(self, axis, name, value):
         pass
+#        if name.lower() == 'labels':
+#            PyTango.Except.throw_exception("PmacLTPIOCtrl SerExtraAttributePar() exception",
+#                                           "Labels is read only attribute",
+#                                           "PmacLTPIOCtrl.SetExtraAttributePar()")
         
     def SendToCtrl(self,in_data):
         return "Not implemented yet"
 
-
-                                                                        
