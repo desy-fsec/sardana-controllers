@@ -522,7 +522,7 @@ uninstall-am: uninstall-pkglibLTLIBRARIES
 
 
 install-data-local:
-	rsync $(RSYNC_OPTS) $(srcdir)/*.png $(pkglibdir)
+	rsync $(RSYNC_OPTS) $(srcdir)/*.png $(DESTDIR)$(pkglibdir)
 
 dist-hook:
 	cp $(srcdir)/*.png $(distdir)

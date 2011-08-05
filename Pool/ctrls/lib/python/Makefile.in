@@ -354,15 +354,16 @@ uninstall-am:
 
 install-data-local:
 
-	rsync $(RSYNC_OPTS) $(srcdir)/communication/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/countertimer/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/motor/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/pseudomotor/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/pseudocounter/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/ioregister/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/zerod/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/oned/* $(pythondir)
-	rsync $(RSYNC_OPTS) $(srcdir)/twod/* $(pythondir)		
+	mkdir -p $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/communication/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/countertimer/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/motor/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/pseudomotor/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/pseudocounter/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/ioregister/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/zerod/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/oned/* $(DESTDIR)$(pythondir)
+	rsync $(RSYNC_OPTS) $(srcdir)/twod/* $(DESTDIR)$(pythondir)		
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
