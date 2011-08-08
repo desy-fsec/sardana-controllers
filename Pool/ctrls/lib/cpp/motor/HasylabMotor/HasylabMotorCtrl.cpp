@@ -17,12 +17,14 @@ using namespace std;
 
 HasylabMotor::HasylabMotor(const char *inst,vector<Controller::Properties> &prop):MotorController(inst)
 {
+
   max_device = 0;
+  flag_not_set_memorized_parameter1 = 1;
   vector<Controller::Properties>::iterator prop_it;
   for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
     if(prop_it->name == "RootDeviceName"){
       Tango::Database *db = new Tango::Database();
-      string root_device_name =prop_it->value.string_prop[0];
+      string root_device_name = prop_it->value.string_prop[0];
       string add = "*";
       string name = root_device_name + add;
       Tango::DbDatum db_datum = db->get_device_exported(name);
@@ -38,6 +40,11 @@ HasylabMotor::HasylabMotor(const char *inst,vector<Controller::Properties> &prop
 	max_device++;
 	index++;
       }
+    } else if(prop_it->name == "ExtraParameterName"){
+      flag_extraparameter_active = 0;
+      if(prop_it->value.string_prop[0] != "None") flag_extraparameter_active = 1;
+      tmp_extraparametername = prop_it->value.string_prop[0];
+      cout << " Teresa: ExtraParameter property name " << tmp_extraparametername << endl;
     }
   }
   
@@ -497,16 +504,47 @@ Controller::CtrlData HasylabMotor::GetExtraAttributePar(int32_t idx, string &par
   
   Tango::DeviceAttribute in;
 
-  try{
-    in = motor_data[idx]->proxy->read_attribute(par_name);
-  } catch(Tango::DevFailed &e){
-    TangoSys_OMemStream o;
-    o << "Parameter " << par_name << " can not be read from server/" << ends;
+  if( ((par_name_lower != "parameter1") && ( par_name_lower != "parameter1name") &&
+       (par_name_lower != "extraparameter") && ( par_name_lower != "extraparametername")) ){
+
+    try{
+      in = motor_data[idx]->proxy->read_attribute(par_name);
+    } catch(Tango::DevFailed &e){
+      TangoSys_OMemStream o;
+      o << "Parameter " << par_name << " can not be read from server/" << ends;
+      
+      Tango::Except::throw_exception((const char *)"HasylabMotor_BadCtrlPtr",o.str(),
+				     (const char *)"HasylabMotor::GetExtraAttributePar()"); 
+      
+    }
+
+  } else if(par_name_lower == "parameter1"){
     
-    Tango::Except::throw_exception((const char *)"HasylabMotor_BadCtrlPtr",o.str(),
-				   (const char *)"HasylabMotor::GetExtraAttributePar()"); 
-    
+    try{
+      in = motor_data[idx]->proxy->read_attribute(tmp_parameter1name);
+    } catch(Tango::DevFailed &e){
+      TangoSys_OMemStream o;
+      o << "Parameter " << tmp_parameter1name << " can not be read from server/" << ends;
+      
+      Tango::Except::throw_exception((const char *)"HasylabMotor_BadCtrlPtr",o.str(),
+				     (const char *)"HasylabMotor::GetExtraAttributePar()"); 
+      
+    }
+  } else if(par_name_lower == "extraparameter"){
+    if(flag_extraparameter_active){
+      try{
+	in = motor_data[idx]->proxy->read_attribute(tmp_extraparametername);
+      } catch(Tango::DevFailed &e){
+	TangoSys_OMemStream o;
+	o << "Parameter " << tmp_extraparametername << " can not be read from server/" << ends;
+	
+	Tango::Except::throw_exception((const char *)"HasylabMotor_BadCtrlPtr",o.str(),
+				       (const char *)"HasylabMotor::GetExtraAttributePar()"); 
+      
+      }
+    }
   }
+
 
   if (par_name_lower == "unitlimitmax"){
     Tango::DevDouble value;
@@ -534,6 +572,34 @@ Controller::CtrlData HasylabMotor::GetExtraAttributePar(int32_t idx, string &par
     }
     output = (char*) tmp_output;
     par_value.str_data = output;
+    par_value.data_type = Controller::STRING;
+  } else if(par_name_lower == "parameter1"){
+    Tango::DevDouble value;
+    in >> value;
+    par_value.db_data = value;
+    par_value.data_type = Controller::DOUBLE;
+  } else if(par_name_lower == "parameter1name"){
+    Tango::DevString output;
+    char tmp_output[20];
+    strcpy(tmp_output,tmp_parameter1name.c_str());
+    output = (char*) tmp_output;
+    par_value.str_data = output;
+    par_value.data_type = Controller::STRING;
+  }  else if(par_name_lower == "extraparameter"){
+    Tango::DevDouble value;
+    if(flag_extraparameter_active){
+      in >> value;
+    } else {
+      value = -9999.;
+    }
+    par_value.db_data = value;
+    par_value.data_type = Controller::DOUBLE;
+  } else if(par_name_lower == "extraparametername"){
+    Tango::DevString output;
+    char tmp_output[20];
+    strcpy(tmp_output,tmp_extraparametername.c_str()); 
+    output = (char*) tmp_output;
+    par_value.str_data = output; 
     par_value.data_type = Controller::STRING;
   } else {
     TangoSys_OMemStream o;
@@ -564,7 +630,7 @@ void HasylabMotor::SetExtraAttributePar(int32_t idx, string &par_name, Controlle
   string par_name_lower(par_name);
   
   transform(par_name_lower.begin(),par_name_lower.end(),par_name_lower.begin(),::tolower);
-  
+
   if (par_name_lower == "unitlimitmax"){
     Tango::DevDouble value = (Tango::DevDouble)new_value.db_data;
     Tango::DeviceAttribute out(par_name,value);
@@ -577,6 +643,29 @@ void HasylabMotor::SetExtraAttributePar(int32_t idx, string &par_name, Controlle
     Tango::DevDouble value = (Tango::DevDouble)new_value.db_data;
     Tango::DeviceAttribute out(par_name,value);
     motor_data[idx]->proxy->write_attribute(out);
+  } else if (par_name_lower == "parameter1"){
+    if(!flag_not_set_memorized_parameter1){
+      Tango::DevDouble value = (Tango::DevDouble)new_value.db_data;
+      Tango::DeviceAttribute out(tmp_parameter1name,value);
+      motor_data[idx]->proxy->write_attribute(out);
+    }
+    flag_not_set_memorized_parameter1 = 0;
+  } else if (par_name_lower == "parameter1name"){
+    Tango::DevString value= (Tango::DevString)new_value.str_data.c_str();
+    tmp_parameter1name = value;
+  } else if (par_name_lower == "extraparameter"){
+    if(flag_extraparameter_active){
+      Tango::DevDouble value = (Tango::DevDouble)new_value.db_data;
+      Tango::DeviceAttribute out(tmp_parameter1name,value);
+      motor_data[idx]->proxy->write_attribute(out);
+    } else {
+      TangoSys_OMemStream o;
+      o << "Extra parameter not defined for controller HasylabMotorController/" << get_name() << ends;
+      
+      Tango::Except::throw_exception((const char *)"HasylabMotor_BadCtrlPtr",o.str(),
+				     (const char *)"HasylabMotor::SetExtraAttributePars()");
+    }
+      
   } else{
     TangoSys_OMemStream o;
     o << "Parameter " << par_name << " is unknown for controller HasylabMotorController/" << get_name() << ends;
@@ -642,10 +731,15 @@ Controller::ExtraAttrInfo HasylabMotor_ctrl_extra_attributes[] = {
 	{"UnitLimitMin","DevDouble","Read_Write"},
 	{"PositionSim","DevDouble","Read_Write"},
 	{"ResultSim","DevString","Read_Write"},
+	{"Parameter1","DevDouble","Read_Write"},
+	{"Parameter1Name","DevString","Read_Write"},
+	{"ExtraParameter","DevDouble","Read_Write"},
+	{"ExtraParameterName","DevString","Read_Write"},
 	NULL};
 
 Controller::PropInfo HasylabMotor_class_prop[] = {
 	{"RootDeviceName","Root name for tango devices","DevString",NULL},
+	{"ExtraParameterName","Name for an extra parameter","DevString","None"},
 	NULL};
 							  			 
 int32_t HasylabMotor_MaxDevice = 97;

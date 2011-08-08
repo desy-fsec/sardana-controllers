@@ -114,6 +114,10 @@ protected:
 	
 	std::map<int32_t, HasylabMotorData*> motor_data; 
 	
+	std::string tmp_parameter1name;
+	int flag_not_set_memorized_parameter1;	
+	std::string tmp_extraparametername;
+	int flag_extraparameter_active;
 
     stringstream            convert_stream;
 };
