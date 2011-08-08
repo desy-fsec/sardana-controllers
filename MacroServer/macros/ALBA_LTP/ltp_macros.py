@@ -6,47 +6,48 @@ import time
 # LTP related macros
 #
 ################################################################################
-PMAC_CTRL_TYPE = "PmacLTPCtrl.PmacLTPController"
 ENABLLE_PLC_CMD_STR = "enableplc %d"
 DISABLE_PLC_CMD_STR = "disableplc %d"
 SET_P_VARIABLE_CMD_STR = "setpvariable %d %d"
 GET_M_VARIABLE_CMD_STR = "getmvariable %d"
 
-class LTP_homing(Macro):
-    """ This macro is intended to be used for executing homing procedures for LTP.
-    It receives as parameter motor to be homed.
-    Aborting a macro will ask PMAC controller to abort enable PLC routine 
-    as soon as possible (if PLC routine is in WHILE loop it will wait until it ends) 
+class LTP_home(Macro):
+    """ This macro runs homing procedures of LTP motors.
+    It expects as a parameter motor name. However ony PmacLTPController motors will be accepted.
+    Aborting macro will ask PMAC controller to abort enabled PLC routine as soon as possible 
+    (if PLC routine is in WHILE loop it will wait until it ends).
     """
 
-    
     param_def = [
         ['motor', Type.Motor, None, 'Motor name']
     ]
     
-    #result_def = [
-    #    ['homed',  Type.Bool, None, 'Motor homed state']
-    #]
+    result_def = [
+        ['homed',  Type.Boolean, None, 'Motor homed state']
+    ]
     
     def run(self, motor):
     	self.motor = motor
         self.pool = self.motor.getPoolObj()
     	self.ctrl_name = self.motor.getControllerName()
     	self.ctrl_axis = self.motor.getAxis()
-        
-        #checking if this motor belongs to Pmac controller
-        ctrls_list = self.pool.read_attribute("ControllerList").value
-        # line format: laop_pmac (PmacLTPCtrl.PmacLTPController/laop_pmac) - Motor Python ctrl (PmacLTPCtrl.py)
-        for ctrl_line in ctrls_list:
-            ctrl_line_splitted = ctrl_line.split()
-            c_name = ctrl_line_splitted[0]
-            if c_name == self.ctrl_name:
-                c_type = ctrl_line_splitted[1][1:-1].split("/")[0] 
-                if c_type !=  PMAC_CTRL_TYPE:
-                    self.error("""Couldn't start homing macro, this motor doesn't belong to Pmac Controller""")
-                    return False
-        if self.ctrl_axis == 1: self.homing_plc_nr = 3
-        elif self.ctrl_axis == 2: self.homing_plc_nr = 4
+        #checking if this motor belongs to PmacLTPController
+        controllerObj = self.pool.getObj("Controller", self.ctrl_name)
+        controllerClassName = controllerObj.getClassName()
+        if controllerClassName != "PmacLTPController":
+            self.error("Could not start homing macro. This Motor does not belong to PmacLTPController")
+            return False       
+
+        if self.ctrl_axis == 1: 
+	    self.homing_plc_nr = 3
+	    self.homing_plc_status_mvar = 3323
+	    self.homing_status = 145
+	    self.axis_ampl_mvar = 139
+        elif self.ctrl_axis == 2: 
+	    self.homing_plc_nr = 4
+	    self.homing_plc_status_mvar = 3324
+	    self.homing_status = 245
+	    self.axis_ampl_mvar = 239
         else: 
             self.error("""Couldn't start homing macro, there is no PLC homing routine for this motor""")
             return False    
@@ -55,23 +56,90 @@ class LTP_homing(Macro):
     	self.pool.SendToController([self.ctrl_name, SET_P_VARIABLE_CMD_STR % (100, self.ctrl_axis)])
     	self.info('PLC homing routine for axis %d on controller %s started.' % (self.ctrl_axis, self.ctrl_name))
         
-    	time.sleep(3)
-    	mx40 = self.pool.SendToController([self.ctrl_name, GET_M_VARIABLE_CMD_STR % int('%d40' % self.ctrl_axis)])
-    	while not float(mx40):
+    	homing_plc_status = self.pool.SendToController([self.ctrl_name, GET_M_VARIABLE_CMD_STR % self.homing_plc_status_mvar])
+	self.debug("Mvar %d = %s" % (self.homing_plc_status_mvar, homing_plc_status))
+    	while not float(homing_plc_status):
+	    axis_ampl_enabled = self.pool.SendToController([self.ctrl_name, GET_M_VARIABLE_CMD_STR % self.axis_ampl_mvar])
+	    self.debug("Mvar %d = %s" % (self.axis_ampl_mvar, axis_ampl_enabled))
+	    if not float(axis_ampl_enabled):
+		self.error("Axis %d ampliefier disabled. Please reset PMAC and start homing macro again." % self.ctrl_axis)
+		break
     	    time.sleep(1)
-    	    mx40 = self.pool.SendToController([self.ctrl_name, GET_M_VARIABLE_CMD_STR % int('%d40' % self.ctrl_axis)])    
-    	self.info('PLC homing routine for axis %d on controller %s finished.' % (self.ctrl_axis, self.ctrl_name))
-        
-    	if float(self.pool.SendToController([self.ctrl_name, GET_M_VARIABLE_CMD_STR % int('%d45' % self.ctrl_axis)])):
-    	    self.info('Found home for axis %d' % self.ctrl_axis)
-    	    return True
-        
-    	self.warning("""Couldn't find home for axis %d""" % self.ctrl_axis)
-    	return False
+    	    homing_plc_status = self.pool.SendToController([self.ctrl_name, GET_M_VARIABLE_CMD_STR % self.homing_plc_status_mvar])    
+	    self.debug("Mvar %d = %s" % (self.homing_plc_status_mvar, homing_plc_status))
+       
+    	if float(self.pool.SendToController([self.ctrl_name, GET_M_VARIABLE_CMD_STR % self.homing_status])):
+	    self.info('Homing succeed for axis %d' % self.ctrl_axis)
+	    return True
+	else: 
+	    self.error('Homing failed for axis %d' % self.ctrl_axis)
+	    return False
         
     def on_abort(self):
-        self.pool.SendToController([self.ctrl_name, DISABLE_PLC_CMD_STR % self.homing_plc_nr])
-    	self.motor.abort()
-    	self.info('PLC homing routine for axis %d on controller %s will be aborted as soon as possible.' % (self.ctrl_axis, self.ctrl_name))
+	self.info("Axis %d motion was aborted. Please reset PMAC and start homing macro again." % self.ctrl_axis)
+	#self.pool.SendToController([self.ctrl_name, DISABLE_PLC_CMD_STR % self.homing_plc_nr])
+	#self.debug(DISABLE_PLC_CMD_STR % self.homing_plc_nr)
+    	#self.info('PLC homing routine for axis %d on controller %s will be aborted as soon as possible.' % (self.ctrl_axis, self.ctrl_name))
+
+class LTP_lift(Macro):
+    """This macro is used to lift an axis of LTP motor.
+    Each axis is represented by IORegister. 
+    Lifting the axis will set values of IORegister to zeros."""
+    
+    param_def = [
+       ['ioregister',      Type.IORegister,   None, 'IORegister to lift ']
+    ]
+    
+    def run(self, ioregister):
+        self.debug("ior name: " + ioregister.name())
+        controllerName = ioregister.getControllerName()
+        self.debug("controller name: %s" % controllerName)
+        poolObj = ioregister.getPoolObj()
+        controllerObj = poolObj.getObj("Controller", controllerName)
+        controllerClassName = controllerObj.getClassName()
+        self.debug("controller class name: %s" % controllerClassName)
+        if controllerClassName != "PmacLTPIOController":
+            self.warning("This IORegister does not belong to PmacLTPIOController")
+            return
+        ior_properties = ioregister.get_property(['axis'])
+        axis = int(ior_properties['axis'][0])
+        if axis == 1:
+            self.warning("Axis: %d is read-only" % axis)
+            return
+        elif axis == 2 or axis == 3:
+            self.debug("axis: %d" % axis)
+            ioregister.writeValue(0)
+            
+class LTP_land(Macro):
+    """This macro is used to lift an axis of LTP motor.
+    Each axis is represented by IORegister. 
+    Lifting the axis will set values of IORegister to zeros."""
+    
+    param_def = [
+       ['ioregister',      Type.IORegister,   None, 'IORegister to lift ']
+    ]
+    
+    def run(self, ioregister):
+        self.debug("ior name: " + ioregister.name())
+        controllerName = ioregister.getControllerName()
+        self.debug("controller name: %s" % controllerName)
+        poolObj = ioregister.getPoolObj()
+        controllerObj = poolObj.getObj("Controller", controllerName)
+        controllerClassName = controllerObj.getClassName()
+        self.debug("controller class name: %s" % controllerClassName)
+        if controllerClassName != "PmacLTPIOController":
+            self.warning("This IORegister does not belong to PmacLTPIOController")
+            return
+        ior_properties = ioregister.get_property(['axis'])
+        axis = int(ior_properties['axis'][0])
+        if axis == 1:
+            self.warning("Axis: %d is read-only" % axis)
+            return
+        elif axis == 2:
+            ioregister.writeValue(63)
+            self.debug("after writing 63")
+        elif axis == 3:
+            ioregister.writeValue(3)
+            self.debug("after writing 3")
 	
 	
