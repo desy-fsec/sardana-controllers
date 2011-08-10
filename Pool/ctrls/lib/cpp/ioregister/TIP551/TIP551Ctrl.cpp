@@ -4,11 +4,13 @@
 
 using namespace std;
 
+// Controller for the DACs: TIP551 and TIP850DAC
+
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP551Ctrl::TIP551
+// method : 		TIP551Ctrl::TIP551Ctrl
 // 
-// description : 	Ctor of the TIP551 class
+// description : 	Ctor of the TIP551Ctrl class
 //					It retrieve some properties from Tango DB, build a 
 //					connection to the Simulated controller and ping it
 //					to check if it is alive
@@ -49,9 +51,9 @@ IORegisterController(inst)
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP551Ctrl::~TIP551
+// method : 		TIP551Ctrl::~TIP551Ctrl
 // 
-// description : 	Dtor of the TIP551 Controller class
+// description : 	Dtor of the TIP551Ctrl Controller class
 //
 //-----------------------------------------------------------------------------
 

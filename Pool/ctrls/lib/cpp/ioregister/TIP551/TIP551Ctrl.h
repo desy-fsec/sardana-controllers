@@ -7,13 +7,13 @@
 extern "C"
 {
 	/**
-	 * The create controller method for TIP551 controller.
+	 * The create controller method for TIP551Ctrl controller.
 	 */	
 	Controller *_create_TIP551(const char *,vector<Controller::Properties> &);
 }
 
 /**
- * @brief A IORegister controller for TIP551
+ * @brief A IORegister controller for TIP551 and TIP850DAC
  */
 class TIP551Ctrl:public IORegisterController
 {
