@@ -21,10 +21,15 @@ OneDController(inst)
   max_device = 0;
   vector<Controller::Properties>::iterator prop_it;
   for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
-    if(prop_it->name == "TangoDevices"){
+    if(prop_it->name == "RootDeviceName"){
+      Tango::Database *db = new Tango::Database();
+      string root_device_name =prop_it->value.string_prop[0];
+      string add = "*";
+      string name = root_device_name + add;
+      Tango::DbDatum db_datum = db->get_device_exported(name);
+      vector<string> str_vec;
+      db_datum >> str_vec;
       int index = 1;
-      vector<string> &str_vec = prop_it->value.string_prop;
-      
       for(unsigned long l = 0; l < str_vec.size(); l++){
 	// all possible serial lines will be defined here
 	XIAData *xia_data_elem = new XIAData;
@@ -545,7 +550,7 @@ Controller::ExtraAttrInfo XIA_ctrl_extra_attributes[] = {
   NULL};
 
 Controller::PropInfo XIA_class_prop[] = {
-  {"TangoDevices","XIA device names","DevVarStringArray",NULL},
+  {"RootDeviceName","Root Name for Tango Devices","DevString",NULL},
   NULL};
 
 int32_t XIA_MaxDevice = 97;
