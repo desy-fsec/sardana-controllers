@@ -6,7 +6,7 @@ class SIS3820Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3820"
     ctrl_extra_attributes = {'Offset':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'}}
 			     
-    class_prop = {'RootDevName':{'Type':'PyTango.DevString','Description':'The root name of the SIS3820 Tango devices'}}
+    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the SIS3820 Tango devices'}}
 	
     MaxDevice = 97
 	
@@ -16,7 +16,7 @@ class SIS3820Ctrl(CounterTimerController):
 
         self.ct_name = "SIS3820Ctrl/" + self.inst_name
         self.db = PyTango.Database()
-        name_dev_ask =  self.RootDevName + "*"
+        name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
