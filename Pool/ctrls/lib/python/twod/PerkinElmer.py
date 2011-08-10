@@ -9,7 +9,7 @@ class PerkinElmerController(TwoDController):
                              'AcquireMode':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},}
 
 			     
-    class_prop = {'RootDevName':{'Type':'PyTango.DevString','Description':'The root name of the PerkinElmer Tango devices'}}
+    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the PerkinElmer Tango devices'}}
 			     
     MaxDevice = 97
 
@@ -19,7 +19,7 @@ class PerkinElmerController(TwoDController):
 
         self.ct_name = "PerkinElmerCtrl/" + self.inst_name
         self.db = PyTango.Database()
-        name_dev_ask =  self.RootDevName + "*"
+        name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
