@@ -558,10 +558,10 @@ Controller::ExtraAttrInfo MCA8715_ctrl_extra_attributes[] = {
 	NULL};
 
 Controller::PropInfo MCA8715_class_prop[] = {
-	{"TangoDevices","MCA8715 device names","DevVarStringArray",NULL},
+	{"RootDeviceName","Root Name for Tango Devices","DevString",NULL},
 	NULL};
 							  			 
-int32_t MCA8715_MaxDevice = 97;
+int32_t MCA8715_MaxDevice = 99;
 
 extern "C"
 {
