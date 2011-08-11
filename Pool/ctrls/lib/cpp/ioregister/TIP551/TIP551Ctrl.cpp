@@ -408,12 +408,12 @@ Controller::PropInfo TIP551Ctrl_class_prop[] = {
     {"RootDeviceName","Root name for tango devices","DevString"}, 
     NULL};
 							  			 
-int32_t TIP551_MaxDevice = 97;
+int32_t TIP551Ctrl_MaxDevice = 97;
 
 extern "C"
 {
 	
-Controller *_create_TIP551(const char *inst,vector<Controller::Properties> &prop)
+Controller *_create_TIP551Ctrl(const char *inst,vector<Controller::Properties> &prop)
 {
 	return new TIP551Ctrl(inst,prop);
 }
