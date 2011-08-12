@@ -197,9 +197,8 @@ void TIP551Ctrl::WriteOne(int32_t idx, int32_t write_value)
 	
     Tango::DeviceAttribute da("Voltage", (Tango::DevDouble)write_value);
 
+    ioregister_data[idx]->proxy->write_attribute( da);   
 }
-
-
 
 //-----------------------------------------------------------------------------
 //
