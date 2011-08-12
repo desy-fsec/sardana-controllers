@@ -15,25 +15,40 @@ using namespace std;
 //
 //-----------------------------------------------------------------------------
 
-SIS3610::SIS3610(const char *inst, vector<Controller::Properties> &prop):
-IORegisterController(inst)
-{
-    read_nb = 0;
-    write_nb = 0;
+int SIS3610::classInit = 0; 
 
-    max_device = 0;	
-    vector<Controller::Properties>::iterator prop_it;
-    for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
+SIS3610::SIS3610(const char *inst, vector<Controller::Properties> &prop):
+  IORegisterController(inst)
+{
+  read_nb = 0;
+  write_nb = 0;
+
+  if( classInit == 0)
+    {
+      classInit = 1;
+      fprintf( stderr, "\nRecent changes SIS3610Ctrl \n"); 
+      fprintf( stderr, "12.8.2011 debugged: WriteOne, write-output-register\n"); 
+    }
+  FlagDebugIO = 0;
+               
+  if( isatty( fileno( stdout)))
+    {
+      FlagDebugIO = 1;
+    } 
+
+  max_device = 0;	
+  vector<Controller::Properties>::iterator prop_it;
+  for (prop_it = prop.begin(); prop_it != prop.end(); ++prop_it){
 	if(prop_it->name == "RootDeviceName"){
-	    Tango::Database *db = new Tango::Database();
-	    string root_device_name =prop_it->value.string_prop[0];
-	    string add = "*";
-	    string name = root_device_name + add;
-	    Tango::DbDatum db_datum = db->get_device_exported(name);
-	    vector<string> str_vec;
-	    db_datum >> str_vec;  
-	    int index = 1;
-	    for(unsigned long l = 0; l < str_vec.size(); l++){
+      Tango::Database *db = new Tango::Database();
+      string root_device_name =prop_it->value.string_prop[0];
+      string add = "*";
+      string name = root_device_name + add;
+      Tango::DbDatum db_datum = db->get_device_exported(name);
+      vector<string> str_vec;
+      db_datum >> str_vec;  
+      int index = 1;
+      for(unsigned long l = 0; l < str_vec.size(); l++){
 		IORegisterData *ioregister_data_elem = new IORegisterData;
 		ioregister_data_elem->tango_device = str_vec[l];
 		ioregister_data_elem->device_available = false;
@@ -41,9 +56,9 @@ IORegisterController(inst)
 		ioregister_data.insert(make_pair(index, ioregister_data_elem));
 		max_device++;
 		index++;
-	    }
+      }
 	}
-    }
+  }
 	
 }
 
@@ -57,14 +72,14 @@ IORegisterController(inst)
 
 SIS3610::~SIS3610()
 {	
-    map<int32_t, IORegisterData*>::iterator ite = ioregister_data.begin();
-    for(;ite != ioregister_data.end();ite++)
+  map<int32_t, IORegisterData*>::iterator ite = ioregister_data.begin();
+  for(;ite != ioregister_data.end();ite++)
     {
-	if(ite->second->proxy != NULL)
+      if(ite->second->proxy != NULL)
 	    delete ite->second->proxy;
-	delete ite->second;		
+      delete ite->second;		
     }		
-    ioregister_data.clear();
+  ioregister_data.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -79,27 +94,27 @@ SIS3610::~SIS3610()
 
 void SIS3610::AddDevice(int32_t idx)
 {
-	//cout << "[SIS3610] Creating a new IORegister with index " << idx << " on controller SIS3610/" << inst_name << endl;
+  //cout << "[SIS3610] Creating a new IORegister with index " << idx << " on controller SIS3610/" << inst_name << endl;
  
-    if(idx > max_device){
+  if(idx > max_device){
 	TangoSys_OMemStream o;
 	o << "The property 'TangoDevices' has no value for index " << idx << ".";
 	o << " Please define a valid tango device before adding a new element to this controller"<< ends;
 	
 	Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadIndex",o.str(),
-				       (const char *)"SIS3610Ctrl::AddDevice()");
-    }
-    if(ioregister_data[idx]->device_available == false){
+                                   (const char *)"SIS3610Ctrl::AddDevice()");
+  }
+  if(ioregister_data[idx]->device_available == false){
 	if(ioregister_data[idx]->proxy == NULL)
-	    ioregister_data[idx]->proxy = new Tango::DeviceProxy(ioregister_data[idx]->tango_device);
+      ioregister_data[idx]->proxy = new Tango::DeviceProxy(ioregister_data[idx]->tango_device);
 	try{
-	    ioregister_data[idx]->proxy->ping();
-	    ioregister_data[idx]->device_available = true;	
+      ioregister_data[idx]->proxy->ping();
+      ioregister_data[idx]->device_available = true;	
 	}
 	catch(Tango::DevFailed &e){
-	    ioregister_data[idx]->device_available = false;
+      ioregister_data[idx]->device_available = false;
 	}
-    } 
+  } 
 }
 
 //-----------------------------------------------------------------------------
@@ -114,86 +129,93 @@ void SIS3610::AddDevice(int32_t idx)
 
 void SIS3610::DeleteDevice(int32_t idx)
 {
-    //cout << "[SIS3610] Deleting IORegister with index " << idx << " on controller SIS3610/" << inst_name << endl;	
-    if(idx > max_device){
+  //cout << "[SIS3610] Deleting IORegister with index " << idx << " on controller SIS3610/" << inst_name << endl;	
+  if(idx > max_device){
 	TangoSys_OMemStream o;
 	o << "Trying to delete an inexisting element(" << idx << ") from the controller." << ends;
 	
 	Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadIndex",o.str(),
-				       (const char *)"SIS3610Ctrl::DeleteDevice()");
-    }	
+                                   (const char *)"SIS3610Ctrl::DeleteDevice()");
+  }	
     
-    if(ioregister_data[idx]->proxy != NULL){
+  if(ioregister_data[idx]->proxy != NULL){
 	delete ioregister_data[idx]->proxy;
 	ioregister_data[idx]->proxy = NULL;  
-    }
-    ioregister_data[idx]->device_available = false;
+  }
+  ioregister_data[idx]->device_available = false;
 }
 
 int32_t SIS3610::ReadOne(int32_t idx)
 {
 
-    Tango::DeviceAttribute d_out;
-    Tango::DevLong read_value;
+  Tango::DeviceAttribute d_out;
+  Tango::DevLong read_value;
     
-    read_nb++;
+  read_nb++;
     
-    if(ioregister_data[idx]->proxy == NULL){
+  if(ioregister_data[idx]->proxy == NULL){
 	TangoSys_OMemStream o;
 	o << "DGG2Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
 	Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadCtrlPtr",o.str(),
-				       (const char *)"SIS3610Ctrl::ReadOne()");  
-    }
+                                   (const char *)"SIS3610Ctrl::ReadOne()");  
+  }
     
-    if(ioregister_data[idx]->device_available == false){
+  if(ioregister_data[idx]->device_available == false){
 	try{
-	    ioregister_data[idx]->proxy->ping();
-	    ioregister_data[idx]->device_available = true;	
+      ioregister_data[idx]->proxy->ping();
+      ioregister_data[idx]->device_available = true;	
 	}
 	catch(Tango::DevFailed &e){
-	    ioregister_data[idx]->device_available = false;
-	    TangoSys_OMemStream o;
-	    o << "SIS3610Ctrl Device for idx " << idx << " not available" << ends;	
-	    Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadCtrlPtr",o.str(),
-					   (const char *)"SIS3610Ctrl::ReadOne()"); 
+      ioregister_data[idx]->device_available = false;
+      TangoSys_OMemStream o;
+      o << "SIS3610Ctrl Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadCtrlPtr",o.str(),
+                                     (const char *)"SIS3610Ctrl::ReadOne()"); 
 	}
-    }
+  }
 
-    d_out = ioregister_data[idx]->proxy->read_attribute("Value");
-    d_out >> read_value;
+  d_out = ioregister_data[idx]->proxy->read_attribute("Value");
+  d_out >> read_value;
 	
 	
-    return (int32_t)read_value;
+  return (int32_t)read_value;
 }
 
 
 
 void SIS3610::WriteOne(int32_t idx, int32_t write_value)
 {	
-    write_nb++;
-    
-    if(ioregister_data[idx]->proxy == NULL){
+  write_nb++;
+
+  if( FlagDebugIO)
+    {
+      fprintf( stderr, "SIS3610::WriteOne idx %d value %d\n", idx, write_value); 
+    }
+
+  if(ioregister_data[idx]->proxy == NULL){
 	TangoSys_OMemStream o;
 	o << "DGG2Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
 	Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadCtrlPtr",o.str(),
-				       (const char *)"SIS3610Ctrl::ReadOne()");  
-    }
+                                   (const char *)"SIS3610Ctrl::ReadOne()");  
+  }
     
-    if(ioregister_data[idx]->device_available == false){
+  if(ioregister_data[idx]->device_available == false){
 	try{
-	    ioregister_data[idx]->proxy->ping();
-	    ioregister_data[idx]->device_available = true;	
+      ioregister_data[idx]->proxy->ping();
+      ioregister_data[idx]->device_available = true;	
 	}
 	catch(Tango::DevFailed &e){
-	    ioregister_data[idx]->device_available = false;
-	    TangoSys_OMemStream o;
-	    o << "SIS3610Ctrl Device for idx " << idx << " not available" << ends;	
-	    Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadCtrlPtr",o.str(),
-					   (const char *)"SIS3610Ctrl::WriteOne()"); 
+      ioregister_data[idx]->device_available = false;
+      TangoSys_OMemStream o;
+      o << "SIS3610Ctrl Device for idx " << idx << " not available" << ends;	
+      Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadCtrlPtr",o.str(),
+                                     (const char *)"SIS3610Ctrl::WriteOne()"); 
 	}
-    }
+  }
 	
-    Tango::DeviceAttribute da("Value", (Tango::DevLong)write_value);
+  Tango::DeviceAttribute da("Value", (Tango::DevLong)write_value);
+
+  ioregister_data[idx]->proxy->write_attribute( da);   
 
 }
 
@@ -214,21 +236,21 @@ void SIS3610::WriteOne(int32_t idx, int32_t write_value)
 
 void SIS3610::StateOne(int32_t idx, Controller::CtrlState *ior_info_ptr)
 {
-    Tango::DevLong state_tmp;
+  Tango::DevLong state_tmp;
 	
-    if(ioregister_data[idx]->proxy == NULL){
+  if(ioregister_data[idx]->proxy == NULL){
 	state_tmp = Tango::FAULT;
 	return;
-    }
+  }
     
-    state_tmp = ioregister_data[idx]->proxy->state();
+  state_tmp = ioregister_data[idx]->proxy->state();
     
-    ior_info_ptr->state = (int32_t)state_tmp;
-    if(state_tmp == Tango::ON){
+  ior_info_ptr->state = (int32_t)state_tmp;
+  if(state_tmp == Tango::ON){
 	ior_info_ptr->status = "IORegister is in ON state";
-    } else if (state_tmp == Tango::FAULT){
+  } else if (state_tmp == Tango::FAULT){
 	ior_info_ptr->status = "IORegister in in FAULT state";
-    }
+  }
 	
 }
 
@@ -247,9 +269,9 @@ void SIS3610::StateOne(int32_t idx, Controller::CtrlState *ior_info_ptr)
 
 Controller::CtrlData SIS3610::GetExtraAttributePar(int32_t idx,string &par_name)
 {
-	Controller::CtrlData par_value;
+  Controller::CtrlData par_value;
 	
-	return par_value;
+  return par_value;
 }
 
 //-----------------------------------------------------------------------------
@@ -281,9 +303,9 @@ void SIS3610::SetExtraAttributePar(int32_t idx, string &par_name, Controller::Ct
 
 string SIS3610::SendToCtrl(string &in_str)
 {
-    cout << "[SIS3610] I have received the string: " << in_str << endl;
-    string returned_str("Nothing to do");
-    return returned_str;	
+  cout << "[SIS3610] I have received the string: " << in_str << endl;
+  string returned_str("Nothing to do");
+  return returned_str;	
 }
 
 //-----------------------------------------------------------------------------
@@ -298,11 +320,11 @@ string SIS3610::SendToCtrl(string &in_str)
 
 void SIS3610::bad_data_type(string &par_name)
 {
-    TangoSys_OMemStream o;
-    o << "A wrong data type has been used to set the parameter " << par_name << ends;
+  TangoSys_OMemStream o;
+  o << "A wrong data type has been used to set the parameter " << par_name << ends;
     
-    Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadParameter",o.str(),
-				   (const char *)"SIS3610::SetPar()");
+  Tango::Except::throw_exception((const char *)"SIS3610Ctrl_BadParameter",o.str(),
+                                 (const char *)"SIS3610::SetPar()");
 }
 
 //
@@ -320,17 +342,17 @@ const char *SIS3610_logo = "ALBA_logo.png";
 
 
 Controller::PropInfo SIS3610_class_prop[] = {
-    {"RootDeviceName","Root name for tango devices","DevString"}, 
-    NULL};
+  {"RootDeviceName","Root name for tango devices","DevString"}, 
+  NULL};
 							  			 
 int32_t SIS3610_MaxDevice = 97;
 
 extern "C"
 {
 	
-Controller *_create_SIS3610(const char *inst,vector<Controller::Properties> &prop)
-{
+  Controller *_create_SIS3610(const char *inst,vector<Controller::Properties> &prop)
+  {
 	return new SIS3610(inst,prop);
-}
+  }
 
 }

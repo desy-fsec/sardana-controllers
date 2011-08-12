@@ -136,6 +136,9 @@ protected:
 	int32_t max_device;
 
 	stringstream            convert_stream;
+
+    static int classInit;
+    int FlagDebugIO; 
 };
 
 #endif /*_SIS3610CTRL_H_*/
