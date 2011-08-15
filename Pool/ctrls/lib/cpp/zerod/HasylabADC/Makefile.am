@@ -11,7 +11,7 @@ else
 endif 
 
 
-pkglib_LTLIBRARIES = TIP830u20Ctrl.la 
+pkglib_LTLIBRARIES = HasylabADCCtrl.la 
 
 AM_CPPFLAGS = -I@TANGO_ROOT@/include \
 			-I@OMNI_ROOT@/include \
@@ -21,8 +21,8 @@ AM_CPPFLAGS = -I@TANGO_ROOT@/include \
 AM_CXXFLAGS = -DREENTRANT 
 AM_LDFLAGS = -module -avoid-version
 
-TIP830u20Ctrl_la_SOURCES = $(srcdir)/TIP830u20Ctrl.cpp \
-					$(srcdir)/TIP830u20Ctrl.h
+HasylabADCCtrl_la_SOURCES = $(srcdir)/HasylabADCCtrl.cpp \
+					$(srcdir)/HasylabADCCtrl.h
 
 dist-hook:
 	cp $(srcdir)/*.png $(distdir)

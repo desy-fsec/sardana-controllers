@@ -231,7 +231,7 @@ AC_CONFIG_FILES([Makefile
                  lib/cpp/zerod/Makefile
                  lib/cpp/zerod/simulator/Makefile
                  lib/cpp/zerod/IK220/Makefile
-                 lib/cpp/zerod/TIP830u20/Makefile
+                 lib/cpp/zerod/HasylabADC/Makefile
                  lib/cpp/oned/Makefile
                  lib/cpp/oned/MCA8715/Makefile
                  lib/cpp/ioregister/Makefile

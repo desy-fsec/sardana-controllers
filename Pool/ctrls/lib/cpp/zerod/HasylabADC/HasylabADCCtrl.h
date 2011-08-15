@@ -1,20 +1,20 @@
-#ifndef _TIP830u20CTRL_H
-#define _TIP830u20CTRL_H
+#ifndef _HASYLABADCCTRL_H
+#define _HASYLABADCCTRL_H
 
 #include <pool/ZeroDCtrl.h>
 #include <tango.h>
 
 extern "C"
 {
-	Controller *_create_TIP830u20Ctrl(const char *,vector<Controller::Properties> &);
+	Controller *_create_HasylabADCCtrl(const char *,vector<Controller::Properties> &);
 }
 
 
-class TIP830u20Ctrl:public ZeroDController
+class HasylabADCCtrl:public ZeroDController
 {
 public:
-	TIP830u20Ctrl(const char *,vector<Controller::Properties> &);
-	virtual ~TIP830u20Ctrl();
+	HasylabADCCtrl(const char *,vector<Controller::Properties> &);
+	virtual ~HasylabADCCtrl();
 
 	virtual void AddDevice(int32_t );
 	virtual void DeleteDevice(int32_t );
@@ -38,4 +38,4 @@ protected:
 	int32_t max_device; 
 };
 
-#endif /* _TIP830u20CTRL_H */
+#endif /* _HASYLABADCCTRL_H */

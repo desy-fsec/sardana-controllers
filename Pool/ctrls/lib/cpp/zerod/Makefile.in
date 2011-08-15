@@ -193,7 +193,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = simulator TIP830u20 IK220
+SUBDIRS = simulator HasylabADC IK220
 all: all-recursive
 
 .SUFFIXES:

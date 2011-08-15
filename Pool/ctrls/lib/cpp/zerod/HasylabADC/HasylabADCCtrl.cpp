@@ -1,5 +1,5 @@
 #include <iostream>
-#include <TIP830u20Ctrl.h>
+#include <HasylabADCCtrl.h>
 #include <pool/PoolAPI.h>
 
 #include <sys/types.h>
@@ -11,16 +11,16 @@ using namespace std;
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP830u20Ctrl::TIP830u20Ctrl
+// method : 		HasylabADCCtrl::HasylabADCCtrl
 // 
-// description : 	Ctor of the TIP830u20Ctrl class
+// description : 	Ctor of the HasylabADCCtrl class
 //					It retrieve some properties from Tango DB, build a 
 //					connection to the Simulated controller and ping it
 //					to check if it is alive
 //
 //-----------------------------------------------------------------------------
 
-TIP830u20Ctrl::TIP830u20Ctrl(const char *inst,vector<Controller::Properties> &prop):ZeroDController(inst)
+HasylabADCCtrl::HasylabADCCtrl(const char *inst,vector<Controller::Properties> &prop):ZeroDController(inst)
 {  
     max_device = 0;
     vector<Controller::Properties>::iterator prop_it;
@@ -50,13 +50,13 @@ TIP830u20Ctrl::TIP830u20Ctrl(const char *inst,vector<Controller::Properties> &pr
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP830u20Ctrl::~TIP830u20Ctrl
+// method : 		HasylabADCCtrl::~HasylabADCCtrl
 // 
-// description : 	Dtor of the TIP830u20Ctrl class
+// description : 	Dtor of the HasylabADCCtrl class
 //
 //-----------------------------------------------------------------------------
 
-TIP830u20Ctrl::~TIP830u20Ctrl()
+HasylabADCCtrl::~HasylabADCCtrl()
 {	
     map<int32_t, ZeroDData*>::iterator ite = zerod_data.begin();
     for(;ite != zerod_data.end();ite++)
@@ -70,7 +70,7 @@ TIP830u20Ctrl::~TIP830u20Ctrl()
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP830u20Ctrl::AddDevice
+// method : 		HasylabADCCtrl::AddDevice
 // 
 // description : 	Register a new device for the controller
 //					For the simulated controller, this simply means increment
@@ -78,16 +78,16 @@ TIP830u20Ctrl::~TIP830u20Ctrl()
 //
 //-----------------------------------------------------------------------------
 
-void TIP830u20Ctrl::AddDevice(int32_t idx)
+void HasylabADCCtrl::AddDevice(int32_t idx)
 {
-  //cout << "[TIP830u20Ctrl] Creating a new Zero D Exp Channel with index " << idx << " on controller TIP830u20Ctrl/" << inst_name << endl; 
+  //cout << "[HasylabADCCtrl] Creating a new Zero D Exp Channel with index " << idx << " on controller HasylabADCCtrl/" << inst_name << endl; 
     if(idx > max_device){
 	TangoSys_OMemStream o;
 	o << "The property 'TangoDevices' has no value for index " << idx << ".";
 	o << " Please define a valid tango device before adding a new element to this controller"<< ends;
 	
-	Tango::Except::throw_exception((const char *)"TIP830u20Ctrl_BadIndex",o.str(),
-				       (const char *)"TIP830u20Ctrl::AddDevice()");
+	Tango::Except::throw_exception((const char *)"HasylabADCCtrl_BadIndex",o.str(),
+				       (const char *)"HasylabADCCtrl::AddDevice()");
     }
     if(zerod_data[idx]->device_available == false){
 	if(zerod_data[idx]->proxy == NULL)
@@ -104,7 +104,7 @@ void TIP830u20Ctrl::AddDevice(int32_t idx)
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP830u20Ctrl::DeleteDevice
+// method : 		HasylabADCCtrl::DeleteDevice
 // 
 // description : 	Unregister a new device for the controller
 //					For the simulated controller, this simply means decrement
@@ -112,15 +112,15 @@ void TIP830u20Ctrl::AddDevice(int32_t idx)
 //
 //-----------------------------------------------------------------------------
 
-void TIP830u20Ctrl::DeleteDevice(int32_t idx)
+void HasylabADCCtrl::DeleteDevice(int32_t idx)
 {
-  //cout << "[TIP830u20Ctrl] Deleting Counter Timer with index " << idx << " on controller TIP830u20Ctrl/" << inst_name  << endl;	
+  //cout << "[HasylabADCCtrl] Deleting Counter Timer with index " << idx << " on controller HasylabADCCtrl/" << inst_name  << endl;	
     if(idx > max_device){
 	TangoSys_OMemStream o;
 	o << "Trying to delete an inexisting element(" << idx << ") from the controller." << ends;
 	
-	Tango::Except::throw_exception((const char *)"TIP830u20Ctrl_BadIndex",o.str(),
-				       (const char *)"TIP830u20Ctrl::DeleteDevice()");
+	Tango::Except::throw_exception((const char *)"HasylabADCCtrl_BadIndex",o.str(),
+				       (const char *)"HasylabADCCtrl::DeleteDevice()");
     }	
     
     if(zerod_data[idx]->proxy != NULL){
@@ -132,7 +132,7 @@ void TIP830u20Ctrl::DeleteDevice(int32_t idx)
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP830u20Ctrl::ReadOne
+// method : 		HasylabADCCtrl::ReadOne
 // 
 // description : 	Read a counter timer
 //
@@ -141,17 +141,17 @@ void TIP830u20Ctrl::DeleteDevice(int32_t idx)
 // This method returns the counter timer value
 //-----------------------------------------------------------------------------
 
-double TIP830u20Ctrl::ReadOne(int32_t idx)
+double HasylabADCCtrl::ReadOne(int32_t idx)
 {
-  //cout << "[TIP830u20Ctrl] Getting value for exp channel with index " << idx << " on controller TIP830u20Ctrl/" << endl;
+  //cout << "[HasylabADCCtrl] Getting value for exp channel with index " << idx << " on controller HasylabADCCtrl/" << endl;
     Tango::DeviceAttribute d_out;
     double returned_val;
     
     if(zerod_data[idx]->proxy == NULL){
 	TangoSys_OMemStream o;
-	o << "TIP830u20Ctrl Device Proxy for idx " << idx << " is NULL" << ends;	
-	Tango::Except::throw_exception((const char *)"TIP830u20Ctrl_BadCtrlPtr",o.str(),
-				       (const char *)"TIP830u20Ctrl::ReadOne()");  
+	o << "HasylabADCCtrl Device Proxy for idx " << idx << " is NULL" << ends;	
+	Tango::Except::throw_exception((const char *)"HasylabADCCtrl_BadCtrlPtr",o.str(),
+				       (const char *)"HasylabADCCtrl::ReadOne()");  
     }
     
     if(zerod_data[idx]->device_available == false){
@@ -162,9 +162,9 @@ double TIP830u20Ctrl::ReadOne(int32_t idx)
 	catch(Tango::DevFailed &e){
 	    zerod_data[idx]->device_available = false;
 	    TangoSys_OMemStream o;
-	    o << "TIP830u20Ctrl Device for idx " << idx << " not available" << ends;	
-	    Tango::Except::throw_exception((const char *)"TIP830u20Ctrl_BadCtrlPtr",o.str(),
-					   (const char *)"TIP830u20Ctrl::ReadOne()"); 
+	    o << "HasylabADCCtrl Device for idx " << idx << " not available" << ends;	
+	    Tango::Except::throw_exception((const char *)"HasylabADCCtrl_BadCtrlPtr",o.str(),
+					   (const char *)"HasylabADCCtrl::ReadOne()"); 
 	}
     }
 
@@ -177,7 +177,7 @@ double TIP830u20Ctrl::ReadOne(int32_t idx)
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP830u20Ctrl::GetState
+// method : 		HasylabADCCtrl::GetState
 // 
 // description : 	Get one ADC status.
 //
@@ -187,9 +187,9 @@ double TIP830u20Ctrl::ReadOne(int32_t idx)
 //
 //-----------------------------------------------------------------------------
 
-void TIP830u20Ctrl::StateOne(int32_t idx, Controller::CtrlState *ct_info_ptr)
+void HasylabADCCtrl::StateOne(int32_t idx, Controller::CtrlState *ct_info_ptr)
 {
-  //cout << "[TIP830u20Ctrl] Getting state for Exp Channel with index " << idx << " on controller TIP830u20Ctrl/" << inst_name << endl;
+  //cout << "[HasylabADCCtrl] Getting state for Exp Channel with index " << idx << " on controller HasylabADCCtrl/" << inst_name << endl;
     
     Tango::DevState state_tmp;
     
@@ -212,7 +212,7 @@ void TIP830u20Ctrl::StateOne(int32_t idx, Controller::CtrlState *ct_info_ptr)
 
 //-----------------------------------------------------------------------------
 //
-// method : 		TIP830u20Ctrl::bad_data_type
+// method : 		HasylabADCCtrl::bad_data_type
 // 
 // description : 	Throw a bad data type excepton
 //
@@ -220,36 +220,36 @@ void TIP830u20Ctrl::StateOne(int32_t idx, Controller::CtrlState *ct_info_ptr)
 //
 //-----------------------------------------------------------------------------
 
-void TIP830u20Ctrl::bad_data_type(string &par_name)
+void HasylabADCCtrl::bad_data_type(string &par_name)
 {
   TangoSys_OMemStream o;
   o << "A wrong data type has been used to set the parameter " << par_name << ends;
 
-  Tango::Except::throw_exception((const char *)"TIP830u20ADCCtrl_BadParameter",o.str(),
-				 (const char *)"TIP830u20Ctrl::SetPar()");
+  Tango::Except::throw_exception((const char *)"HasylabADCADCCtrl_BadParameter",o.str(),
+				 (const char *)"HasylabADCCtrl::SetPar()");
 }
 
 //
 //===============================================================================================
 //
 
-const char *ZeroDExpChannel_Ctrl_class_name[] = {"TIP830u20Ctrl",NULL};
+const char *ZeroDExpChannel_Ctrl_class_name[] = {"HasylabADCCtrl",NULL};
 
-const char *TIP830u20Ctrl_doc = "This is the C++ controller for the TIP830u20Ctrl class";
+const char *HasylabADCCtrl_doc = "This is the C++ controller for the HasylabADCCtrl class";
 
 
-Controller::PropInfo TIP830u20Ctrl_class_prop[] = {
+Controller::PropInfo HasylabADCCtrl_class_prop[] = {
     {"RootDeviceName","Root name for tango devices","DevString"}, 
     NULL};
 
-int32_t TIP830u20Ctrl_MaxDevice = 97;
+int32_t HasylabADCCtrl_MaxDevice = 97;
 
 extern "C"
 {
 	
-  Controller *_create_TIP830u20Ctrl(const char *inst,vector<Controller::Properties> &prop)
+  Controller *_create_HasylabADCCtrl(const char *inst,vector<Controller::Properties> &prop)
   {
-    return new TIP830u20Ctrl(inst,prop);
+    return new HasylabADCCtrl(inst,prop);
   }
 
 }

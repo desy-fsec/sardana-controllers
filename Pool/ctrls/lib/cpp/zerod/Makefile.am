@@ -1,1 +1,1 @@
-SUBDIRS = simulator TIP830u20 IK220
+SUBDIRS = simulator HasylabADC IK220
