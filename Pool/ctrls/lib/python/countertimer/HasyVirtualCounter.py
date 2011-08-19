@@ -7,7 +7,7 @@ import sys
 from HasyVirtualCounterLib import *
 
 class HasyVirtualCounter(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the SimuCoTiCtrl tango device"
+    "This class is a Tango Sardana CounterTimer controller for defined virtual counters"
               
     class_prop = {'LibId':{'Type':'PyTango.DevLong',
                            'Description':'Id for the functions argument',
