@@ -129,7 +129,7 @@ class LimaCCDCtrl(TwoDController):
         self.proxy[ind-1].command_inout("startAcq")
         
     def AbortOne(self,ind):
-        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AbortOne method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("stopAcq")
 
     def GetPar(self, ind, par_name):
