@@ -113,9 +113,9 @@ class PilatusCtrl(TwoDController):
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
                 tup = (sta,"Camera taking images")
-            elif stat == PyTango.DevState.FAULT:
+            elif sta == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
-            elif stat == PyTango.DevState.DISABLE:
+            elif sta == PyTango.DevState.DISABLE:
                 sta = PyTango.DevState.FAULT
                 tup = (sta,"Device disconnected from camserver")
             return tup
