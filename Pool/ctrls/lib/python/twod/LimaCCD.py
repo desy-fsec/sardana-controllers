@@ -13,7 +13,7 @@ class LimaCCDCtrl(TwoDController):
 			     'SavingMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'LastImageReady':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'NbFrames':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'TriggerMode':{'Type':'PyTango.DevShort','R/W Type':'PyTango.READ_WRITE'},
+			     'TriggerMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'CameraType':{'Type':'PyTango.DevString','R Type':'PyTango.READ'},
 			     'Reset':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
 
