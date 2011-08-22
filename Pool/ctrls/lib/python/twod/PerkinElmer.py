@@ -2,7 +2,7 @@ import PyTango
 from pool import TwoDController
 import time
 
-class PerkinElmerController(TwoDController):
+class PerkinElmerCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the PerkinElmer detector"
 
     ctrl_extra_attributes = {'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},

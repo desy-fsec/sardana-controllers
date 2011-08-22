@@ -2,7 +2,7 @@ import PyTango
 from pool import TwoDController
 import time
 
-class PilatusController(TwoDController):
+class PilatusCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Pilatus"
 
     ctrl_extra_attributes = {'DelayTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},

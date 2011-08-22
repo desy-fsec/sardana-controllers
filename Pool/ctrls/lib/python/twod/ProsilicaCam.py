@@ -8,7 +8,7 @@ import time
 #               -> implement it in the StateOne function of this controller
 #                  using the FileCounter attribute
 
-class ProsilicaCamController(TwoDController):
+class ProsilicaCamCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Prosilica camara"
 
     ctrl_extra_attributes = {'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'}}
