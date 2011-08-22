@@ -1,7 +1,6 @@
 import math, logging
 from pool import PseudoMotorController
 
-
 def rotate_x(y, z, cosangle, sinangle):
     """3D rotaion around *x* (pitch). *y* and *z* are values or arrays.
     Positive rotation is for positive *sinangle*. Returns *yNew, zNew*.
@@ -151,8 +150,7 @@ class TripodTableController(PseudoMotorController):
 #      Ax + By + Cz = D in global system:
         A = (self.jack2[1] - self.jack1[1]) * (jack3 - jack1) - (self.jack3[1] - self.jack1[1]) * (jack2 - jack1)
         B = (self.jack3[0] - self.jack1[0]) * (jack2 - jack1) - (self.jack2[0] - self.jack1[0]) * (jack3 - jack1)
-        C = (self.jack2[0] - self.jack1[0]) * (self.jack3[1] - self.jack1[1])  - (self.jack3[0] - self.jack1[0]) * (self.jack2[1] - se        roll *= 1000
-        return z, pitch, rolllf.jack1[1])
+        C = (self.jack2[0] - self.jack1[0]) * (self.jack3[1] - self.jack1[1])  - (self.jack3[0] - self.jack1[0]) * (self.jack2[1] - self.jack1[1])
 
         self._log.debug(" A: %f, B: %f, C: %f" % (A,B,C))
         ABCNorm = (A ** 2 + B ** 2 + C ** 2) ** 0.5
