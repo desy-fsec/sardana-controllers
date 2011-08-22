@@ -77,9 +77,9 @@ class PCOCtrl(TwoDController):
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
                 tup = (sta,"Camera taking images")
-            elif stat == PyTango.DevState.FAULT:
+            elif sta == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
-            elif stat == PyTango.DevState.UNKNOWN:
+            elif sta == PyTango.DevState.UNKNOWN:
                 sta = PyTango.DevState.FAULT
                 tup = (sta,"Camera in UNKNOWN state")
             return tup

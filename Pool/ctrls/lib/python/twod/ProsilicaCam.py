@@ -67,7 +67,7 @@ class ProsilicaCamCtrl(TwoDController):
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
                 tup = (sta,"Camera taking images")
-            elif stat == PyTango.DevState.FAULT:
+            elif sta == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
             return tup
 
