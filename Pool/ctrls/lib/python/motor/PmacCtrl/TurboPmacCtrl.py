@@ -108,6 +108,7 @@ class TurboPmacController(MotorController):
             self.pmacEth = PyTango.DeviceProxy(self.PmacEthDevName)
         except PyTango.DevFailed, e:
             self._log.error("__init__(): Could not create PmacEth device proxy from %s device name. \nException: %s" % (self.PmacEthDevName, e))
+            raise
         self.axesList = []
         self.startMultiple = {}
         self.positionMultiple = {}
@@ -122,106 +123,132 @@ class TurboPmacController(MotorController):
         self.attributes[axis] = None
     
     def PreStateAll(self):
-        pass
+        self.pmacEthOk = False
+        try:
+            pmacEthState = self.pmacEth.state()
+        except PyTango.DevFailed, e:
+            #self._log.error("PreStateAll(): PmacEth DeviceProxy state command failed. \nException: %s", e)
+            self._log.error("PreStateAll(): PmacEth DeviceProxy state command failed.")
+            raise
+        if pmacEthState == PyTango.DevState.ON:
+            self.pmacEthOk = True
             
     def StateAll(self):
         """ Get State of all axes with just one command to the Pmac Controller. """
+        if not self.pmacEthOk: return
         try:
             motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
         except PyTango.DevFailed, e:
-            self._log.error("StateAll(): SendCtrlChar('B') command called on PmacEth DeviceProxy failed. \nException: %s", e)
+            #self._log.error("StateAll(): SendCtrlChar('B') command called on PmacEth DeviceProxy failed. \nException: %s", e)
+            self._log.error("StateAll(): SendCtrlChar('B') command called on PmacEth DeviceProxy failed.")
+            self.pmacEthOk = False
             raise
-        motStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(48,"0") for s in motStateAns.split()]
+        motStateBinArray = [map(int,s,len(s)*[16]) for s in motStateAns.split()]
         
         try:
             csStateAns = self.pmacEth.command_inout("SendCtrlChar", "C")
         except PyTango.DevFailed, e:
-            self._log.error("StateAll(): SendCtrlChar('C') command called on PmacEth DeviceProxy failed. \nException: %s", e)
+            #self._log.error("StateAll(): SendCtrlChar('C') command called on PmacEth DeviceProxy failed. \nException: %s", e)
+            self._log.error("StateAll(): SendCtrlChar('C') command called on PmacEth DeviceProxy failed.")
+            self.pmacEthOk = False
             raise
-        csStateBinArray = [bin(int(s,16)).lstrip("0b").rjust(64,"0") for s in csStateAns.split()]
+        csStateBinArray = [map(int,s,len(s)*[16]) for s in csStateAns.split()]
         
         for axis in self.axesList:
             motBinState = motStateBinArray[axis-1]
             #First Word
-            self.attributes[axis]["MotorActivated"] = bool(int(motBinState[0]))
-            self.attributes[axis]["NegativeEndLimitSet"] = bool(int(motBinState[1])) 
-            self.attributes[axis]["PositiveEndLimitSet"] = bool(int(motBinState[2]))
-            self.attributes[axis]["ExtendedServoAlgorithmEnabled"] = bool(int(motBinState[3]))
+            self.attributes[axis]["MotorActivated"] = bool(motBinState[0] & 0x8)
+            self.attributes[axis]["NegativeEndLimitSet"] = bool(motBinState[0] & 0x4) 
+            self.attributes[axis]["PositiveEndLimitSet"] = bool(motBinState[0] & 0x2)
+            self.attributes[axis]["ExtendedServoAlgorithmEnabled"] = bool(motBinState[0] & 0x1)
             
-            self.attributes[axis]["AmplifierEnabled"] = bool(int(motBinState[4]))
-            self.attributes[axis]["OpenLoopMode"] = bool(int(motBinState[5]))
-            self.attributes[axis]["MoveTimerActive"] = bool(int(motBinState[6]))
-            self.attributes[axis]["IntegrationMode"] = bool(int(motBinState[7]))
+            self.attributes[axis]["AmplifierEnabled"] = bool(motBinState[1] & 0x8)
+            self.attributes[axis]["OpenLoopMode"] = bool(motBinState[1] & 0x4)
+            self.attributes[axis]["MoveTimerActive"] = bool(motBinState[1] & 0x2)
+            self.attributes[axis]["IntegrationMode"] = bool(motBinState[1] & 0x1)
             
-            self.attributes[axis]["DwellInProgress"] = bool(int(motBinState[8]))
-            self.attributes[axis]["DataBlockError"] = bool(int(motBinState[9]))
-            self.attributes[axis]["DesiredVelocityZero"] = bool(int(motBinState[10]))
-            self.attributes[axis]["AbortDeceleration"] = bool(int(motBinState[11]))
+            self.attributes[axis]["DwellInProgress"] = bool(motBinState[2] & 0x8)
+            self.attributes[axis]["DataBlockError"] = bool(motBinState[2] & 0x4)
+            self.attributes[axis]["DesiredVelocityZero"] = bool(motBinState[2] & 0x2)
+            self.attributes[axis]["AbortDeceleration"] = bool(motBinState[2] & 0x1)
             
-            self.attributes[axis]["BlockRequest"] = bool(int(motBinState[12]))
-            self.attributes[axis]["HomeSearchInProgress"] = bool(int(motBinState[13]))
-            self.attributes[axis]["User-WrittenPhaseEnable"] = bool(int(motBinState[14]))
-            self.attributes[axis]["User-WrittenServoEnable"] = bool(int(motBinState[15]))
+            self.attributes[axis]["BlockRequest"] = bool(motBinState[3] & 0x8)
+            self.attributes[axis]["HomeSearchInProgress"] = bool(motBinState[3] & 0x4)
+            self.attributes[axis]["User-WrittenPhaseEnable"] = bool(motBinState[3] & 0x2)
+            self.attributes[axis]["User-WrittenServoEnable"] = bool(motBinState[3] & 0x1)
             
-            self.attributes[axis]["AlternateSource_Destination"] = bool(int(motBinState[16]))
-            self.attributes[axis]["PhasedMotor"] = bool(int(motBinState[17]))
-            self.attributes[axis]["FollowingOffsetMode"] = bool(int(motBinState[18]))
-            self.attributes[axis]["FollowingEnabled"] = bool(int(motBinState[19]))
+            self.attributes[axis]["AlternateSource_Destination"] = bool(motBinState[4] & 0x8)
+            self.attributes[axis]["PhasedMotor"] = bool(motBinState[4] & 0x4)
+            self.attributes[axis]["FollowingOffsetMode"] = bool(motBinState[4] & 0x2)
+            self.attributes[axis]["FollowingEnabled"] = bool(motBinState[4] & 0x1)
             
-            self.attributes[axis]["ErrorTriger"] = bool(int(motBinState[20]))
-            self.attributes[axis]["SoftwarePositionCapture"] = bool(int(motBinState[21]))
-            self.attributes[axis]["IntegratorInVelocityLoop"] = bool(int(motBinState[22]))
-            self.attributes[axis]["AlternateCommand-OutputMode"] = bool(int(motBinState[23]))
+            self.attributes[axis]["ErrorTriger"] = bool(motBinState[5] & 0x8)
+            self.attributes[axis]["SoftwarePositionCapture"] = bool(motBinState[5] & 0x4)
+            self.attributes[axis]["IntegratorInVelocityLoop"] = bool(motBinState[5] & 0x2)
+            self.attributes[axis]["AlternateCommand-OutputMode"] = bool(motBinState[5] & 0x1)
             #Second Word
             #We add one because these bits together hold a value equal to the Coordinate System nr minus one
-            self.attributes[axis]["CoordinateSystem"] = int(motBinState[24:28],2) + 1
+            self.attributes[axis]["CoordinateSystem"] = motBinState[6] + 1
             
-            self.attributes[axis]["CoordinateDefinition"] = self.translateCoordinateDefinition(int(motBinState[28:32],2))
+            self.attributes[axis]["CoordinateDefinition"] = self.translateCoordinateDefinition(motBinState[7])
              
-            self.attributes[axis]["AssignedToCoordinateSystem"] = bool(int(motBinState[33]))
+            self.attributes[axis]["AssignedToCoordinateSystem"] = bool(motBinState[8] & 0x8)
             #Reserved for future use
-            self.attributes[axis]["ForegroundInPosition"] = bool(int(motBinState[34]))
-            self.attributes[axis]["StoppedOnDesiredPositionLimit"] = bool(int(motBinState[35]))
+            self.attributes[axis]["ForegroundInPosition"] = bool(motBinState[8] & 0x2)
+            self.attributes[axis]["StoppedOnDesiredPositionLimit"] = bool(motBinState[8] & 0x1)
             
             
-            self.attributes[axis]["StoppedOnPositionLimit"] = bool(int(motBinState[36]))
-            self.attributes[axis]["HomeComplete"] = bool(int(motBinState[37]))
-            self.attributes[axis]["PhasingSearch_ReadActive"] = bool(int(motBinState[38]))
-            self.attributes[axis]["PhasingReferenceError"] = bool(int(motBinState[39]))
+            self.attributes[axis]["StoppedOnPositionLimit"] = bool(motBinState[9] & 0x8)
+            self.attributes[axis]["HomeComplete"] = bool(motBinState[9] & 0x4)
+            self.attributes[axis]["PhasingSearch_ReadActive"] = bool(motBinState[9] & 0x2)
+            self.attributes[axis]["PhasingReferenceError"] = bool(motBinState[9] & 0x1)
             
-            self.attributes[axis]["TriggerMove"] = bool(int(motBinState[40]))
-            self.attributes[axis]["IntegratedFatalFollowingError"] = bool(int(motBinState[41]))
-            self.attributes[axis]["I2T_amplifierFaultError"] = bool(int(motBinState[42]))
-            self.attributes[axis]["BacklashDirectionFlag"] = bool(int(motBinState[43]))
+            self.attributes[axis]["TriggerMove"] = bool(motBinState[10] & 0x8)
+            self.attributes[axis]["IntegratedFatalFollowingError"] = bool(motBinState[10] & 0x4)
+            self.attributes[axis]["I2T_amplifierFaultError"] = bool(motBinState[10] & 0x2)
+            self.attributes[axis]["BacklashDirectionFlag"] = bool(motBinState[10] & 0x1)
 
-            self.attributes[axis]["AmplifierFaultError"] = bool(int(motBinState[44]))
-            self.attributes[axis]["FatalFollowingError"] = bool(int(motBinState[45]))
-            self.attributes[axis]["WarningFollowingError"] = bool(int(motBinState[46]))
-            self.attributes[axis]["InPosition"] = bool(int(motBinState[47]))
+            self.attributes[axis]["AmplifierFaultError"] = bool(motBinState[11] & 0x8)
+            self.attributes[axis]["FatalFollowingError"] = bool(motBinState[11] & 0x4)
+            self.attributes[axis]["WarningFollowingError"] = bool(motBinState[11] & 0x2)
+            self.attributes[axis]["InPosition"] = bool(motBinState[11] & 0x1)
                         
             csBinState = csStateBinArray[self.attributes[axis]["CoordinateSystem"]-1]
-            self.attributes[axis]["MotionProgramRunning"] = bool(int(csBinState[23]))
+            self.attributes[axis]["MotionProgramRunning"] = bool(csBinState[5] & 0x1)
     
     def StateOne(self, axis):
         switchstate = 0
-        if not self.attributes[axis]["MotorActivated"]:
+        if not self.pmacEthOk:
+            state = PyTango.DevState.ALARM
+            status = "Ethernet connection with TurboPmac failed. \n(Check if PmacEth DS is running and if its state is ON)"
+        elif not self.attributes[axis]["MotorActivated"]:
             state = PyTango.DevState.FAULT
             status = "Motor is deactivated - it is not under Pmac control (Check Ix00 variable)."
         else:
-            state = PyTango.DevState.ON
-            status = "Motor is in ON state."
+            state = PyTango.DevState.MOVING
+            #state = PyTango.DevState.ON
+            status = "Motor is in MOVING state."
             #motion cases
-            if self.attributes[axis]["MotionProgramRunning"]:
-                status = "Motor is used by active motion program."
-                state = PyTango.DevState.MOVING
-            elif self.attributes[axis]["InPosition"]:
-                status = "Motor is stopped in position"
+            if self.attributes[axis]["InPosition"] and (not self.attributes[axis]["MotionProgramRunning"]):
                 state = PyTango.DevState.ON
-            elif not self.attributes[axis]["DesiredVelocityZero"]:
-                    state = PyTango.DevState.MOVING
-                    status = "Motor is moving."
-                    if self.attributes[axis]["HomeSearchInProgress"]:
-                        status += "\nHome search in progress."
+                status = "Motor is in ON state.\nMotor is stopped in position"
+            else:
+                if self.attributes[axis]["HomeSearchInProgress"]:
+                    status += "\nHome search in progress."
+                if self.attributes[axis]["MotionProgramRunning"]:
+                    status = "\nMotor is used by active motion program."
+
+            #if self.attributes[axis]["MotionProgramRunning"]:
+            #    status = "Motor is used by active motion program."
+            #    state = PyTango.DevState.MOVING
+            #elif self.attributes[axis]["InPosition"]:
+            #    status = "Motor is stopped in position"
+            #    state = PyTango.DevState.ON
+            #elif not self.attributes[axis]["DesiredVelocityZero"]:
+            #        state = PyTango.DevState.MOVING
+            #        status = "Motor is moving."
+            #        if self.attributes[axis]["HomeSearchInProgress"]:
+            #            status += "\nHome search in progress."
             #amplifier fault cases
             if not self.attributes[axis]["AmplifierEnabled"]:
                 state = PyTango.DevState.ALARM
@@ -278,26 +305,31 @@ class TurboPmacController(MotorController):
         @param name of the parameter
         @param value to be set
         """
-        try:
-            if name.lower() == "velocity":
-                pmacVelocity =  (value * self.attributes[axis]["step_per_unit"]) / 1000
-                self._log.info("setting velocity to: %f"%pmacVelocity)
-                self.pmacEth.command_inout("SetIVariable", (float("%d22" % axis), float(pmacVelocity)))
+        if name.lower() == "velocity":
+            pmacVelocity =  (value * self.attributes[axis]["step_per_unit"]) / 1000
+            self._log.debug("setting velocity to: %f" % pmacVelocity)
+            ivar = int("%d22" % axis)
+            try:
+                self.pmacEth.command_inout("SetIVariable", (float(ivar), float(pmacVelocity)))
+            except PyTango.DevFailed, e:
+                #self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,value,ivar,pmacVelocity,e))
+                self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed.", axis, name, value, ivar, pmacVelocity)
+                raise
 
-            elif name.lower() == "acceleration":
-                #here we convert acceleration time from sec(Sardana standard) to msec(TurboPmac expected unit)  
-                pmacAcceleration =  value * 1000
-                self._log.info("setting acceleration to: %f" % pmacAcceleration)
-                self.pmacEth.command_inout("SetIVariable", (float("%d20" % axis), float(pmacAcceleration)))
-            
-            elif name.lower() == "step_per_unit":
-                self.attributes[axis]["step_per_unit"] = float(value)
-            
-            
-            #@todo implement base_rate
-        except Exception,e:
-            self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
-            raise
+        elif name.lower() == "acceleration":
+            #here we convert acceleration time from sec(Sardana standard) to msec(TurboPmac expected unit)  
+            pmacAcceleration =  value * 1000
+            self._log.debug("setting acceleration to: %f" % pmacAcceleration)
+            ivar = int("%d20" % axis)
+            try:
+                self.pmacEth.command_inout("SetIVariable", (float(ivar), float(pmacAcceleration)))
+            except PyTango.DevFailed, e:
+                #self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,value,ivar,pmacAcceleration,e))
+                self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed.", axis, name, value, ivar, pmacAcceleration)
+                raise
+        elif name.lower() == "step_per_unit":
+            self.attributes[axis]["step_per_unit"] = float(value)
+        #@todo implement base_rate
 
     def GetPar(self, axis, name):
         """ Get the standard pool motor parameters.
@@ -305,37 +337,51 @@ class TurboPmacController(MotorController):
         @param name of the parameter to get the value
         @return the value of the parameter
         """
-        try:
-            if name.lower() == "velocity":
-                pmacVelocity = float(self.pmacEth.command_inout("GetIVariable", long("%d22" % axis)))
-                sardanaVelocity = (pmacVelocity * 1000) / self.attributes[axis]["step_per_unit"]
-                return sardanaVelocity
-            
-            elif name.lower() == "acceleration":
-                #here we convert acceleration time from msec(returned by TurboPmac) to sec(Sardana standard)
-                value = float(self.pmacEth.command_inout("GetIVariable",long("%d20" % axis))) 
-                return  (value / 1000)
-            elif name.lower() == "step_per_unit":
-                return self.attributes[axis]["step_per_unit"]
+        if name.lower() == "velocity":
+            ivar = long("%d22" % axis)
+            try:
+                pmacVelocity = self.pmacEth.command_inout("GetIVariable", ivar)
+            except PyTango.DevFailed, e:
+                #self._log.error("GetPar(%d,%s,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,ivar,e))
+                self._log.error("GetPar(%d,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed.", axis, name, ivar)
+                raise
+            #pmac velocity from xxx (returned by TurboPmac) to xxx(Sardana standard) conversion
+            sardanaVelocity = (float(pmacVelocity) * 1000) / self.attributes[axis]["step_per_unit"]
+            return sardanaVelocity
+    
+        elif name.lower() == "acceleration":
+                #pmac acceleration time from msec(returned by TurboPmac) to sec(Sardana standard)
+            ivar = long("%d20" % axis)
+            try:
+                pmacAcceleration = self.pmacEth.command_inout("GetIVariable",ivar) 
+            except PyTango.DevFailed, e:
+                #self._log.error("GetPar(%d,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,ivar,e))
+                self._log.error("GetPar(%d,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed.", axis, name, ivar)
+                raise
+            sardanaAcceleration = float(pmacAcceleration) / 1000
+            return sardanaAcceleration
+
+        elif name.lower() == "step_per_unit":
+            return self.attributes[axis]["step_per_unit"]
             #@todo implement base_rate
-            else:
-                return None
-        except Exception,e:
-            self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
-            raise
+        else:
+            return None
 
     def AbortOne(self, axis):
         if self.attributes[axis]["MotionProgramRunning"]:
+            abortCmd = "&%da" % self.attributes[axis]["CoordinateSystem"]
             try:
-                self.pmacEth.command_inout("OnlineCmd", "&%da" % self.attributes[axis]["CoordinateSystem"])
+                self.pmacEth.command_inout("OnlineCmd", abortCmd)
             except PyTango.DevFailed, e:
-                self._log.error("AbortOne(): OnlineCmd(&%da) command called on PmacEth DeviceProxy failed. \nException: %s" %(attributes[axis]["CoordinateSystem"], e))
+                #self._log.error("AbortOne(%d): OnlineCmd(%s) command called on PmacEth DeviceProxy failed. \nException: %s" %(abortCmd, e))
+                self._log.error("AbortOne(%d): OnlineCmd(%s) command called on PmacEth DeviceProxy failed." % axis, abortCmd)
                 raise
         else:    
             try:
                 self.pmacEth.command_inout("JogStop",[axis])
             except PyTango.DevFailed, e:
-                self._log.error("AbortOne(): JogStop command on %d axis called on PmacEth DeviceProxy failed. \nException: %s" % (axis, e))
+                #self._log.error("AbortOne(%d): JogStop(%d) command called on PmacEth DeviceProxy failed. \nException: %s" % (axis, axis, e))
+                self._log.error("AbortOne(%d): JogStop(%d) command called on PmacEth DeviceProxy failed." % axis, axis)
     
     def DefinePosition(self, axis, value):
         pass
