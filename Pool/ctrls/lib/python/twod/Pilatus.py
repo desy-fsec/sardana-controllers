@@ -48,7 +48,7 @@ class PilatusCtrl(TwoDController):
         self.DelayTime = []
         self.dft_ExposureTime = 0
         self.ExposureTime = []
-        self.dft_ExposureTime = 0
+        self.dft_ExposurePeriod = 0
         self.ExposurePeriod = []
         self.dft_FileStartNum = 0
         self.FileStartNum = []
