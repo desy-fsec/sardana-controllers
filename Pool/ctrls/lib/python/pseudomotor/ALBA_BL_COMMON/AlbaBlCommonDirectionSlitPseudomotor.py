@@ -3,13 +3,13 @@ from pool import PseudoMotorController, PoolUtil
 import PyTango
 import math
 
-class ClaessSlit(PseudoMotorController):
+class CommonDirectionSlit(PseudoMotorController):
     """A Slit pseudo motor controller for handling gap and offset pseudo 
        motors. The system uses to real motors sl2t (top slit) and sl2b (bottom
        slit)."""
     
     gender = "Slit"
-    model  = "Bl22 Claess slit"
+    model  = "Common direction slit"
     organization = "CELLS - ALBA"
     image = "slit.png"
     logo = "ALBA_logo.png"
