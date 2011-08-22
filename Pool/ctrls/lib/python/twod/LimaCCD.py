@@ -11,7 +11,7 @@ class LimaCCDCtrl(TwoDController):
 			     'FileSuffix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'SavingMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'LastImageReady':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+			     'LastImageReady':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'NbFrames':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'TriggerMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'CameraType':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
@@ -52,7 +52,7 @@ class LimaCCDCtrl(TwoDController):
         self.FileDir = []
         self.dft_SavingMode = ""
         self.SavingMode = []
-        self.dft_LastImageReady = ""
+        self.dft_LastImageReady = 0
         self.LastImageReady = []
         self.dft_NbFrames = 0
         self.NbFrames = []
@@ -88,7 +88,7 @@ class LimaCCDCtrl(TwoDController):
     def StateOne(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].read_attribute("acq_status")
+            sta = self.proxy[ind-1].read_attribute("acq_status").value
             if sta == "Ready":
                 tup = (PyTango.DevState.ON,"Camera ready")
             elif sta == "Running":
@@ -121,17 +121,29 @@ class LimaCCDCtrl(TwoDController):
         pass
 
     def PreStartOne(self,ind):
-        self.proxy[ind-1].command_inout("prepareAcq")
         return True
 		
     def StartOne(self,ind):
-        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StartOne method for index",ind
+ #       print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StartOne method for index",ind
+        self.proxy[ind-1].command_inout("prepareAcq")
         self.proxy[ind-1].command_inout("startAcq")
         
     def AbortOne(self,ind):
         print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("stopAcq")
- 
+
+    def GetPar(self, ind, par_name):
+        if par_name == "XDim":
+            if self.device_available[ind-1]:
+                return int(self.proxy[ind-1].read_attribute("image_width").value)
+        elif par_name == "YDim":
+            if self.device_available[ind-1]:
+                return int(self.proxy[ind-1].read_attribute("image_height").value)
+        elif par_name == "IFormat":
+            # ULong
+            return 3 
+            
+            
     def GetExtraAttributePar(self,ind,name):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "LatencyTime":
@@ -188,9 +200,6 @@ class LimaCCDCtrl(TwoDController):
         if name == "SavingMode":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("saving_mode",value)
-        if name == "LastImageReady":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("last_image_ready",value)
         if name == "NbFrames":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("acq_nb_frames",value)
