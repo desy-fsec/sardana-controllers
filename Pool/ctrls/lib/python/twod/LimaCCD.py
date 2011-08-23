@@ -11,6 +11,9 @@ class LimaCCDCtrl(TwoDController):
 			     'FileSuffix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
 			     'SavingMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+			     'SavingCommondHeader':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+			     'SavingHeaderDelimiter':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
+			     'SavingNextNumber':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'LastImageReady':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'NbFrames':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'TriggerMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
@@ -52,6 +55,12 @@ class LimaCCDCtrl(TwoDController):
         self.FileDir = []
         self.dft_SavingMode = ""
         self.SavingMode = []
+        self.dft_SavingCommonHeader = ""
+        self.SavingCommonHeader = []
+        self.dft_SavingHeaderDelimiter = ""
+        self.SavingHeaderDelimiter = []
+        self.dft_SavingNextNumber = 0
+        self.SavingNextNumber = []
         self.dft_LastImageReady = 0
         self.LastImageReady = []
         self.dft_NbFrames = 0
@@ -75,6 +84,9 @@ class LimaCCDCtrl(TwoDController):
         self.FileSuffix.append(self.dft_FileSuffix)
         self.FileDir.append(self.dft_FileDir)
         self.SavingMode.append(self.dft_SavingMode)
+        self.SavingCommonHeader.append(self.dft_SavingCommonHeader)
+        self.SavingHeaderDelimiter.append(self.dft_SavingHeaderDelimiter)
+        self.SavingNextNumber.append(self.dft_SavingNextNumber)
         self.LastImageReady.append(self.dft_LastImageReady)
         self.NbFrames.append(self.dft_NbFrames)
         self.TriggerMode.append(self.dft_TriggerMode)
@@ -164,6 +176,15 @@ class LimaCCDCtrl(TwoDController):
         if name == "SavingMode":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].read_attribute("saving_mode").value
+        if name == "SavingCommonHeader":
+            if self.device_available[ind-1]:
+                return self.proxy[ind-1].read_attribute("saving_common_header").value
+        if name == "SavingHeaderDelimiter":
+            if self.device_available[ind-1]:
+                return self.proxy[ind-1].read_attribute("saving_header_delimiter").value
+        if name == "SavingNextNumber":
+            if self.device_available[ind-1]:
+                return self.proxy[ind-1].read_attribute("saving_next_number").value
         if name == "LastImageReady":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].read_attribute("last_image_ready").value
@@ -200,6 +221,15 @@ class LimaCCDCtrl(TwoDController):
         if name == "SavingMode":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("saving_mode",value)
+        if name == "SavingCommonHeader":
+            if self.device_available[ind-1]:
+                self.proxy[ind-1].write_attribute("saving_common_header",value)
+        if name == "SavingHeaderDelimiter":
+            if self.device_available[ind-1]:
+                self.proxy[ind-1].write_attribute("saving_header_delimiter",value)
+        if name == "SavingNextNumber":
+            if self.device_available[ind-1]:
+                self.proxy[ind-1].write_attribute("saving_next_number",value)
         if name == "NbFrames":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("acq_nb_frames",value)
