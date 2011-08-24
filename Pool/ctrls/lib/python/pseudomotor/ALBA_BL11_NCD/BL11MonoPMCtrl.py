@@ -69,39 +69,40 @@ class Bl11Energy(PseudoMotorController):
         self.debug = False
 
     def calc_physical(self, index, pseudos):
-        return self.calc_all_physical(pseudos)[index - 1]
+        return self.calc_all_physical(pseudos)[index-1]
 
     def calc_pseudo(self, index, physicals):
-        return self.calc_all_pseudo(physicals)[index - 1]
+        return self.calc_all_pseudo(physicals)[index-1]
 
     def calc_all_physical(self, pseudos):
         #bragg angle is called theta to distinguish with the bragg library
-        energy = pseudos
+        energy = pseudos[0]
         try:
             #bragg.ener2angle(E, d=None, n=1 means Si_111)
             theta_radians = bragg.ener2angle(bragg.joules(energy*1000))
             theta = degrees(theta_radians)
             t2 = ((Delta*sin(theta_radians))/sin(2*theta_radians))*1000
-            return (theta,t2)
+            return (theta,t2,)
         except Exception,e:
             self._log.error('calc_all_physical(): Exception %s'%(e))
-            return (NaN,NaN)
+            return (NaN,NaN,)
 
     def calc_all_pseudo(self, physicals):
         #bragg angle is called theta to distinguish with the bragg library
         theta,t2 = physicals
         try:
             #bragg.angle2ener(scatangle, d=None, n=1):
-            return bragg.electronvolts(bragg.angle2ener(radians(theta)))/1000
+            return (bragg.electronvolts(bragg.angle2ener(radians(theta)))/1000,)
         except Exception,e:
             self._log.error('calc_all_pseudo(): Exception %s'%(e))
-            return (NaN)
+            return (NaN,)
 
 if __name__ == '__main__':
   # Just some unit tests of the computation
   dcmTest = Bl11Energy('test_name',{})
   dcmTest.name = 'test_name'
-  braggRange = [ 7.5,#e=15.1 keV
+  braggRange = [ 0.0,
+                 7.5,#e=15.1 keV
                  8.0,#e=14.2 keV
                  9.0,#e=12.6 keV
                 10.0,#e=11.4 keV
@@ -121,5 +122,5 @@ if __name__ == '__main__':
   for test in physicalsTest:
       energy = dcmTest.calc_all_pseudo(test)
       theta,t2 = dcmTest.calc_all_physical(energy)
-      print("bragg= %3.1f\tenergy= %3.1f\t theta=%3.1f\tt2=%4.2f"%(test[0],energy,theta,t2))
+      print("bragg= %3.1f\tenergy= %3.1f\t theta=%3.1f\tt2=%4.2f"%(test[0],energy[0],theta,t2))
 
