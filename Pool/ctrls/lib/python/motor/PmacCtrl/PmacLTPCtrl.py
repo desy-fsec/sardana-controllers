@@ -44,27 +44,37 @@ class PmacLTPController(PmacController):
 
     def __init__(self,inst,props):
         PmacController.__init__(self,inst,props)
+        self._superklass = PmacController
 
     def StateOne(self, axis):
+	#self._log.info("StateOne 1")
         state = PyTango.DevState.ON
         switchstate = 0
         status = "No limits are active, motor is in position"
         if not bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d40" % axis))))):
+               #self._log.info("StateOne 2")
                state = PyTango.DevState.MOVING
                status = '\nThe motor is moving'
         if bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d21" % axis))))):
+               #self._log.info("StateOne 3")
                state = PyTango.DevState.ALARM
                status = '\nAt least one of the negative/positive limit is activated'
                switchstate += 2
         if bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d22" % axis))))):
+               #self._log.info("StateOne 4")
                state = PyTango.DevState.ALARM
                status = '\nAt least one of the negative/positive limit is activated'
                switchstate += 4
         if not bool(int(self.pmacEth.command_inout("GetMVariable",(int("%d39" % axis))))):
+               #self._log.info("StateOne 5")
                state = PyTango.DevState.ALARM
                status = '''\nMotor's amplifier is not enabled'''
+        #self._log.info("StateOne 6")
         return (state, status, switchstate)
-    
+
+    def GetPar(self, axis, name):
+        return self._superklass.GetPar(self, axis, name)    
+
     def GetExtraAttributePar(self, axis, name):
         """ Get Pmac axis particular parameters.
         @param axis to get the parameter
@@ -96,7 +106,7 @@ class PmacLTPController(PmacController):
                                            "Axis nr 2 does not support various feedback mode.",
                                            "PmacLTPCtrl.GetExtraAttribute()")
         else:
-	    return PmacController.GetExtraAttributePar(self, axis, name)
+            return self._superklass.GetExtraAttributePar(self, axis, name)
 
     def SetExtraAttributePar(self, axis, name, value):
         """ Set Pmac axis particular parameters.
@@ -124,4 +134,4 @@ class PmacLTPController(PmacController):
 
                 return
         else:
-            PmacController.SetExtraAttributePar(self, axis, name, value)
+            self._superklass.SetExtraAttributePar(self, axis, name, value)
