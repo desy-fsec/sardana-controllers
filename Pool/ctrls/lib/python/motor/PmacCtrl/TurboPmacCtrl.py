@@ -127,9 +127,7 @@ class TurboPmacController(MotorController):
         try:
             pmacEthState = self.pmacEth.state()
         except PyTango.DevFailed, e:
-            #self._log.error("PreStateAll(): PmacEth DeviceProxy state command failed. \nException: %s", e)
             self._log.error("PreStateAll(): PmacEth DeviceProxy state command failed.")
-            raise
         if pmacEthState == PyTango.DevState.ON:
             self.pmacEthOk = True
             
@@ -139,19 +137,15 @@ class TurboPmacController(MotorController):
         try:
             motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
         except PyTango.DevFailed, e:
-            #self._log.error("StateAll(): SendCtrlChar('B') command called on PmacEth DeviceProxy failed. \nException: %s", e)
             self._log.error("StateAll(): SendCtrlChar('B') command called on PmacEth DeviceProxy failed.")
             self.pmacEthOk = False
-            raise
-        motStateBinArray = [map(int,s,len(s)*[16]) for s in motStateAns.split()]
-        
+        motStateBinArray = [map(int,s,len(s)*[16]) for s in motStateAns.split()]        
+
         try:
             csStateAns = self.pmacEth.command_inout("SendCtrlChar", "C")
         except PyTango.DevFailed, e:
-            #self._log.error("StateAll(): SendCtrlChar('C') command called on PmacEth DeviceProxy failed. \nException: %s", e)
             self._log.error("StateAll(): SendCtrlChar('C') command called on PmacEth DeviceProxy failed.")
-            self.pmacEthOk = False
-            raise
+            self.pmacEthOk = False           
         csStateBinArray = [map(int,s,len(s)*[16]) for s in csStateAns.split()]
         
         for axis in self.axesList:
