@@ -151,8 +151,13 @@ class TangoAttrIORController(IORegisterController):
             if readFailed and not dev_state == DevState.MOVING:
                 return (DevState.ALARM,
                         "Fault on read attibute.\nThe tango device status says: %s"%dev_proxy.status())
-            return (dev_proxy.state(),
-                    "The tango device status says: %s"%dev_proxy.status())
+            # IF PROXY DEVICE IS IN FAULT, MASK IT AS 'ALARM' AND INFORM IN STATUS
+            state = dev_proxy.state()
+            status = dev_proxy.status()
+            if state in [DevState.FAULT, DevState.UNKNOWN]:
+                status = 'Masked ALARM state, tango device is in %s state with status: %s' % (state, status)
+                state = DevState.ALARM
+            return (state, status)
 
     def ReadOne(self, axis):
         attr = self.devsExtraAttributes[axis][ATTRIBUTE]
