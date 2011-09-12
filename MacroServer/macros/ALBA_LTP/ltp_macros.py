@@ -34,7 +34,7 @@ class LTP_home(Macro):
         #checking if this motor belongs to PmacLTPController
         controllerObj = self.pool.getObj("Controller", self.ctrl_name)
         controllerClassName = controllerObj.getClassName()
-        if controllerClassName != "PmacLTPController":
+        if controllerClassName != "LtpTurboPmacController":
             self.error("Could not start homing macro. This Motor does not belong to PmacLTPController")
             return False       
 
