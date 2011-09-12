@@ -33,20 +33,20 @@
 ###########################################################################
 
 import PyTango
-import TurboPmacCtrl
+from TurboPmacCtrl import TurboPmacController
 from pool import MotorController
 
-class LtpTurboPmacController(TurboPmacCtrl.TurboPmacController):
+class LtpTurboPmacController(TurboPmacController):
     """This class is the Tango Sardana motor controller for the Turbo Pmac motor controller device in LTP."""
     
-    superklass = TurboPmacCtrl.TurboPmacController    
     MaxDevice = 2
 
     ctrl_extra_attributes = dict(TurboPmacController.ctrl_extra_attributes)
     ctrl_extra_attributes['FeedbackMode'] = {'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}
 
     def __init__(self,inst,props):
-        self.superklass.__init__(self,inst,props)
+        TurboPmacController.__init__(self, inst, props)
+	self.superklass = TurboPmacController    
 
     def GetExtraAttributePar(self, axis, name):
         """ Get Pmac axis particular parameters.
@@ -54,30 +54,23 @@ class LtpTurboPmacController(TurboPmacCtrl.TurboPmacController):
         @param name of the parameter to retrive
         @return the value of the parameter
         """
-        name = name.lower()
-        if name == "feedbackmode":
+        if name == "FeedbackMode":
             if axis == 1:
-                i103value = self.pmacEth.command_inout("GetIVariable", int("%d03" % axis))
-                try:
-                    if int(i103value) == 13569:
-                        return 1
-                    elif int(i103value) == 13571:
-                        return 2
-                    else:
-                        self._log.error("While getting feedback mode Pmac returned some inconsistent value, please report it to controls division.")
-			PyTango.Except.throw_exception("Value error",
-                                           "Pmac returned some inconsistent value, please report it to controls division.",
-                                           "PmacLTPCtrl.GetExtraAttribute()")
-                except ValueError:
-                    self._log.error("While gettinh feedback mode Pmac returned some inconsistent value, please report it to controls division.")
-                    PyTango.Except.throw_exception("Value error",
-                                           "Pmac returned some inconsistent value, please report it to controls division.",
-                                           "PmacLTPCtrl.GetExtraAttribute()")
+                mode = self.pmacEth.command_inout("OnlineCmd", "I103")
+		if mode == "$3501":
+		    return 1
+		elif mode == "$3503":
+		    return 2
+		else:
+		    self._log.error("While getting feedback mode TurboPmac returned some inconsistent value, please report it to controls division.")
+		    PyTango.Except.throw_exception("Value error",
+					"TurboPmac returned some inconsistent value, please report it to controls division.",
+					"LtpTurboPmacController.GetExtraAttribute()")
             if axis == 2:
                 self._log.warning("Various feedback mode feature is reserved only for top axis.")
 		PyTango.Except.throw_exception("Value error",
                                            "Axis nr 2 does not support various feedback mode.",
-                                           "PmacLTPCtrl.GetExtraAttribute()")
+                                           "LtpTurboPmacController.GetExtraAttribute()")
         else:
             return self.superklass.GetExtraAttributePar(self, axis, name)
 
@@ -87,13 +80,12 @@ class LtpTurboPmacController(TurboPmacCtrl.TurboPmacController):
         @param name of the parameter
         @param value to be set
         """
-        name = name.lower()
-        if name == "feedbackmode":
+        if name == "FeedbackMode":
             if axis == 1:
                 if value == 1:
-                    self.pmacEth.command_inout("SetIVariable",[int("%d03" % axis), 13569])
+                    self.pmacEth.command_inout("OnlineCmd","I103=$3501")
                 elif value == 2:
-                    self.pmacEth.command_inout("SetIVariable",[int("%d03" % axis), 13571])
+                    self.pmacEth.command_inout("OnlineCmd","I103=$3503")
                 else:
                     self._log.warning("Feedback supports only two modes: use 1 for single feedback mode or 2 for dual feedback mode.")
                     PyTango.Except.throw_exception("Value error",
