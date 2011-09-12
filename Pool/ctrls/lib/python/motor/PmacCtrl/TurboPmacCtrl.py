@@ -394,7 +394,6 @@ class TurboPmacController(MotorController):
         @param name of the parameter
         @param value to be set
         """
-        name = name.lower()
         if name == "AmplifierEnabled":
             if value:
                 self.pmacEth.command_inout("JogStop", [axis])
