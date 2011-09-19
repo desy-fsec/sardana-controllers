@@ -90,7 +90,7 @@ def home(macro, motorsInfoList):
 
     motors = [i.get('motor') for i in motorsInfoList]
     hmDirections = [i.get('direction') for i in motorsInfoList]
-    HM_CMD, HM_STATUS_CMD, HM_POS_CMD, HM_ENCIN_CMD, ABORT_CMD = populate_homing_commands(motors, hmDirections, group=True, strict=False)
+    HM_CMD, HM_STATUS_CMD, HM_POS_CMD, HM_ENCIN_CMD, ABORT_CMD = populate_homing_commands(motors, hmDirections, group=False, strict=False)
     macro.debug('HM_CMD: %s', HM_CMD)
     macro.debug('HM_STATUS_CMD: %s', HM_STATUS_CMD)
     macro.debug('HM_POS_CMD: %s', HM_POS_CMD)
