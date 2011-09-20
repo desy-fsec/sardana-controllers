@@ -50,16 +50,48 @@ class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
         self.superklass.__init__(self,inst,props)
         #self._log.setLevel(logging.DEBUG)
         #self.energyPseudoMotor = PyTango.DeviceProxy(self.EnergyDeviceName) 
-    
-    def PreStartAll(self):
-        self.startMultiple = {}
 
-    def PreStartOne(self, axis, position):
-        self.startMultiple[axis] = position
-        return True
+    def StateOne(self, axis):
+        attributes = self.attributes[axis]
+        switchstate = 0
+        if not self.pmacEthOk:
+            state = PyTango.DevState.ALARM
+            status = "Ethernet connection with TurboPmac failed. \n(Check if PmacEth DS is running and if its state is ON)"
+        elif not attributes["MotorActivated"]:
+            state = PyTango.DevState.FAULT
+            status = "Motor is deactivated - it is not under Pmac control (Check Ix00 variable)."
+        else:
+            #motion cases           
+            if attributes["MotionProgramRunning"]:
+                state = PyTango.DevState.MOVING
+                status = "Motor is used by active motion program."                
+            elif not attributes["DesiredVelocityZero"]:
+                state = PyTango.DevState.MOVING
+                status = "Motor is moving."
+            else:
+                state = PyTango.DevState.ON
+                status = "Motor is holding it's position."
+            if state == PyTango.DevState.MOVING and attributes["HomeSearchInProgress"]:
+                status += "Home search in progress."
 
-    def StartOne(self, axis, position):
-        pass
+            #amplifier fault cases
+            if not attributes["AmplifierEnabled"]:
+                state = PyTango.DevState.ALARM
+                status = "Amplifier disabled."
+                if attributes["AmplifierFaultError"]:
+                    status += "\nAmplifier fault signal received."
+                if attributes["FatalFollowingError"]:
+                    status += "\nFatal Following / Integrated Following Error exceeded."
+            #limits cases        
+            if attributes["NegativeEndLimitSet"]:
+                   state = PyTango.DevState.ALARM
+                   status += "\nAt least one of the lower/upper switches is activated"
+                   switchstate += 4
+            if attributes["PositiveEndLimitSet"]:
+                   state = PyTango.DevState.ALARM
+                   status += "\nAt least one of the negative/positive limit is activated"
+                   switchstate += 2
+        return (state, status, switchstate)
        
     def StartAll(self):
         #@todo: here we should use some extra_attribute of energy pseudomotor saying if we want to do energy motion or single axis motion, cause len(self.startMultiple) > 1 is true if we move a MotorGroup(e.g. mv macro with bragg and perp) 
@@ -71,7 +103,6 @@ class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
             self._log.debug('Starting energy movement with bragg: %f, exitOffset: %f' %(bragg,exitOffset))
             self.pmacEth.command_inout("SetPVariable", [100,bragg])
             self.pmacEth.command_inout("SetPVariable", [101,exitOffset])
-            self.pmacEth.command_inout("RunMotionProg", 1)
-            #self.pmacEth.command_inout("RunMotionProg", 11)
+            self.pmacEth.command_inout("RunMotionProg", 11)
         else:
             self.superklass.StartAll(self)
