@@ -139,6 +139,7 @@ class TurboPmacController(MotorController):
         except PyTango.DevFailed, e:
             self._log.error("StateAll(): SendCtrlChar('B') command called on PmacEth DeviceProxy failed.")
             self.pmacEthOk = False
+            return
         motStateBinArray = [map(int,s,len(s)*[16]) for s in motStateAns.split()]        
 
         try:
@@ -146,68 +147,71 @@ class TurboPmacController(MotorController):
         except PyTango.DevFailed, e:
             self._log.error("StateAll(): SendCtrlChar('C') command called on PmacEth DeviceProxy failed.")
             self.pmacEthOk = False           
+            return
         csStateBinArray = [map(int,s,len(s)*[16]) for s in csStateAns.split()]
         
         for axis in self.axesList:
+            #here we will work on reference to dictionary to save time in accessing it
+            attributes = self.attributes[axis]
             motBinState = motStateBinArray[axis-1]
             #First Word
-            self.attributes[axis]["MotorActivated"] = bool(motBinState[0] & 0x8)
-            self.attributes[axis]["NegativeEndLimitSet"] = bool(motBinState[0] & 0x4) 
-            self.attributes[axis]["PositiveEndLimitSet"] = bool(motBinState[0] & 0x2)
-            self.attributes[axis]["ExtendedServoAlgorithmEnabled"] = bool(motBinState[0] & 0x1)
+            attributes["MotorActivated"] = bool(motBinState[0] & 0x8)
+            attributes["NegativeEndLimitSet"] = bool(motBinState[0] & 0x4) 
+            attributes["PositiveEndLimitSet"] = bool(motBinState[0] & 0x2)
+            attributes["ExtendedServoAlgorithmEnabled"] = bool(motBinState[0] & 0x1)
             
-            self.attributes[axis]["AmplifierEnabled"] = bool(motBinState[1] & 0x8)
-            self.attributes[axis]["OpenLoopMode"] = bool(motBinState[1] & 0x4)
-            self.attributes[axis]["MoveTimerActive"] = bool(motBinState[1] & 0x2)
-            self.attributes[axis]["IntegrationMode"] = bool(motBinState[1] & 0x1)
+            attributes["AmplifierEnabled"] = bool(motBinState[1] & 0x8)
+            attributes["OpenLoopMode"] = bool(motBinState[1] & 0x4)
+            attributes["MoveTimerActive"] = bool(motBinState[1] & 0x2)
+            attributes["IntegrationMode"] = bool(motBinState[1] & 0x1)
             
-            self.attributes[axis]["DwellInProgress"] = bool(motBinState[2] & 0x8)
-            self.attributes[axis]["DataBlockError"] = bool(motBinState[2] & 0x4)
-            self.attributes[axis]["DesiredVelocityZero"] = bool(motBinState[2] & 0x2)
-            self.attributes[axis]["AbortDeceleration"] = bool(motBinState[2] & 0x1)
+            attributes["DwellInProgress"] = bool(motBinState[2] & 0x8)
+            attributes["DataBlockError"] = bool(motBinState[2] & 0x4)
+            attributes["DesiredVelocityZero"] = bool(motBinState[2] & 0x2)
+            attributes["AbortDeceleration"] = bool(motBinState[2] & 0x1)
             
-            self.attributes[axis]["BlockRequest"] = bool(motBinState[3] & 0x8)
-            self.attributes[axis]["HomeSearchInProgress"] = bool(motBinState[3] & 0x4)
-            self.attributes[axis]["User-WrittenPhaseEnable"] = bool(motBinState[3] & 0x2)
-            self.attributes[axis]["User-WrittenServoEnable"] = bool(motBinState[3] & 0x1)
+            attributes["BlockRequest"] = bool(motBinState[3] & 0x8)
+            attributes["HomeSearchInProgress"] = bool(motBinState[3] & 0x4)
+            attributes["User-WrittenPhaseEnable"] = bool(motBinState[3] & 0x2)
+            attributes["User-WrittenServoEnable"] = bool(motBinState[3] & 0x1)
             
-            self.attributes[axis]["AlternateSource_Destination"] = bool(motBinState[4] & 0x8)
-            self.attributes[axis]["PhasedMotor"] = bool(motBinState[4] & 0x4)
-            self.attributes[axis]["FollowingOffsetMode"] = bool(motBinState[4] & 0x2)
-            self.attributes[axis]["FollowingEnabled"] = bool(motBinState[4] & 0x1)
+            attributes["AlternateSource_Destination"] = bool(motBinState[4] & 0x8)
+            attributes["PhasedMotor"] = bool(motBinState[4] & 0x4)
+            attributes["FollowingOffsetMode"] = bool(motBinState[4] & 0x2)
+            attributes["FollowingEnabled"] = bool(motBinState[4] & 0x1)
             
-            self.attributes[axis]["ErrorTriger"] = bool(motBinState[5] & 0x8)
-            self.attributes[axis]["SoftwarePositionCapture"] = bool(motBinState[5] & 0x4)
-            self.attributes[axis]["IntegratorInVelocityLoop"] = bool(motBinState[5] & 0x2)
-            self.attributes[axis]["AlternateCommand-OutputMode"] = bool(motBinState[5] & 0x1)
+            attributes["ErrorTriger"] = bool(motBinState[5] & 0x8)
+            attributes["SoftwarePositionCapture"] = bool(motBinState[5] & 0x4)
+            attributes["IntegratorInVelocityLoop"] = bool(motBinState[5] & 0x2)
+            attributes["AlternateCommand-OutputMode"] = bool(motBinState[5] & 0x1)
             #Second Word
             #We add one because these bits together hold a value equal to the Coordinate System nr minus one
-            self.attributes[axis]["CoordinateSystem"] = motBinState[6] + 1
+            attributes["CoordinateSystem"] = motBinState[6] + 1
             
-            self.attributes[axis]["CoordinateDefinition"] = self.translateCoordinateDefinition(motBinState[7])
+            attributes["CoordinateDefinition"] = self.translateCoordinateDefinition(motBinState[7])
              
-            self.attributes[axis]["AssignedToCoordinateSystem"] = bool(motBinState[8] & 0x8)
+            attributes["AssignedToCoordinateSystem"] = bool(motBinState[8] & 0x8)
             #Reserved for future use
-            self.attributes[axis]["ForegroundInPosition"] = bool(motBinState[8] & 0x2)
-            self.attributes[axis]["StoppedOnDesiredPositionLimit"] = bool(motBinState[8] & 0x1)
+            attributes["ForegroundInPosition"] = bool(motBinState[8] & 0x2)
+            attributes["StoppedOnDesiredPositionLimit"] = bool(motBinState[8] & 0x1)
             
             
-            self.attributes[axis]["StoppedOnPositionLimit"] = bool(motBinState[9] & 0x8)
-            self.attributes[axis]["HomeComplete"] = bool(motBinState[9] & 0x4)
-            self.attributes[axis]["PhasingSearch_ReadActive"] = bool(motBinState[9] & 0x2)
-            self.attributes[axis]["PhasingReferenceError"] = bool(motBinState[9] & 0x1)
+            attributes["StoppedOnPositionLimit"] = bool(motBinState[9] & 0x8)
+            attributes["HomeComplete"] = bool(motBinState[9] & 0x4)
+            attributes["PhasingSearch_ReadActive"] = bool(motBinState[9] & 0x2)
+            attributes["PhasingReferenceError"] = bool(motBinState[9] & 0x1)
             
-            self.attributes[axis]["TriggerMove"] = bool(motBinState[10] & 0x8)
-            self.attributes[axis]["IntegratedFatalFollowingError"] = bool(motBinState[10] & 0x4)
-            self.attributes[axis]["I2T_amplifierFaultError"] = bool(motBinState[10] & 0x2)
-            self.attributes[axis]["BacklashDirectionFlag"] = bool(motBinState[10] & 0x1)
+            attributes["TriggerMove"] = bool(motBinState[10] & 0x8)
+            attributes["IntegratedFatalFollowingError"] = bool(motBinState[10] & 0x4)
+            attributes["I2T_amplifierFaultError"] = bool(motBinState[10] & 0x2)
+            attributes["BacklashDirectionFlag"] = bool(motBinState[10] & 0x1)
 
-            self.attributes[axis]["AmplifierFaultError"] = bool(motBinState[11] & 0x8)
-            self.attributes[axis]["FatalFollowingError"] = bool(motBinState[11] & 0x4)
-            self.attributes[axis]["WarningFollowingError"] = bool(motBinState[11] & 0x2)
-            self.attributes[axis]["InPosition"] = bool(motBinState[11] & 0x1)
+            attributes["AmplifierFaultError"] = bool(motBinState[11] & 0x8)
+            attributes["FatalFollowingError"] = bool(motBinState[11] & 0x4)
+            attributes["WarningFollowingError"] = bool(motBinState[11] & 0x2)
+            attributes["InPosition"] = bool(motBinState[11] & 0x1)
                         
-            csBinState = csStateBinArray[self.attributes[axis]["CoordinateSystem"]-1]
+            csBinState = csStateBinArray[attributes["CoordinateSystem"]-1]
             self.attributes[axis]["MotionProgramRunning"] = bool(csBinState[5] & 0x1)
     
     def StateOne(self, axis):
@@ -232,17 +236,6 @@ class TurboPmacController(MotorController):
                 if self.attributes[axis]["MotionProgramRunning"]:
                     status = "\nMotor is used by active motion program."
 
-            #if self.attributes[axis]["MotionProgramRunning"]:
-            #    status = "Motor is used by active motion program."
-            #    state = PyTango.DevState.MOVING
-            #elif self.attributes[axis]["InPosition"]:
-            #    status = "Motor is stopped in position"
-            #    state = PyTango.DevState.ON
-            #elif not self.attributes[axis]["DesiredVelocityZero"]:
-            #        state = PyTango.DevState.MOVING
-            #        status = "Motor is moving."
-            #        if self.attributes[axis]["HomeSearchInProgress"]:
-            #            status += "\nHome search in progress."
             #amplifier fault cases
             if not self.attributes[axis]["AmplifierEnabled"]:
                 state = PyTango.DevState.ALARM
