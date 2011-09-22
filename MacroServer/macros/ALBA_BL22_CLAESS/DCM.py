@@ -2,8 +2,184 @@ import time
 import PyTango
 
 from macro import Macro, Type
+from macro_utils.motors import moveToPosHardLim, moveToNegHardLim
+from macro_utils.icepap import *
 
-class DCM_startup(Macro):
+class dcm_homing_vert(Macro):
+    """ 
+    This macro does the homing of vertical jacks of BL22-CLAESS DCM(Double Crystal Monochromator).
+    Homing procedure is done in 3 steps:
+
+    1. Simultaneously move all the jacks to their negative limits(software or hardware)
+       Whenever any of the jacks reaches its limit, simultaneous motion is continue with the rest of them. 
+    2. When all of them reached extreams Icepap homing routine is started (GROUP STRICT) for all of the jacks
+       simultaneously - in positive direction. Whenever any of the jacks is stopped by a STOP command, 
+       a limit switch or an alarm condition, all the other axes in the group are forced to stop immediately.
+
+    In case of successfully homing of all jacks macro returns True, in all other cases it return False
+    """
+    
+    result_def = [
+        ['homed',  Type.Boolean, None, 'Motor homed state']
+    ]
+
+    JACK1_NAME = 'oh_dcm_jack1'
+    JACK2_NAME = 'oh_dcm_jack2'
+    JACK3_NAME = 'oh_dcm_jack3'
+
+    JACK1_HOMING_DIR = 1
+    JACK2_HOMING_DIR = 1
+    JACK3_HOMING_DIR = 1
+
+    GROUP_STRICT = True
+
+    def prepare(self, *args, **opts):
+        self.jack1 = self.getObj(self.JACK1_NAME, type_class=Type.Motor)
+        self.jack2 = self.getObj(self.JACK2_NAME, type_class=Type.Motor)
+        self.jack3 = self.getObj(self.JACK3_NAME, type_class=Type.Motor)
+
+        jack1_pos = PyTango.AttributeProxy(self.JACK1_NAME + '/position')
+        jack2_pos = PyTango.AttributeProxy(self.JACK2_NAME + '/position')
+        jack3_pos = PyTango.AttributeProxy(self.JACK3_NAME + '/position')
+        
+        jack1_pos_conf = jack1_pos.get_config()
+        jack2_pos_conf = jack2_pos.get_config()
+        jack3_pos_conf = jack3_pos.get_config()
+        
+        #here we mask software limits, to allow reaching hardware limits
+         
+        self.debug('Masking software limits...')
+        self.old_jack1_min = jack1_pos_conf.min_value
+        self.old_jack2_min = jack2_pos_conf.min_value
+        self.old_jack3_min = jack3_pos_conf.min_value
+        jack1_pos_conf.min_value = '-9.999E+003'
+        jack2_pos_conf.min_value = '-9.999E+003'
+        jack3_pos_conf.min_value = '-9.999E+003'
+        jack1_pos.set_config(jack1_pos_conf)
+        jack2_pos.set_config(jack2_pos_conf)
+        jack3_pos.set_config(jack3_pos_conf)
+        
+        self.jack1_min = jack1_pos_conf.min_value
+        self.jack2_min = jack2_pos_conf.min_value
+        self.jack3_min = jack3_pos_conf.min_value
+        
+        self.debug("Jack1 motor min position: %s" % self.jack1_min)
+        self.debug("Jack2 motor min position: %s" % self.jack2_min)
+        self.debug("Jack3 motor min position: %s" % self.jack3_min)
+
+    def run(self, *args, **opts):        
+        try:
+            motors_pos_dict = {self.jack1:float(self.jack1_min), self.jack2:float(self.jack2_min), self.jack3:float(self.jack3_min)}
+            while len(motors_pos_dict):
+                motorsOnNegLim = moveToNegHardLim(self, motors_pos_dict)
+                for m in motorsOnNegLim:
+                    motors_pos_dict.pop(m)
+            jack1_info = create_motor_info_dict(self.jack1, self.JACK1_HOMING_DIR)
+            jack2_info = create_motor_info_dict(self.jack2, self.JACK2_HOMING_DIR)
+            jack3_info = create_motor_info_dict(self.jack3, self.JACK3_HOMING_DIR)
+            
+            res = home_group_strict(self, [jack1_info, jack2_info, jack3_info])
+            if res and jack1_info['homed']:
+                self.debug('Motor %s successfully homed.' % jack1_info['motor'].alias())
+                res = home_group_strict(self, [jack1_info, jack2_info, jack3_info])
+                if res and jack2_info['homed']:
+                    self.debug('Motor %s successfully homed.' % jack2_info['motor'].alias())
+                    res = home_group_strict(self, [jack1_info, jack2_info, jack3_info])
+                    if jack3_info['homed']:
+                        self.debug('Motor %s successfully homed.' % jack3_info['motor'].alias())
+                        self.info('DCM vertical jacks successfully homed.')
+                        return True
+                    else:
+                        self.debug('Motor %s did not find home as the third one.' % jack3_info['motor'].alias())
+                        self.error('DCM vertical jacks homing failed.')  
+                        return False
+                else:
+                        self.debug('Motor %s did not find home as the second one.' % jack2_info['motor'].alias())
+                        self.error('DCM vertical jacks homing failed.')  
+                        return False
+            else: 
+                self.debug('Motor %s did not find home as the first one.' % jack1_info['motor'].alias())
+                self.error('DCM vertical jacks homing failed.')  
+                return False
+        finally:
+            #self.debug('Unmasking software limits...')
+            jack1_pos = PyTango.AttributeProxy(self.JACK1_NAME + '/position')
+            jack2_pos = PyTango.AttributeProxy(self.JACK2_NAME + '/position')
+            jack3_pos = PyTango.AttributeProxy(self.JACK3_NAME + '/position')
+            jack1_pos_conf = jack1_pos.get_config()
+            jack2_pos_conf = jack2_pos.get_config()
+            jack3_pos_conf = jack3_pos.get_config()
+            jack1_pos_conf.min_value = self.old_jack1_min
+            jack2_pos_conf.min_value = self.old_jack2_min
+            jack3_pos_conf.min_value = self.old_jack3_min
+            jack1_pos.set_config(jack1_pos_conf)
+            jack2_pos.set_config(jack2_pos_conf)
+            jack3_pos.set_config(jack3_pos_conf)
+
+class dcm_homing_hori(Macro):
+    """ 
+    This macro does the homing of horizontal translation of BL22-CLAESS DCM (Double Crystal Monochromator).
+    Homing procedure is done in 2 steps:
+
+    1. Move lateral translation motor to its negative limit.
+       
+    2. When it reaches extream, Icepap homing routine is started in positive direction. 
+       Whenever motor is stopped by a STOP command, a limit switch or an alarm condition, 
+       homing routine is stop immediately.
+
+    In case of successful homing macro returns True, in all other cases it return False
+    """
+    
+    result_def = [
+        ['homed',  Type.Boolean, None, 'Motor homed state']
+    ]
+
+    X_NAME = 'oh_dcm_x'
+   
+    X_HOMING_DIR = 1
+
+    def prepare(self, *args, **opts):
+        self.x = self.getObj(self.X_NAME, type_class=Type.Motor)
+
+        x_pos = PyTango.AttributeProxy(self.X_NAME + '/position')
+        x_pos_conf = x_pos.get_config()
+
+        #here we mask software limits, to allow reaching hardware limits
+        self.debug('Masking software limits...')
+        self.old_x_min = x_pos_conf.min_value
+        x_pos_conf.min_value = '-9.999E+003'
+        x_pos.set_config(x_pos_conf)
+        
+        self.x_min = x_pos_conf.min_value
+        
+        #self.debug("X motor min position: %s" % self.x_min)
+
+    def run(self, *args, **opts):        
+        try:
+            motors_pos_dict = {self.x:float(self.x_min)}
+            while len(motors_pos_dict):
+                motorsOnNegLim = moveToNegHardLim(self, motors_pos_dict)
+                for m in motorsOnNegLim:
+                    motors_pos_dict.pop(m)
+            x_info = create_motor_info_dict(self.x, self.X_HOMING_DIR)
+           
+            res = home(self, [x_info])
+            if res:
+                self.info('DCM horizontal translation successfully homed.')
+                return True
+            else: 
+                self.error('DCM horizontal homing failed.')
+                return False
+        finally:
+            #@TODO: uncomment this line when fixed serialization problem
+            #self.debug('Unmasking software limits...')
+            x_pos = PyTango.AttributeProxy(self.X_NAME + '/position')
+            x_pos_conf = x_pos.get_config()
+            x_pos_conf.min_value = self.old_x_min
+            x_pos.set_config(x_pos_conf)
+        
+
+class dcm_startup(Macro):
     """ After each power-up (or PMAC reset) the system must execute a start-up procedure during which
     the Bragg motor is phased (Forced or Soft Phased), motors are homed to their home positions and
     motors assigned into appropriate PMAC coordinate system. 
@@ -89,7 +265,7 @@ class DCM_startup(Macro):
     def on_abort(self):
         pass
     
-class DCM_pre_energy_move(Macro):
+class dcm_pre_energy_move(Macro):
     """ This macro should be run before every energy move. 
     However before scanning it is enough to run it only once. 
     It aborts all motion and checks correct coordinate system definition:
