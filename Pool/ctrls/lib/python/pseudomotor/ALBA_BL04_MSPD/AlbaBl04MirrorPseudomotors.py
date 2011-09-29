@@ -2,7 +2,7 @@ import math
 
 from pool import PseudoMotorController
   
-class M1_Z_Pitch_Roll_Controller(PseudoMotorController):
+class MirrorZPitchRoll(PseudoMotorController):
   """ The PseudoMotor controller for the MSPD's M1 table: Z, Pitch, Roll.
       User units must be: mm for distances and mrad for angles.
       Pitch rotational axis is in the middle of Y dimension.
@@ -74,7 +74,7 @@ class M1_Z_Pitch_Roll_Controller(PseudoMotorController):
 
     return (z, pit, rol)
 
-class M1_X_Yaw_Controller(PseudoMotorController):
+class MirrorXYaw(PseudoMotorController):
   """
     The PseudoMotor controller for the MSPD's M1 table: X, Yaw.
     User units must be: mm for distances and mrad for angles.
