@@ -112,8 +112,8 @@ class MirrorXYaw(PseudoMotorController):
     x_m = x / 1000.0
     yaw_rad = yaw / 1000.0
 
-    mx1_m = x_m - math.tan(yaw_rad) * dim_y_m / 2
-    mx2_m = x_m + math.tan(yaw_rad) * dim_y_m / 2
+    mx1_m = x_m + math.tan(yaw_rad) * dim_y_m / 2
+    mx2_m = x_m - math.tan(yaw_rad) * dim_y_m / 2
 
     mx1 = mx1_m * 1000
     mx2 = mx2_m * 1000
@@ -129,7 +129,7 @@ class MirrorXYaw(PseudoMotorController):
     mx2_m = mx2 / 1000.0
 
     x_m = (mx1_m + mx2_m) / 2
-    yaw_rad = math.atan2((mx2_m - mx1_m), dim_y_m)
+    yaw_rad = math.atan2((mx1_m - mx2_m), dim_y_m)
 
     x = x_m * 1000
     yaw = yaw_rad * 1000
