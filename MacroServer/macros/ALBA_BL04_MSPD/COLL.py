@@ -29,7 +29,7 @@ class coll_homing(Macro):
     def prepare(self, *args, **opts):
         self.mot = self.getObj(self.MOT_NAME, type_class=Type.Motor)
         if self.mot.Limit_switches[1]:
-            raise Exception('Motor %s is already at home position. Homing procedure can not be started.', self.mot.alias())
+            raise Exception('Motor %s is already at home position. Homing procedure can not be started.' % self.mot.alias())
 
     def run(self, *args, **opts):        
         try:
