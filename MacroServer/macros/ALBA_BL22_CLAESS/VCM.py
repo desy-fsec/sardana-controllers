@@ -215,3 +215,41 @@ class vcm_homing_hori(Macro):
         
         #self.debug("Top motor max position: %s" % x1_pos_conf.max_value)
         #self.debug("Bottom motor min position: %s" % bottom_mot_pos_conf.min_value)
+
+
+class vcm_homing_bend(Macro):
+    """ 
+    This macro does the homing of the bender motor of BL22-CLAESS Vertical Collimating Mirror.
+    Homing procedure is started from current possition into negative direction.
+    In case of successful homing macro returns True, on all other cases it returns False
+    """
+    
+    result_def = [
+        ['homed',  Type.Boolean, None, 'Motor homed state']
+    ]
+
+    MOT_NAME = 'oh_vcm_bend'
+    
+    HOMING_DIR = -1    
+
+    def prepare(self, *args, **opts):
+        self.mot = self.getObj(self.MOT_NAME, type_class=Type.Motor)
+        if self.mot.Limit_switches[2]:
+            raise Exception('Motor %s is already at home position. Homing procedure can not be started.' % self.mot.alias())
+
+    def run(self, *args, **opts):        
+        try:
+            mot_info_dict = create_motor_info_dict(self.mot, self.HOMING_DIR)
+            info_dicts = [mot_info_dict]
+            res = home(self, info_dicts)
+            if res == True:
+                self.info('Bender of VCM successfully homed.')
+            elif res == False:
+                self.error('Bender of VCM homing failed.')
+                return False
+            else: 
+                self.error('Unknown error. Please contact responsible control engineer.')
+            return res
+        except Exception, e:
+            self.error(repr(e))
+            raise e
