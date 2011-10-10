@@ -10,9 +10,9 @@ class vfm_homing_vert(Macro):
     This macro does homing of vertical jacks of BL22-CLAESS VFM(Vertical Focusing Mirror).
     Homing procedure is done in 2 steps:
 
-    1. Simultaneously move all the jacks to their positive limits.
+    1. Simultaneously move all the jacks to their positive hardware limits.
        Whenever any of the jacks reaches its limit, simultaneous motion is continue with the rest of them. 
-    2. When all of them reach extreams Icepap homing routine is started (GROUP STRICT) for all of the jack
+    2. When all of them reach extreams Icepap homing routine is started (GROUP STRICT) for all of the jacks
        simultaneously - in negative direction. Whenever any of the jacks is stopped by a STOP command, 
        a limit switch or an alarm condition, all the other axes in the group are forced to stop immediately.
 
@@ -149,16 +149,16 @@ class vfm_homing_vert(Macro):
     
 class vfm_homing_hori(Macro):
     """ 
-    This macro does the homing of horizontal translations ofBL22-CLAESS VFM(Vertical Focusing Mirror).
-    Homing procedure is done in 3 steps:
+    This macro does homing of horizontal translations of BL22-CLAESS VFM(Vertical Focusing Mirror).
+    Homing procedure is done in 2 steps:
 
     1. Simultaneously move all the translations to their negative hardware limits.
-       Whenever any of the translations reaches its limit, simultaneous motion is continue with the second one. 
-    2. When all of them reached extreams Icepap homing routine is started (GROUP) for both translations
+       Whenever any of the translations reaches its limit, simultaneous motion is continued with the second one. 
+    2. When all of them reach extreams Icepap homing routine is started (GROUP) for both translations
        simultaneously - in positive direction. Whenever any of the jacks is stopped by a STOP command, 
        a limit switch or an alarm condition, all the other axes in the group are forced to stop immediately.
 
-    In case of successfully homing of both translations macro returns True, in all other cases it return False.
+    In case of successfully homing of both translations macro returns True, in all other cases it returns False.
     """
     
     result_def = [
@@ -212,11 +212,19 @@ class vfm_homing_hori(Macro):
             x2_info = create_motor_info_dict(self.x2, self.X2_HOMING_DIR)
             
             res = home_group(self, [x1_info, x2_info])
+            if x1_info['homed']:
+                self.debug('Motor %s successfully homed.' % x1_info['motor'].alias())
+            else:
+                self.debug('Motor %s could not find home.' % x1_info['motor'].alias())
+            if x2_info['homed']:
+                self.debug('Motor %s successfully homed.' % x2_info['motor'].alias())
+            else:
+                self.debug('Motor %s could not find home.' % x2_info['motor'].alias())
             if res == True:
-                self.debug('VFM lateral motors successfully homed.')
+                self.info('VFM lateral motors successfully homed.')
                 return True
             else: 
-                self.debug('VFM lateral motors homing failed.')
+                self.info('VFM lateral motors homing failed.')
                 return False
         except Exception, e:
             self.error(repr(e))
