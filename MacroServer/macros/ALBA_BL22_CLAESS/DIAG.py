@@ -7,15 +7,14 @@ from macro_utils.motors import moveToHardLim
 
 class diag_homing_vert(Macro):
     """ 
-    This macro does the homing of vertical slits of the BL22-CLAESS Diagnostic Module.
+    This macro does homing of vertical slits of the BL22-CLAESS Diagnostic Module.
     Homing procedure is done in 3 steps:
-    0. Software limits are masked. 
-    1. Top blade is moved to its positive harware limit and bottom blade is moved to its negative hardware limit (simultaneously).
-    3. Icepap homing procedure is started looking for home in the following directions:
+    1. Top blade is moved to its positive hardware limit and bottom blade is moved to its negative hardware limit (simultaneously).
+    2. Icepap homing procedure is started looking for home in the following directions:
        - top blade moving negative
        - bottom blade moving positive
-    4. When top blade finds its home, it is stopped and bottom continues in the same direction as before.
-    In case of successfully homing of both blades macro returns True, on all other cases it return False
+    3. When top blade finds its home, it is stopped and bottom continues in the same direction as before.
+    In case of successfully homing of both blades macro returns True, in all other cases it returns False.
     """
     
     result_def = [
@@ -65,6 +64,7 @@ class diag_homing_vert(Macro):
                 res = home(self, [bottom_info])
                 if res and bottom_info['homed']:
                     self.debug('Motor %s successfully homed.' % bottom_info['motor'].alias())
+                    self.info('DIAG vertical slits successfully homed.')
                     return True
                 else:
                     self.debug('Motor %s did not find home as the second one.' % bottom_info['motor'].alias())
@@ -90,14 +90,14 @@ class diag_homing_vert(Macro):
 
 class diag_homing_hori(Macro):
     """ 
-    This macro does the homing of horizontal slits of the BL22-CLAESS Diagnostic Module.
+    This macro does homing of horizontal slits of the BL22-CLAESS Diagnostic Module.
     Homing procedure is done in 3 steps:
-    1. Right blade is moved to its positive limit(software or hardware)
-    2. Left blade is moved to its negative limit(software or hardware)
-    3. Icepap homing procedure is started looking for home in the follwing maner:
+    1. Right blade is moved to its positive limit and left blade is moved to its negative limit(simultaneously).
+    2. Icepap homing procedure is started looking for home in the following directions:
        - right blade moving negative
        - left blade moving positive
-    In case of successfully homing of both blades macro returns True, on all other cases it return False
+    3. When right blade finds its home, it is stopped and left continues in the same direction as before.
+    In case of successfully homing of both blades macro returns True, on all other cases it return False.
     """
     
     result_def = [
@@ -151,6 +151,7 @@ class diag_homing_hori(Macro):
                 res = home(self, [left_info])
                 if res and left_info['homed']:
                     self.debug('Motor %s successfully homed.' % left_info['motor'].alias())
+                    self.info('DIAG horizontal slits successfully homed.')
                     return True
                 else:
                     self.debug('Motor %s did not find home as the second one.' % left_info['motor'].alias())
@@ -176,59 +177,53 @@ class diag_homing_hori(Macro):
 
 class diag_homing_foil(Macro):
     """ 
-    This macro does the homing of the foil holder of the BL22-CLAESS Diagnostic Module.
+    This macro does homing of foil holder of the BL22-CLAESS Diagnostic Module.
     Homing procedure is done in 2 steps:
-    1. Foil holder is moved to its negative limit(software or hardware)
-    2. Icepap homing procedure is started looking for home in the positive direction
-    In case of successfully homing macro returns True, on all other cases it return False
+    1. Foil holder is moved to its negative limit.
+    2. Icepap homing procedure is started looking for home in the positive direction.
+    In case of successfully homing macro returns True, on all other cases it return False.
     """
-
-    param_def = [
-        ['limits', Type.String, 'soft', 'Type of limits used in homing: soft or hard']
-    ]
     
-#    result_def = [
-#        ['homed',  Type.Bool, None, 'Motor homed state']
-#    ]
+    result_def = [
+        ['homed',  Type.Boolean, None, 'Motor homed state']
+    ]
 
-    GROUP_STRICT = 'False'
-    FOIL_MOT = 'oh_diag_foil_z'
+    FOIL_NAME = 'oh_diag_foil_z'
     FOIL_HOMING_DIR = 1
 
     def prepare(self, *args, **opts):
-        self.limits = args[0].lower()
-        if not self.limits in ('soft','hard'):
-            self.error("""Limits parameter is expected to be 'soft' or 'hard'""")
-            return False
-        foil_mot_pos = PyTango.AttributeProxy(self.FOIL_MOT + '/position')
-        foil_mot_pos_conf = foil_mot_pos.get_config()
+        
+        self.foil = self.getObj(self.FOIL_NAME, type_class=Type.Motor) 
+        foil_pos = PyTango.AttributeProxy(self.FOIL_NAME + '/position')
+        foil_pos_conf = foil_pos.get_config()
         
         #here we mask software limits, to allow reaching hardware limits
-        if self.limits == 'hard': 
-            self.debug('Masking software limits...')
-            self.old_foil_mot_min = foil_mot_pos_conf.min_value
-            foil_mot_pos_conf.min_value = '-9.999E+003'
-            foil_mot_pos.set_config(foil_mot_pos_conf)
-        
-        self.foil_mot_min = foil_mot_pos_conf.min_value
-        self.debug("Foil motor min position: %s" % self.foil_mot_min)
+        self.debug('Masking software limits...')
+        self.old_foil_min = foil_pos_conf.min_value
+        foil_pos_conf.min_value = '-9.999E+003'
+        foil_pos.set_config(foil_pos_conf)
 
     def run(self, *args, **opts):        
         try:
-            self.execMacro('mv', self.FOIL_MOT, self.foil_mot_min)
-            return self.execMacro('ipap_homing', self.GROUP_STRICT, self.FOIL_MOT, self.FOIL_HOMING_DIR)
-        except:
-            return False
-        finally:
-            if self.limits == 'hard':
-                self.debug('Unmasking software limits...')
-                foil_mot_pos = PyTango.AttributeProxy(self.FOIL_MOT + '/position')
-                foil_mot_pos_conf = foil_mot_pos.get_config()
-                foil_mot_pos_conf.min_value = self.old_foil_mot_min
-                foil_mot_pos.set_config(foil_mot_pos_conf)
+            info_dict = {self.FOIL_NAME:(self.foil, -999, -1)}
+            motorsOnLim = moveToHardLim(self, info_dict.values())
+            if motorsOnLim[0] != self.FOIL_NAME: 
+                self.error("Foil holder could not reach its negative limit.")
+                return False
+            foil_info = create_motor_info_dict(self.foil, self.FOIL_HOMING_DIR)
+            ret = home(self, [foil_info])
+            if ret == True:
+                self.info("Foil holder successfully homed.")
+                return True
+            else: 
+                self.error("Foil holder could not find home.")
+                return False 
         
-        #self.debug("Top motor min position: %s" % foil_mot_pos_conf.min_value)
-
-    def on_abort(self):
-        pass
-
+        finally:
+            #@TODO: remove this comment when serializaiton prolem fixed
+            #self.debug('Unmasking software limits...')
+            foil_pos = PyTango.AttributeProxy(self.FOIL_NAME + '/position')
+            foil_pos_conf = foil_pos.get_config()
+            foil_pos_conf.min_value = self.old_foil_min
+            foil_pos.set_config(foil_pos_conf)
+        
