@@ -31,9 +31,9 @@ class albaemSetRanges(Macro, albaemMacro):
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
 	ranges = myalbaem.extractMultichannel('?RANGE %s'%value,1)
-	myalbaem.Stop()
+	myalbaem.StopAdc()
         myalbaem.setRanges(ranges)
-        myalbaem.Start()
+        myalbaem.StartAdc()
         self.output('Ranges set to:%s', myalbaem.getRanges(['1','2','3','4']))
         return
 
@@ -46,13 +46,13 @@ class albaemSetEnables(Macro, albaemMacro):
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
 	ranges = myalbaem.extractMultichannel('?ENABLE %s'%value,1)
-	myalbaem.Stop()
+	myalbaem.StopAdc()
         myalbaem.setEnables(ranges)
-        myalbaem.Start()
+        myalbaem.StartAdc()
         self.output('Enables set to:%s', myalbaem.getEnables(['1','2','3','4']))
 
 class albaemSetFilters(Macro, albaemMacro):
-    """Sets the filters of the different channels of the instrument. Value is a string like \'1 1 2 10 3 100  4 3200\'"""
+    """Sets the filters of the different channels of the instrument. Value is a string like \'1 1 2 10 3 100 4 NO\'"""
     env = ('ActivealbaemDev',)
     
     param_def = [['value', Type.String, '', 'channel and filters string']]
@@ -60,9 +60,9 @@ class albaemSetFilters(Macro, albaemMacro):
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
 	filters = myalbaem.extractMultichannel('?FILTER %s'%value, 1)
-	myalbaem.Stop()
+	myalbaem.StopAdc()
         myalbaem.setFilters(filters)
-        myalbaem.Start()
+        myalbaem.StartAdc()
         self.output('Filter set to:%s', myalbaem.getFilters(['1','2','3','4']))
         return
 
@@ -75,9 +75,9 @@ class albaemSetInvs(Macro, albaemMacro):
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
 	invs = myalbaem.extractMultichannel('?INV %s'%value, 1)
-	myalbaem.Stop()
+	myalbaem.StopAdc()
         myalbaem.setInvs(invs)
-        myalbaem.Start()
+        myalbaem.StartAdc()
         self.output('Inversion set to:%s', myalbaem.getInvs(['1','2','3','4']))
         return
 class albaemSetAvsamples(Macro, albaemMacro):
@@ -88,9 +88,9 @@ class albaemSetAvsamples(Macro, albaemMacro):
 
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
-	myalbaem.Stop()
+	myalbaem.StopAdc()
         myalbaem.setAvsamples(int(value))
-        myalbaem.Start()
+        myalbaem.StartAdc()
         self.output('Avsamples set to:%s', myalbaem.getAvsamples())
 
 
@@ -118,6 +118,22 @@ class albaemGetAvsamples(Macro, albaemMacro):
     def run(self):
         myalbaem = self.getActivealbaemDev()
         self.output('Avsamples set to:%s', myalbaem.getAvsamples())
+
+class albaemGetPoints(Macro, albaemMacro):
+    """Reads the number of acquisition points for every acquisition."""
+    env = ('ActivealbaemDev',)
+    param_def = []
+    def run(self):
+        myalbaem = self.getActivealbaemDev()
+        self.output('Points set to:%s', myalbaem.getPoints())
+
+class albaemGetTrigperiod(Macro, albaemMacro):
+    """Reads the period during triggers for an acquisition"""
+    env = ('ActivealbaemDev',)
+    param_def = []
+    def run(self):
+        myalbaem = self.getActivealbaemDev()
+        self.output('Points set to:%s', myalbaem.getTrigperiod())
 
 class albaemGetEnables(Macro, albaemMacro):
     """Reads whether the channels of the instrument are enabled or not."""
@@ -160,10 +176,10 @@ class albaemRangeUp(Macro, albaemMacro):
 				nextrange = '10nA'
 			if couple[1] == '100pA':
 				nextrange = '1nA'
-	myalbaem.Stop()
+	myalbaem.StopAdc()
 	myalbaem.setRanges([['%s'%channel, nextrange]])			
         self.output('Ranges set to:%s', myalbaem.getRanges(['1','2','3','4']))
-	myalbaem.Start()
+	myalbaem.StartAdc()
 class albaemRangeDown(Macro, albaemMacro):
     """Increases the range of one channel"""
     env = ('ActivealbaemDev',)
@@ -190,10 +206,10 @@ class albaemRangeDown(Macro, albaemMacro):
 				nextrange = '100pA'
 			if couple[1] == '100pA':
 				nextrange = '100pA'
-	myalbaem.Stop()
+	myalbaem.StopAdc()
 	myalbaem.setRanges([['%s'%channel, nextrange]])			
         self.output('Ranges set to:%s', myalbaem.getRanges(['1','2','3','4']))
-	myalbaem.Start()
+	myalbaem.StartAdc()
 
 class albaemGetRanges(Macro, albaemMacro):
     """Reads the ranges of the channels of the instrument."""
@@ -215,6 +231,8 @@ class albaemGetInfo(Macro, albaemMacro):
         self.output('Offsets set to:%s', myalbaem.getOffsets(['1','2','3','4']))
         self.output('Enables set to:%s', myalbaem.getEnables(['1','2','3','4']))
         self.output('Avsamples set to:%s', myalbaem.getAvsamples())
+        self.output('Points is set to:%s', myalbaem.getPoints())
+        self.output('Trigperiod is set to:%s', myalbaem.getTrigperiod())
         self.output('State is to:%s', myalbaem.getState())
 
 
@@ -244,13 +262,21 @@ class albaemGetInvs(Macro, albaemMacro):
         myalbaem = self.getActivealbaemDev()
         self.output('Inversion set to:%s', myalbaem.getInvs(['1','2','3','4']))
 
-class albaemStop(Macro, albaemMacro):
+class albaemStopAdc(Macro, albaemMacro):
     """Stops data conversion in the instrument. No new data will be available"""
     env = ('ActivealbaemDev',)
     param_def = []
     def run(self):
         myalbaem = self.getActivealbaemDev()
-	myalbaem.Stop()
+	myalbaem.StopAdc()
+        self.output('State:%s', myalbaem.getState())
+class albaemStartAdc(Macro, albaemMacro):
+    """Starts data conversion in the instrument. New data will be available"""
+    env = ('ActivealbaemDev',)
+    param_def = []
+    def run(self):
+        myalbaem = self.getActivealbaemDev()
+	myalbaem.StartAdc()
         self.output('State:%s', myalbaem.getState())
 class albaemStart(Macro, albaemMacro):
     """Starts data conversion in the instrument. New data will be available"""
@@ -259,7 +285,6 @@ class albaemStart(Macro, albaemMacro):
     def run(self):
         myalbaem = self.getActivealbaemDev()
 	myalbaem.Start()
-        self.output('State:%s', myalbaem.getState())
         
 class albaemSendCmd(Macro, albaemMacro):
     """Starts data conversion in the instrument. New data will be available"""
