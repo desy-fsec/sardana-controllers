@@ -77,7 +77,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
 
             if out.find("Destination Host Unreachable") == -1:
                 self.AemDevice = albaem(self.Albaemname)
-                self.AemDevice.Start()
+                self.AemDevice.StartAdc()
                 #self.AemDevice.disableAll()
         except Exception, e:
             self._log.error("__init__(): Could not create a device from following device name: %s.\nException: %s", 
