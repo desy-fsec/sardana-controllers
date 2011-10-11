@@ -4,7 +4,7 @@ import PyTango
 from pool import CounterTimerController
 import time
 from AlbaEmLib import albaem
-
+import subprocess
 
 
 class AlbaemCoTiCtrl(CounterTimerController):
@@ -26,7 +26,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
             corresponding Adlink counter.
         2- Add an ExtraColumn with the attribute SD."""
     
-    MaxDevice = 4
+    MaxDevice = 5
     DEBUG = True
     mode = 'SW' #For the time being must be like this
     class_prop = {'Albaemname':{'Description' : 'Albaem DNS name', 'Type' : 'PyTango.DevString'},
@@ -64,9 +64,21 @@ class AlbaemCoTiCtrl(CounterTimerController):
         
         try:
             #self.AemDevice = PyTango.DeviceProxy(self.Albaemname)
-            self.AemDevice = albaem(self.Albaemname)
-            self.AemDevice.Start()
-            #self.AemDevice.disableAll()
+            
+            #Check if the device is pinging before instantiate the object
+            #Needed for avoid problems starting the pool.
+            
+            ping = subprocess.Popen(
+                                    ['ping','c','2',self.Albaemname],
+                                    stdout = subprocess.PIPE,
+                                    stderr = subprocess.PIPE
+                                    )
+            out, error = ping.communicate()
+
+            if out.find("Destination Host Unreachable") == -1:
+                self.AemDevice = albaem(self.Albaemname)
+                self.AemDevice.StartAdc()
+                #self.AemDevice.disableAll()
         except Exception, e:
             self._log.error("__init__(): Could not create a device from following device name: %s.\nException: %s", 
                             self.Albaemname, e)
@@ -75,9 +87,9 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def AddDevice(self, axis):  
         self._log.debug("AddDevice(%d): Entering...", axis)
         self.channels.append(axis)
-        self.AemDevice.Stop()
+        self.AemDevice.StopAdc()
         self.AemDevice.enableChannel(axis)
-        self.AemDevice.Start()
+        self.AemDevice.StartAdc()
         #self.sd[axis] = 0
         #self.formulas[axis] = 'value'
         #self.sharedFormula[axis] = False
@@ -209,7 +221,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         #    return
         if self.acqstarted == False:
             try:
-                self.AemDevice.Start()
+                self.AemDevice.StartAdc()
                 self.acqtimeini = time.time()
                 self.acqstarted = True
             except Exception, e:
@@ -237,7 +249,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
             #self._log.debug('LoadOne: state: %s'%self.state)
             if self.state == PyTango.DevState.MOVING:# or self.state == PyTango.DevState.ON:
                 self._log.debug('LoadOne: Device is RUNNING. Stopping...')
-                self.AemDevice.Stop()
+                self.AemDevice.StopAdc()
         except PyTango.DevFailed, e:
             self._log.error("LoadOne(%d, %f): Could not ask about state of the device: %s and/or stop it.\nException: %s", 
                             axis, value, self.Albaemname, e)
@@ -257,18 +269,18 @@ class AlbaemCoTiCtrl(CounterTimerController):
                 self.AemDevice.setTrigperiode(1000*value)
                 self.AemDevice.setPoints(1)
             avs = self.AemDevice.getAvsamples()
-            avs = self.AemDevice.Start()
+            avs = self.AemDevice.StartAdc()
             #trp = self.AemDevice.getTrigperiode()
             #po = self.setPoints()
             #self._log.debug('Mode:%s, Avs:%s, Tp:%s, Po:%s'%(self.mode, avs, trp, po))
         except PyTango.DevFailed, e:
-            self.AemDevice.Start() #keep it running baby
+            self.AemDevice.StartAdc() #keep it running baby
             self._log.error("LoadOne(%d, %f): Could not configure device: %s.\nException: %s", self.Albaemname, e)
             raise
     def evalState(self, state):
         """This function converts Adlink device states into counters state."""
         #self._log.debug('evalState: #%s# len:%s'%(state, len(state)))
-        if state == 'RUNNING':
+        if state == 'RUNNING' or state == 'ON':
             #self._log.debug('evalState: RUNNING')
             return PyTango.DevState.MOVING
         elif state == 'IDLE':
