@@ -249,9 +249,9 @@ class vfm_homing_hori(Macro):
 
 class vfm_homing_bend(Macro):
     """ 
-    This macro does the homing of the bender motor of BL22-CLAESS Vertical Focusing Mirror.
+    This macro does homing of the bender motor of BL22-CLAESS VFM (Vertical Focusing Mirror).
     Homing procedure is started from current possition into negative direction.
-    In case of successful homing macro returns True, on all other cases it returns False
+    In case of successful homing macro returns True, in all other cases it returns False.
     """
     
     result_def = [
