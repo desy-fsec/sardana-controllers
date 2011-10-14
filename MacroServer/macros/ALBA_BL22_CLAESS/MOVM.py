@@ -3,12 +3,12 @@ import PyTango
 
 from macro import Macro, Type
 #from icepap import home_group_strict, home_group, create_motor_info_dict
-from macro_utils.motors import moveToPosHardLim, moveToNegHardLim
+from macro_utils.motors import moveToHardLim
 from macro_utils.icepap import *
             
 class movm_homing_vert(Macro):
     """ 
-    This macro does homing of vertical slits of White Beam Movable Masks situated in beamline's Front End.
+    This macro does homing of vertical slits of White Beam Movable Masks situated in BL22 Front End.
     Homing procedure is done in 4 steps:
   
 
@@ -59,11 +59,11 @@ class movm_homing_vert(Macro):
         
     def run(self, *args, **opts):        
         try:
-            motors_pos_dict = {self.top:-999, self.bottom:-999}
-            while len(motors_pos_dict):
-                motorsOnNegLim = moveToNegHardLim(self, motors_pos_dict)
-                for m in motorsOnNegLim:
-                    motors_pos_dict.pop(m)
+            info_dict = {self.MOVM_TOP:(self.top, -999, -1), self.MOVM_BOTTOM:(self.bottom, -999, -1)}
+            while len(info_dict):
+                motorsOnLim = moveToHardLim(self, info_dict.values())
+                for mot in motorsOnLim:
+                    info_dict.pop(mot)
             top_info = create_motor_info_dict(self.top, self.MOVM_TOP_HOMING_DIR)
             bottom_info = create_motor_info_dict(self.bottom, self.MOVM_BOTTOM_HOMING_DIR)
             info_dicts = [top_info, bottom_info]
@@ -83,11 +83,9 @@ class movm_homing_vert(Macro):
             else:
                 self.error('Unknown error. Please contact responsible control engineer.')
             return res
-        except Exception, e:
-            self.error(repr(e))
-            raise e
         finally:
-            self.debug('Unmasking software limits...')
+            #@TODO: Uncomment below line when serialization problem will be fixed
+            #self.debug('Unmasking software limits...')
             bottom_pos = PyTango.AttributeProxy(self.MOVM_BOTTOM + '/position')
             vgap_pos = PyTango.AttributeProxy(self.MOVM_VGAP + '/position')
 
@@ -103,7 +101,7 @@ class movm_homing_vert(Macro):
 
 class movm_homing_hori(Macro):
     """ 
-    This macro does homing of horizontal slits of White Beam Movable Masks situated in beamline's Front End.
+    This macro does homing of horizontal slits of White Beam Movable Masks situated in BL22 Front End.
     Homing procedure is done in 4 steps:
   
 
@@ -154,11 +152,12 @@ class movm_homing_hori(Macro):
         
     def run(self, *args, **opts):        
         try:
-            motors_pos_dict = {self.right:-999, self.left:-999}
-            while len(motors_pos_dict):
-                motorsOnNegLim = moveToNegHardLim(self, motors_pos_dict)
-                for m in motorsOnNegLim:
-                    motors_pos_dict.pop(m)
+            info_dict = {self.MOVM_RIGHT:(self.right, -999, -1), self.MOVM_LEFT:(self.left, -999, -1)}
+            while len(info_dict):
+                motorsOnLim = moveToHardLim(self, info_dict.values())
+                for mot in motorsOnLim:
+                    info_dict.pop(mot)
+
             right_info = create_motor_info_dict(self.right, self.MOVM_RIGHT_HOMING_DIR)
             left_info = create_motor_info_dict(self.left, self.MOVM_LEFT_HOMING_DIR)
             info_dicts = [right_info, left_info]
@@ -178,11 +177,9 @@ class movm_homing_hori(Macro):
             else:
                 self.error('Unknown error. Please contact responsible control engineer.')
             return res
-        except Exception, e:
-            self.error(repr(e))
-            raise e
         finally:
-            self.debug('Unmasking software limits...')
+            #@TODO: Uncomment below line when serialization problem will be fixed
+            #self.debug('Unmasking software limits...')
             left_pos = PyTango.AttributeProxy(self.MOVM_LEFT + '/position')
             hgap_pos = PyTango.AttributeProxy(self.MOVM_HGAP + '/position')
 
