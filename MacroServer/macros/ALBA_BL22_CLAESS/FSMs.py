@@ -65,7 +65,7 @@ class fsm1_homing(Macro):
 
 class fsm2_homing(Macro):
     """ 
-    This macro does homing of FSM1 of BL22-CLAESS.
+    This macro does homing of FSM2 of BL22-CLAESS.
     Homing procedure is done in 2 steps:
 
     1. Move motor to its positive limit.
@@ -124,7 +124,7 @@ class fsm2_homing(Macro):
 
 class fsm3_homing(Macro):
     """ 
-    This macro does homing of FSM1 of BL22-CLAESS.
+    This macro does homing of FSM3 of BL22-CLAESS.
     Homing procedure is done in 2 steps:
 
     1. Move motor to its positive limit.
@@ -183,7 +183,7 @@ class fsm3_homing(Macro):
 
 class fsm4_homing(Macro):
     """ 
-    This macro does homing of FSM1 of BL22-CLAESS.
+    This macro does homing of FSM4 of BL22-CLAESS.
     Homing procedure is done in 2 steps:
 
     1. Move motor to its positive limit.
