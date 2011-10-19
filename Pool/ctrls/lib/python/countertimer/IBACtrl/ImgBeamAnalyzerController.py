@@ -36,6 +36,7 @@ import PyTango
 from pool import CounterTimerController
 #from pool import PoolUtil
 import time
+from copy import copy
 
 hackish_IBAProcessSleep = 0.5
 
@@ -68,6 +69,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             self._ibaProxy = PyTango.DeviceProxy(self.devName)
             #CCD:
             self._ccdName = self._ibaProxy.get_property("ImageDevice")['ImageDevice'][0]
+            #FIXME: if the iba is configured in a different tangoDB, this ImageDevice name won't have it
             self._ccdProxy = PyTango.DeviceProxy(self._ccdName)
             #internal vblees
             self._backupDict = {}
@@ -80,6 +82,14 @@ class ImgBeamAnalyzerController(CounterTimerController):
             self.__flag_backup = False
             #basic state
             self.ctrlState = [PyTango.DevState.ON,""]
+            #manipulate the attrList to accept string arrays, and space separated string
+            if (type(self.attrList) == list and len(self.attrList) == 1) or\
+               (type(self.attrList) == str):
+                bar = copy(self.attrList)
+                if type(bar) == list: bar = bar[0]
+                if type(bar) == str: bar = bar.split(" ")
+                self.attrList = copy(bar)
+            #to be check this manipulation
         except:
             self._log.error("%s::__init__() Exception"%(self.kls))
         #import logging
