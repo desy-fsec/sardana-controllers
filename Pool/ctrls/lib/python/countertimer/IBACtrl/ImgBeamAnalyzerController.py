@@ -39,6 +39,7 @@ import time
 from copy import copy
 
 hackish_IBAProcessSleep = 0.5
+hackish_IBAInitSleep = 0.5
 
 class ImgBeamAnalyzerController(CounterTimerController):
     """This class is the Tango Sardana CounterTimer controller for the Tango ImgBeamAnalyzer device.
@@ -83,15 +84,16 @@ class ImgBeamAnalyzerController(CounterTimerController):
             #basic state
             self.ctrlState = [PyTango.DevState.ON,""]
             #manipulate the attrList to accept string arrays, and space separated string
-            if (type(self.attrList) == list and len(self.attrList) == 1) or\
+            if (type(self.attrList) in [list,tuple] and len(self.attrList) == 1) or\
                (type(self.attrList) == str):
                 bar = copy(self.attrList)
-                if type(bar) == list: bar = bar[0]
+                if type(bar) in [list,tuple]: bar = bar[0]
                 if type(bar) == str: bar = bar.split(" ")
                 self.attrList = copy(bar)
+                self._log.info("the attrList had to be manipulated to convert to DevVarStringArray")
             #to be check this manipulation
-        except:
-            self._log.error("%s::__init__() Exception"%(self.kls))
+        except Exception,e:
+            self._log.error("%s::__init__() Exception: %s"%(self.kls, str(e)))
         #import logging
         #self._log.setLevel(logging.DEBUG)
 
@@ -139,13 +141,15 @@ class ImgBeamAnalyzerController(CounterTimerController):
 
     def StartAllCT(self):
         """Open the ccd to acquire and make process this image by the iba."""
-        self.ctrlState = [PyTango.DevState.MOVING,""]
         dictKey = self._ccdProxy.name()+'_state'
         if self._backupDict.has_key(dictKey) and self._backupDict[dictKey] == PyTango.DevState.RUNNING:
             self.__flag_ccdImgCt = 0#when snap it resets the counter, no need to read it
         else:
             self.__flag_ccdImgCt = self._ccdProxy.read_attribute('ImageCounter').value
-        self._ccdProxy.Snap()
+        #self._log.warn("ccd imgCounter %d"%self.__flag_ccdImgCt)
+        #self._ccdProxy.Snap()#FIXME: Snap command in the IG-ds doesnt' work
+        self._ccdProxy.Start()
+        self.ctrlState = [PyTango.DevState.MOVING,""]
 
     def AbortOne(self,ind):
         if ind == 1 :#and self._ccdProxy.State() == PyTango.DevState.RUNNING:
@@ -162,12 +166,19 @@ class ImgBeamAnalyzerController(CounterTimerController):
         #the data is already read, restoring the backup when channel 1
         try:
             if ind == 1:
+                if self.expTimeValue == None:
+                    self.expTimeValue = self._ccdProxy.read_attribute('ExposureTime').value/1000
                 value = self.expTimeValue
             #return what has been read when the image was processed
             else:
-                value = self.attrValues[ind-2].value
+                try:
+                    value = self.attrValues[ind-2].value
+                except:
+                    value = self._ibaProxy.read_attribute(self.attrList[ind-2]).value
+            #self._log.warn('index = %d\nexpTimeValue %f\nattrList %s\nattrValues %s'%(ind,self.expTimeValue,str(self.attrList),str(self.attrValues)))
             return float(value)
         except Exception,e:
+            self._log.error('nan because of %s' % str(e))
             return float('nan')
     # end data collection area
     ####
@@ -193,19 +204,24 @@ class ImgBeamAnalyzerController(CounterTimerController):
     # auxiliar internal methods
     def _checkCCDacq(self):
         current_ccdImgCt = self._ccdProxy.read_attribute('ImageCounter').value
-        if self.__flag_ccdImgCt == (current_ccdImgCt-1):#one image has been taken
-            self._log.debug("image has been taken")
+        if self.__flag_ccdImgCt == None and not self.__flag_ibaImgCt == None:
+            return True
+        elif self.__flag_ccdImgCt < (current_ccdImgCt):#at least one image has been taken
+            self._ccdProxy.Stop()#FIXME: this is because Snap doesn't work
+            self._log.info("image has been taken")
             self.__flag_ccdImgCt = None#reset flag
             #due to the image is already take, can be processed
             self.__flag_ibaImgCt = self._ibaProxy.read_attribute('ImageCounter').value
+            #self._log.warn("iba imgCounter %d"%self.__flag_ibaImgCt)
             self._ibaProxy.Process()
             self.expTimeValue = self._ccdProxy.read_attribute('ExposureTime').value/1000 #convert from ms to seconds
             return True
         return False
     def _checkIBAprocess(self):
         current_ibaImgCt = self._ibaProxy.read_attribute('ImageCounter').value
-        if self.__flag_ibaImgCt == (current_ibaImgCt-1):#one image has been process
-            self._log.debug("image has been processed")
+        if not self.__flag_ibaImgCt == None and \
+        self.__flag_ibaImgCt < current_ibaImgCt:#one image has been process
+            self._log.info("image has been processed")
             self.__flag_ibaImgCt = None#reset flag
             #hackish: the imgCt changes a few ms before the attr update
             time.sleep(hackish_IBAProcessSleep)
@@ -216,8 +232,8 @@ class ImgBeamAnalyzerController(CounterTimerController):
         return False
     
     def _doBackup(self):
-        self._backup(self._ccdProxy, "TriggerMode", 'attr', 0)
         self._backup(self._ibaProxy, "Mode", 'prop', 'ONESHOT')
+        self._backup(self._ccdProxy, "TriggerMode", 'attr', 0)
         self._backup(self._ccdProxy, None, 'state', None)
 
     def _backup(self,dev,vble,vbletype,value):
@@ -237,6 +253,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             self._backupDict[dictKey] = current_value
             dev.put_property({vble:value})
             dev.Init()
+            time.sleep(hackish_IBAInitSleep)
 
     def _backupAttribute(self,dev,vble,value):
         dictKey = dev.name()+'_attr_'+vble
@@ -290,7 +307,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
                 for i in range(10):
                     dev.start()
                     if dev.State() == PyTango.DevState.RUNNING: break
-                if i == 9: self._log.info("After 10 attempts, it was not possible to restart the ccd")
+                if i == 9: self._log.warn("After 10 attempts, it was not possible to restart the ccd")
 
     # end auxiliar
     ####
