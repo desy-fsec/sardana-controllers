@@ -130,3 +130,15 @@ def moveToNegHardLim(macro, motors_pos_dict):
         macro.error(repr(e))
         macro.error('Moving motors: %s to negative limits was interupted.', repr(motors))
         raise e  
+
+def moveToReadPos(macro, motors):
+    """This function reads current user position of motors passed as an argument and move motors to these positions.
+    :param macro: macro object which calls this method
+    :param motors: (list) motors to be moved
+    """
+    positions = []
+    for mot in motors:
+        positions.append(mot.getPosition(force=True))
+    macro.debug("Current read positions: %s", repr(zip(motors,positions)))
+    motion = macro.getMotion(motors)
+    motion.move(positions)
