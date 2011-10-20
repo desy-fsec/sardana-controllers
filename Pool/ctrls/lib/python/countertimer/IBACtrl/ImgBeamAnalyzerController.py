@@ -74,7 +74,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             self._ccdProxy = PyTango.DeviceProxy(self._ccdName)
             #internal vblees
             self._backupDict = {}
-            self.expTimeValue = None
+            self.expTimeValue = None#seconds
             self.attr2read = []
             self.attrValues = []
             self.__flag_loadOne = False
@@ -123,21 +123,24 @@ class ImgBeamAnalyzerController(CounterTimerController):
     ###
     #Data acquisition area:
     def LoadOne(self,ind,value):
-        value_ms = value*1000#value is in seconds, exptime in ms!!
-        self.__flag_loadOne = True
-        self._backup(self._ccdProxy, "ExposureTime", 'attr', value_ms)
+        if ind == 1:
+            self.expTimeValue = value#seconds
+            self.__flag_loadOne = True
 
     def PreStartOneCT(self,ind):
         """Prepare the iba and the ccd for the acquisition"""
         try:
+            if ind == 1 and self.__flag_loadOne:
+                self._backup(self._ccdProxy, "ExposureTime", 'attr', self.expTimeValue*1000)
             if not self.__flag_backup:#ind == 1:
-                self.__flag_backup = True
                 self._doBackup()
+                self.__flag_backup = True
             else:
                 pass
             return True #I don't know why this expects a boolean feedback
         except Exception,e:
             self._log.error("PreStartOneCT(%d) exception: %s"%(ind,e))
+            return False
 
     def StartAllCT(self):
         """Open the ccd to acquire and make process this image by the iba."""
@@ -146,6 +149,8 @@ class ImgBeamAnalyzerController(CounterTimerController):
             self.__flag_ccdImgCt = 0#when snap it resets the counter, no need to read it
         else:
             self.__flag_ccdImgCt = self._ccdProxy.read_attribute('ImageCounter').value
+        self._log.info("expTime %fs (ccd attr %fms)"%(self.expTimeValue,
+                                                      self._ccdProxy.read_attribute('ExposureTime').value))
         #self._log.warn("ccd imgCounter %d"%self.__flag_ccdImgCt)
         #self._ccdProxy.Snap()#FIXME: Snap command in the IG-ds doesnt' work
         self._ccdProxy.Start()
@@ -232,9 +237,9 @@ class ImgBeamAnalyzerController(CounterTimerController):
         return False
     
     def _doBackup(self):
+        self._backup(self._ccdProxy, None, 'state', None)
         self._backup(self._ibaProxy, "Mode", 'prop', 'ONESHOT')
         self._backup(self._ccdProxy, "TriggerMode", 'attr', 0)
-        self._backup(self._ccdProxy, None, 'state', None)
 
     def _backup(self,dev,vble,vbletype,value):
         self._log.debug("backup the %s %s of the %s and set value %s"%(vbletype,vble,dev.name(),value))
