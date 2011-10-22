@@ -98,7 +98,11 @@ class m_homing_vert(Macro):
             self.m_z = self.getObj(self.MZ_NAME, type_class=Type.Motor)
             self.m_pitch = self.getObj(self.MPITCH_NAME, type_class=Type.Motor)
             self.m_roll = self.getObj(self.MROLL_NAME, type_class=Type.Motor)
-            moveToReadPos(self, [self.m_z,self.m_pitch,self.m_roll])
+            try:
+                moveToReadPos(self, [self.m_z,self.m_pitch,self.m_roll])
+            except:
+                #here we pass this exception, cause we just want to change set value of position attributes
+                pass
 
             self.info("Mirror's successfully homed all vertical motors.")
             return True
@@ -178,7 +182,11 @@ class m_homing_hori(Macro):
             #we do it by reading current position of pseuodmotors and moving to that positions
             self.m_x = self.getObj(self.MX_NAME, type_class=Type.Motor)
             self.m_yaw = self.getObj(self.MYAW_NAME, type_class=Type.Motor)
-            moveToReadPos(self, [self.m_x,self.m_yaw])
+            try:
+                moveToReadPos(self, [self.m_x,self.m_yaw])
+            except:
+                #here we pass this exception, cause we just want to change set value of position attributes
+                pass
                       
             self.info("Mirror successfully homed all horizontal motors.")
             return True
