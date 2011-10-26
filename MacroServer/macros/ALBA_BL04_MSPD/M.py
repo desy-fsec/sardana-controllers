@@ -194,3 +194,39 @@ class m_homing_hori(Macro):
             self.error(repr(e))
             raise e
 
+class m_homing_bend(Macro):
+    """ 
+    This macro does homing of the bender motor of the BL04-MSPD Collimating mirror.
+    It will start looking for homing position into negative direction.
+    In case of successfully homing macro returns True, in all other cases it return False.
+    """
+
+    
+    result_def = [
+        ['homed',  Type.Boolean, None, 'Motor homed state']
+    ]
+
+    BENDER = 'm_bend'
+    
+    BENDER_HOMING_DIR = -1
+
+    def prepare(self, *args, **opts):
+        self.bender = self.getObj(self.BENDER, type_class=Type.Motor)
+        if self.bender.Limit_switches[2]:
+            raise Exception('Motor m_bend is already at home position. Homing procedure can not be started.')
+        
+    def run(self, *args, **opts):
+        bend_info = create_motor_info_dict(self.bender, self.BENDER_HOMING_DIR)
+        info_dicts = [bend_info]
+        try:
+            res = home(self, info_dicts)
+            if res == True:
+                self.info('Bender motor successfully homed.')
+            elif res == False:
+                self.error('Bender motor homing failed.')
+            else:
+                self.error('Unknown error. Please contact responsible control engineer.')
+            return res
+        except Exception, e:
+            self.error(repr(e))
+            raise e
