@@ -6,7 +6,7 @@ from macro_utils.icepap import *
             
 class dcm_homing_vert(Macro):
     """ 
-    This macro does homing of vertical motor of DCM (BL04).
+    This macro does homing of vertical motor of DCM (BL04_MSPD).
     It will start looking for homing position into negative direction.
     In case of successfully homing macro returns True, in all other cases it return False.
     """
@@ -44,7 +44,7 @@ class dcm_homing_vert(Macro):
 
 class dcm_homing_bragg(Macro):
     """ 
-    This macro does homing of bragg motor of DCM (BL04).
+    This macro does homing of bragg motor of DCM (BL04-MSPD).
     It will start looking for homing position into negative direction.
     In case of successfully homing macro returns True, in all other cases it return False.
     """
@@ -81,7 +81,7 @@ class dcm_homing_bragg(Macro):
 
 class dcm_homing_t2(Macro):
     """ 
-    This macro does homing of t2 motor of DCM (BL04).
+    This macro does homing of t2 motor of DCM (BL04-MSPD).
     It will start looking for homing position into positive direction.
     In case of successfully homing macro returns True, in all other cases it return False.
     """
@@ -119,7 +119,7 @@ class dcm_homing_t2(Macro):
 
 class dcm_homing_roll1(Macro):
     """ 
-    This macro does homing of roll1 motor of DCM (BL04).
+    This macro does homing of roll1 motor of DCM (BL04-MSPD).
     It will start looking for homing position into negative direction.
     In case of successfully homing macro returns True, in all other cases it return False.
     """
@@ -156,7 +156,7 @@ class dcm_homing_roll1(Macro):
 
 class dcm_homing_roll2(Macro):
     """ 
-    This macro does homing of roll2 motor of DCM (BL04).
+    This macro does homing of roll2 motor of DCM (BL04-MSPD).
     It will start looking for homing position into negative direction.
     In case of successfully homing macro returns True, in all other cases it return False.
     """
@@ -194,7 +194,7 @@ class dcm_homing_roll2(Macro):
 
 class dcm_homing_pitch2(Macro):
     """ 
-    This macro does homing of pitch2 motor of DCM (BL04).
+    This macro does homing of pitch2 motor of DCM (BL04-MSPD).
     It will start looking for homing position into negative direction.
     In case of successfully homing macro returns True, in all other cases it return False.
     """
