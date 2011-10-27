@@ -30,8 +30,8 @@ class albaemSetRanges(Macro, albaemMacro):
 
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
-	ranges = myalbaem.extractMultichannel('?RANGE %s'%value,1)
-	myalbaem.StopAdc()
+        ranges = myalbaem.extractMultichannel('?RANGE %s'%value,1)
+        myalbaem.StopAdc()
         myalbaem.setRanges(ranges)
         myalbaem.StartAdc()
         self.output('Ranges set to:%s', myalbaem.getRanges(['1','2','3','4']))
@@ -45,8 +45,8 @@ class albaemSetEnables(Macro, albaemMacro):
 
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
-	ranges = myalbaem.extractMultichannel('?ENABLE %s'%value,1)
-	myalbaem.StopAdc()
+        ranges = myalbaem.extractMultichannel('?ENABLE %s'%value,1)
+        myalbaem.StopAdc()
         myalbaem.setEnables(ranges)
         myalbaem.StartAdc()
         self.output('Enables set to:%s', myalbaem.getEnables(['1','2','3','4']))
@@ -59,8 +59,8 @@ class albaemSetFilters(Macro, albaemMacro):
 
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
-	filters = myalbaem.extractMultichannel('?FILTER %s'%value, 1)
-	myalbaem.StopAdc()
+        filters = myalbaem.extractMultichannel('?FILTER %s'%value, 1)
+        myalbaem.StopAdc()
         myalbaem.setFilters(filters)
         myalbaem.StartAdc()
         self.output('Filter set to:%s', myalbaem.getFilters(['1','2','3','4']))
@@ -74,8 +74,8 @@ class albaemSetInvs(Macro, albaemMacro):
 
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
-	invs = myalbaem.extractMultichannel('?INV %s'%value, 1)
-	myalbaem.StopAdc()
+        invs = myalbaem.extractMultichannel('?INV %s'%value, 1)
+        myalbaem.StopAdc()
         myalbaem.setInvs(invs)
         myalbaem.StartAdc()
         self.output('Inversion set to:%s', myalbaem.getInvs(['1','2','3','4']))
@@ -88,7 +88,7 @@ class albaemSetAvsamples(Macro, albaemMacro):
 
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
-	myalbaem.StopAdc()
+        myalbaem.StopAdc()
         myalbaem.setAvsamples(int(value))
         myalbaem.StartAdc()
         self.output('Avsamples set to:%s', myalbaem.getAvsamples())
@@ -155,61 +155,61 @@ class albaemRangeUp(Macro, albaemMacro):
     env = ('ActivealbaemDev',)
     param_def = [['value', Type.String, '', 'Number of samples to average']]
     def run(self, value):
-	channel = int(value)
+        channel = int(value)
         myalbaem = self.getActivealbaemDev()
-	ranges = myalbaem.getRanges(['1', '2', '3', '4'])
-	for couple in ranges:
-		if couple[0] == '%s'%channel:
-			if couple[1] == '1mA':
-				nextrange = '1mA'
-			if couple[1] == '100uA':
-				nextrange = '1mA'
-			if couple[1] == '10uA':
-				nextrange = '100uA'
-			if couple[1] == '1uA':
-				nextrange = '10uA'
-			if couple[1] == '100nA':
-				nextrange = '1uA'
-			if couple[1] == '10nA':
-				nextrange = '100nA'
-			if couple[1] == '1nA':
-				nextrange = '10nA'
-			if couple[1] == '100pA':
-				nextrange = '1nA'
-	myalbaem.StopAdc()
-	myalbaem.setRanges([['%s'%channel, nextrange]])			
+        ranges = myalbaem.getRanges(['1', '2', '3', '4'])
+        for couple in ranges:
+            if couple[0] == '%s'%channel:
+                if couple[1] == '1mA':
+                    nextrange = '1mA'
+                if couple[1] == '100uA':
+                    nextrange = '1mA'
+                if couple[1] == '10uA':
+                    nextrange = '100uA'
+                if couple[1] == '1uA':
+                    nextrange = '10uA'
+                if couple[1] == '100nA':
+                    nextrange = '1uA'
+                if couple[1] == '10nA':
+                    nextrange = '100nA'
+                if couple[1] == '1nA':
+                    nextrange = '10nA'
+                if couple[1] == '100pA':
+                    nextrange = '1nA'
+        myalbaem.StopAdc()
+        myalbaem.setRanges([['%s'%channel, nextrange]])                        
         self.output('Ranges set to:%s', myalbaem.getRanges(['1','2','3','4']))
-	myalbaem.StartAdc()
+        myalbaem.StartAdc()
 class albaemRangeDown(Macro, albaemMacro):
     """Increases the range of one channel"""
     env = ('ActivealbaemDev',)
     param_def = [['value', Type.String, '', 'Number of samples to average']]
     def run(self, value):
-	channel = int(value)
+        channel = int(value)
         myalbaem = self.getActivealbaemDev()
-	ranges = myalbaem.getRanges(['1', '2', '3', '4'])
-	for couple in ranges:
-		if couple[0] == '%s'%channel:
-			if couple[1] == '1mA':
-				nextrange = '100uA'
-			if couple[1] == '100uA':
-				nextrange = '10uA'
-			if couple[1] == '10uA':
-				nextrange = '1uA'
-			if couple[1] == '1uA':
-				nextrange = '100nA'
-			if couple[1] == '100nA':
-				nextrange = '10nA'
-			if couple[1] == '10nA':
-				nextrange = '1nA'
-			if couple[1] == '1nA':
-				nextrange = '100pA'
-			if couple[1] == '100pA':
-				nextrange = '100pA'
-	myalbaem.StopAdc()
-	myalbaem.setRanges([['%s'%channel, nextrange]])			
+        ranges = myalbaem.getRanges(['1', '2', '3', '4'])
+        for couple in ranges:
+            if couple[0] == '%s'%channel:
+                if couple[1] == '1mA':
+                    nextrange = '100uA'
+                if couple[1] == '100uA':
+                    nextrange = '10uA'
+                if couple[1] == '10uA':
+                    nextrange = '1uA'
+                if couple[1] == '1uA':
+                    nextrange = '100nA'
+                if couple[1] == '100nA':
+                    nextrange = '10nA'
+                if couple[1] == '10nA':
+                    nextrange = '1nA'
+                if couple[1] == '1nA':
+                    nextrange = '100pA'
+                if couple[1] == '100pA':
+                    nextrange = '100pA'
+        myalbaem.StopAdc()
+        myalbaem.setRanges([['%s'%channel, nextrange]])                        
         self.output('Ranges set to:%s', myalbaem.getRanges(['1','2','3','4']))
-	myalbaem.StartAdc()
+        myalbaem.StartAdc()
 
 class albaemGetRanges(Macro, albaemMacro):
     """Reads the ranges of the channels of the instrument."""
@@ -268,7 +268,7 @@ class albaemStopAdc(Macro, albaemMacro):
     param_def = []
     def run(self):
         myalbaem = self.getActivealbaemDev()
-	myalbaem.StopAdc()
+        myalbaem.StopAdc()
         self.output('State:%s', myalbaem.getState())
 class albaemStartAdc(Macro, albaemMacro):
     """Starts data conversion in the instrument. New data will be available"""
@@ -276,7 +276,7 @@ class albaemStartAdc(Macro, albaemMacro):
     param_def = []
     def run(self):
         myalbaem = self.getActivealbaemDev()
-	myalbaem.StartAdc()
+        myalbaem.StartAdc()
         self.output('State:%s', myalbaem.getState())
 class albaemStart(Macro, albaemMacro):
     """Starts data conversion in the instrument. New data will be available"""
@@ -284,7 +284,7 @@ class albaemStart(Macro, albaemMacro):
     param_def = []
     def run(self):
         myalbaem = self.getActivealbaemDev()
-	myalbaem.Start()
+        myalbaem.Start()
         
 class albaemSendCmd(Macro, albaemMacro):
     """Starts data conversion in the instrument. New data will be available"""
@@ -292,7 +292,7 @@ class albaemSendCmd(Macro, albaemMacro):
     param_def = [['value', Type.String, '', 'Command to send']]
     def run(self, value):
         myalbaem = self.getActivealbaemDev()
-	ans = myalbaem.ask(value)
+        ans = myalbaem.ask(value)
         self.output('SEND:%s\tRCVD:%s'%(value, ans))
         
         
@@ -301,4 +301,4 @@ if __name__ == "__main__":
     # TWO BASIC PARAMETERS, unit address and channel 
     if len(sys.argv) < 2:
         print "usage: python albaemmacros.py"
-							        
+                                                                
