@@ -7,7 +7,7 @@ from macro_utils.icepap import *
             
 class fe_mma_homing_vert(Macro):
     """ 
-    This macro does homing of vertical slits of White Beam Movable Masks situated in beamline's Front End.
+    This macro does homing of vertical slits of White Beam Movable Masks situated in BL04-MSPD Front End.
     Homing procedure is done in 4 steps:
   
 
@@ -103,7 +103,7 @@ class fe_mma_homing_vert(Macro):
 
 class fe_mma_homing_hori(Macro):
     """ 
-    This macro does homing of horizontal slits of White Beam Movable Masks situated in beamline's Front End.
+    This macro does homing of horizontal slits of White Beam Movable Masks situated in BL04-MSPD Front End.
     Homing procedure is done in 4 steps:
   
 
