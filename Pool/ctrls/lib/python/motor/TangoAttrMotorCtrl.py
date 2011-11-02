@@ -12,7 +12,7 @@ TANGO_ATTR = 'TangoAttribute'
 FORMULA_READ = 'FormulaRead'
 FORMULA_WRITE = 'FormulaWrite'
 TANGO_ATTR_ENC = 'TangoAttributeEncoder'
-TANGO_ATTR_ENC_THRESHOLD = 'TangoAttributeEncoderTreshold'
+TANGO_ATTR_ENC_THRESHOLD = 'TangoAttributeEncoderThreshold'
 TANGO_ATTR_ENC_SPEED = 'TangoAttributeEncoderSpeed'
 
 TAU_ATTR = 'TauAttribute'
@@ -34,9 +34,9 @@ class TangoAttrMotorController(MotorController):
     ch2.FormulaRead = 'math.sqrt(VALUE)'
     ch2.FormulaWrite = 'math.pow(VALUE,2)'
 
-    +) TangoAttributeEnc - Used in case you have another attribute as encoder
-    +) TangoAttributeEncThresold - Threshold used for the 'MOVING' state.
-    +) TangoAttributeEncSpeed - Speed in units/second of the encoder so 'MOVING' state is computed (sec).
+    +) TangoAttributeEncoder - Used in case you have another attribute as encoder
+    +) TangoAttributeEncoderThreshold - Threshold used for the 'MOVING' state.
+    +) TangoAttributeEncoderSpeed - Speed in units/second of the encoder so 'MOVING' state is computed (sec).
     """
                  
     gender = ""
