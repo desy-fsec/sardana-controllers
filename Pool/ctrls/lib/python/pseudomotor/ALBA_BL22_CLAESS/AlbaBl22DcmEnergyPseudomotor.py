@@ -3,21 +3,21 @@ import math, logging
 import PyTango
 from pool import PseudoMotorController, PoolUtil
 
-def siliconBondLength(ior_value):
-    """Returns silicon bond length depending on the ior_value parameter. 
-       Allowed values for ior_value parameter are: 311, 1111. When receives other value raise
-       ValueError exception. 
+#def siliconBondLength(ior_value):
+    #"""Returns silicon bond length depending on the ior_value parameter. 
+       #Allowed values for ior_value parameter are: 311, 1111. When receives other value raise
+       #ValueError exception. 
 
-       :param ior_value: (int) representing silicon type, 311 coresponds to si311 and 111 do si111
+       #:param ior_value: (int) representing silicon type, 311 coresponds to si311 and 111 do si111
 
-       :return: (float) silicon bond length in Angstroms units (1e-10m) """
+       #:return: (float) silicon bond length in Angstroms units (1e-10m) """
 
-    if ior_value == 311:
-        return 1.637418 #Angstroms
-    elif ior_value == 111:
-        return 3.1354161 #Angstroms
-    else:
-        raise ValueError("Wrong ior value")
+    #if ior_value == 311:
+        #return 1.637418 #Angstroms
+    #elif ior_value == 111:
+        #return 3.1354161 #Angstroms
+    #else:
+        #raise ValueError("Wrong ior value")
 
 class DCM_Energy_Controller(PseudoMotorController):
     """This pseudomotor controller does the calculation of Bragg
@@ -29,8 +29,10 @@ class DCM_Energy_Controller(PseudoMotorController):
     
     class_prop = { 'VCMPitchName':{'Type' : 'PyTango.DevString', 'Description' : 'VCM_pitch pseudomotor'},
                    'DCMCrystalIORName' :{'Type' : 'PyTango.DevString', 'Description' : 'DCM_crystal IOR'}}
-
-    ctrl_extra_attributes = {"ExitOffset":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
+   
+    ctrl_extra_attributes = {"ExitOffset":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
+                             "dSi111":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
+                             "dSi311":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
      
     hc = 12398.419 #eV *Angstroms
                              
@@ -38,7 +40,7 @@ class DCM_Energy_Controller(PseudoMotorController):
         PseudoMotorController.__init__(self, inst, props)
         #self._log.setLevel(logging.DEBUG)
         self.attributes = {}
-        self.attributes[1] = {'ExitOffset':18.5}
+        self.attributes[1] = {'ExitOffset':18.5, 'dSi311':1.637418, 'dSi111':3.1354161}
         try:
             self.vcm_pitch = PoolUtil().get_motor(self.inst_name, self.VCMPitchName)
         except Exception, e:
@@ -70,7 +72,7 @@ class DCM_Energy_Controller(PseudoMotorController):
 
         try:
             crystal_ior = self.dcm_crystal.Value
-            d = siliconBondLength(crystal_ior)
+            d = self.siliconBondLength(crystal_ior)
         except PyTango.DevFailed, e:
             self._log.error("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
@@ -107,7 +109,7 @@ class DCM_Energy_Controller(PseudoMotorController):
         self._log.debug("       VCM pitch: %f rad." % vcm_pitch_rad)
         try:
             crystal_ior = self.dcm_crystal.Value
-            d = siliconBondLength(crystal_ior)
+            d = self.siliconBondLength(crystal_ior)
         except PyTango.DevFailed, e:
             self._log.error("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
@@ -141,3 +143,11 @@ class DCM_Energy_Controller(PseudoMotorController):
 
         """
         self.attributes[axis][name] = value
+
+    def siliconBondLength(self, ior_value):
+        if ior_value == 311:
+            return self.attributes[1]['dSi311'] #Angstroms
+        elif ior_value == 111:
+            return self.attributes[1]['dSi111'] #Angstroms
+        else:
+            raise ValueError("Wrong ior value")
