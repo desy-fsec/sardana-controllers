@@ -154,7 +154,9 @@ class EnergyCffFixed(PseudoMotorController):
             energy = 0.0
         else:
             energy = self.hc / wavelength
-        if self.FixedM2Pit: self.Cff = math.cos(self.beta)/math.cos(self.alpha)
+        #if self.FixedM2Pit: 
+        self.Cff = math.cos(self.beta)/math.cos(self.alpha)
+        if energy < 0 : energy = energy *(-1) #warning: wavelength se vuelve negativo ... ??????
         return (energy,self.Cff)
 
     def GetExtraAttributePar(self, axis, name):
