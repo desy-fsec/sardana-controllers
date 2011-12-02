@@ -6,6 +6,8 @@ from macro import *
 import time
 
 class scanMM(Macro):
+    hints = { 'allowsHooks':('post-move') } #needed for gui?
+    
     param_def = [ [ 'motor1', Type.Motor, None, 'Motor 1' ],
                   [ 'startPos', Type.Float, None, 'startPos1' ],
                   [ 'endPos', Type.Float, None, 'endPos1' ],
@@ -24,22 +26,11 @@ class scanMM(Macro):
         self.fixedPos = fixedPos
         
     def myHook(self):
-        self.motor2.move(self.fixedPos)
+        self.motor2.move([self.fixedPos])
         time.sleep(self.sleepTime)
     
     def run(self, motor1,startPos,endPos,nIntervals,integrationTime,motor2,fixedPos,sleepTime):
         #"""Run macro"""       
         myMacro, pars = self.createMacro("ascan",motor1,startPos,endPos,nIntervals,integrationTime)
-        #myMacro, pars = self.createMacro("ascan",'BL24_dummymotor01',0,10,5,0.1)
-        myMacro.hooks = [self.myHook]
+        myMacro.hooks = [(self.myHook, ['post-move'])]
         self.runMacro(myMacro)
-
-#        stepsToMove = (startPos - endPos) / nIntervals
-#        
-#        for posToMove in xrange(startPos, endPos, nIntervals):
-#            #posToMove = startPos + stepsToMove * (interval+1)
-#            motor1.move(posToMove)
-#            time.sleep(sleepTime)
-#            motor2.move(fixedPos)
-#            time.sleep(sleepTime)
-#    
