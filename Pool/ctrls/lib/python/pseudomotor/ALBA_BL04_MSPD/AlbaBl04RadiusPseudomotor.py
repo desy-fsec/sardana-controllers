@@ -18,7 +18,7 @@ class RadiusController(PseudoMotorController):
         PseudoMotorController.__init__(self, inst, props)
         #self._log.setLevel(logging.DEBUG)
         #Setting the default value for Pusher Offset
-        self.pusherOffset = 0.0 
+        self.pusherOffset = 253113 
         
     def calc_physical(self, index, pseudos):
         return self.calc_all_physical(pseudos)[index - 1]
