@@ -40,7 +40,35 @@ class Energy(PseudoMotorController):
         'lock_mirrors':
         {'Type':'PyTango.DevBoolean',
         'Description':'Whether or not allow me to change spherical mirror and/or gratings when asked to go to a given energy',
-        'R/W Type':'PyTango.READ_WRITE'}
+        'R/W Type':'PyTango.READ_WRITE'},
+        'heg_sm2_offset':
+        {'Type':'PyTango.DevDouble',
+        'Description':'Offset to apply to the computed energy when HEG grating and SM2 are selected',
+        'R/W Type':'PyTango.READ_WRITE'},
+        'heg_sm1_offset':
+        {'Type':'PyTango.DevDouble',
+        'Description':'Offset to apply to the computed energy when HEG grating and SM1 are selected',
+        'R/W Type':'PyTango.READ_WRITE'},
+        'meg_sm2_offset':
+        {'Type':'PyTango.DevDouble',
+        'Description':'Offset to apply to the computed energy when MEG grating and SM2 are selected',
+        'R/W Type':'PyTango.READ_WRITE'},
+        'meg_sm1_offset':
+        {'Type':'PyTango.DevDouble',
+        'Description':'Offset to apply to the computed energy when MEG grating and SM1 are selected',
+        'R/W Type':'PyTango.READ_WRITE'},
+        'leg_sm2_offset':
+        {'Type':'PyTango.DevDouble',
+        'Description':'Offset to apply to the computed energy when LEG grating and SM2 are selected',
+        'R/W Type':'PyTango.READ_WRITE'},
+        'leg_sm1_offset':
+        {'Type':'PyTango.DevDouble',
+        'Description':'Offset to apply to the computed energy when LEG grating and SM1 are selected',
+        'R/W Type':'PyTango.READ_WRITE'},
+        'ranges':
+        {'Type':'PyTango.DevString',
+        'Description':'Energy ranges for each combination of SM and GR',
+        'R/W Type':'PyTango.READ'},
     }
 
 
@@ -53,6 +81,30 @@ class Energy(PseudoMotorController):
         self.sm_selected_ior_dev = PyTango.DeviceProxy(self.sm_selected_ior)
         self.gr_selected_ior_dev = PyTango.DeviceProxy(self.gr_selected_ior)
         self.lock_mirrors = True
+
+        #initialization of energy_offsets; this is just so the variables exist,
+        #since their memorized values will be written in SetExtraAttributePar
+        #These are offset in eV to sum to the computed energy (since the 3
+        #gratings are no perfectly aligned) i is grating selected (he, me, le),
+        #j is sm selected (sm2, sm1)
+        self.heg_sm2_offset = 0.0
+        self.heg_sm1_offset = 0.0
+        self.meg_sm2_offset = 0.0
+        self.meg_sm1_offset = 0.0
+        self.leg_sm2_offset = 0.0
+        self.leg_sm1_offset = 0.0
+        self.energy_offsets = [ [ self.heg_sm2_offset, self.heg_sm1_offset ],
+                                [ self.meg_sm2_offset, self.meg_sm1_offset ],
+                                [ self.leg_sm2_offset, self.leg_sm1_offset ]]
+
+        #energy ranges to be displayed for user comfort
+        self.ranges = 'HEG + SM2: %s\n' % str(self.energy_ranges[0][0]) + \
+                      'HEG + SM1: %s\n' % str(self.energy_ranges[0][1]) + \
+                      'MEG + SM2: %s\n' % str(self.energy_ranges[1][0]) + \
+                      'MEG + SM1: %s\n' % str(self.energy_ranges[1][1]) + \
+                      'LEG + SM2: %s\n' % str(self.energy_ranges[2][0]) + \
+                      'LEG + SM1: %s\n' % str(self.energy_ranges[2][1])
+
         self.debug = False
 
 
@@ -79,8 +131,8 @@ class Energy(PseudoMotorController):
             min_value = Energy.energy_ranges[gr_selected][sm_selected][0]
             max_value = Energy.energy_ranges[gr_selected][sm_selected][1]
             if (energy < min_value) or (energy > max_value):
-                raise RuntimeError("Energy %s not possible with current mirrors combination. Valid values with"
-                                   "current combination is: %s..%s. Unlock mirrors if you want to automatically change them"
+                raise RuntimeError("Energy %s not possible with current mirrors combination. Valid range with "
+                                   "current combination is %s..%s. Unlock mirrors if you want to automatically change them"
                                    % (str(energy), min_value, max_value) )
         else:
         #I'm allowed to change mirrors, so look for the combination of mirrors
@@ -88,6 +140,7 @@ class Energy(PseudoMotorController):
         #those motors to that position
             #find which grating and spherical mirrors can give me that energy. If
             #not possible, then raise exception
+            range_found = False
             for i in range(len(Energy.line_spacing)):
                 for j in range(len(Energy.include_angles)):
                     if (energy >= Energy.energy_ranges[i][j][0] and energy <= Energy.energy_ranges[i][j][1]):
@@ -107,6 +160,9 @@ class Energy(PseudoMotorController):
                 raise RuntimeError("Error while trying to position mirrors in %s::calc_physical: %s" % (self.__class__.__name__, str(e)) )
 
         offset = Energy.offset[sm_selected]
+
+        #apply energy offset before computing the grating pitch
+        energy -= self.energy_offsets[gr_selected][sm_selected]
 
         if index == 1:
             #compute gr_pitch
@@ -185,7 +241,7 @@ class Energy(PseudoMotorController):
             print "energy", energy
             print "-------------------------------------------------------> calc_pseudo"
 
-        return energy
+        return energy + self.energy_offsets[gr_selected][sm_selected]
 
 
     def GetExtraAttributePar(self,axis,name):
@@ -194,7 +250,22 @@ class Energy(PseudoMotorController):
         @param name of the parameter to retrieve
         @return the value of the parameter
         """
-        return self.lock_mirrors
+        if name == 'lock_mirrors':
+            return self.lock_mirrors
+        elif name == 'heg_sm2_offset':
+            return self.heg_sm2_offset
+        elif name == 'heg_sm1_offset':
+            return self.heg_sm1_offset
+        elif name == 'meg_sm2_offset':
+            return self.meg_sm2_offset
+        elif name == 'meg_sm1_offset':
+            return self.meg_sm1_offset
+        elif name == 'leg_sm2_offset':
+            return self.leg_sm2_offset
+        elif name == 'leg_sm1_offset':
+            return self.leg_sm1_offset
+        elif name == 'ranges':
+            return self.ranges
 
 
     def SetExtraAttributePar(self,axis,name,value):
@@ -203,4 +274,23 @@ class Energy(PseudoMotorController):
         @param name of the parameter to set
         @param value to be set
         """
-        self.lock_mirrors = value
+        if name == 'lock_mirrors':
+            self.lock_mirrors = value
+        elif name == 'heg_sm2_offset':
+            self.heg_sm2_offset = value
+            self.energy_offsets[0][0] = value
+        elif name == 'heg_sm1_offset':
+            self.heg_sm1_offset = value
+            self.energy_offsets[0][1] = value
+        elif name == 'meg_sm2_offset':
+            self.meg_sm2_offset = value
+            self.energy_offsets[1][0] = value
+        elif name == 'meg_sm1_offset':
+            self.meg_sm1_offset = value
+            self.energy_offsets[1][1] = value
+        elif name == 'leg_sm2_offset':
+            self.leg_sm2_offset = value
+            self.energy_offsets[2][0] = value
+        elif name == 'leg_sm1_offset':
+            self.leg_sm1_offset = value
+            self.energy_offsets[2][1] = value
