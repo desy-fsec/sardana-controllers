@@ -1,7 +1,8 @@
 import logging
 import numpy
 import PyTango
-from pool import CounterTimerController
+from sardana import pool 
+from sardana.pool.controller import CounterTimerController
 import time
 from AlbaEmLib import albaem
 import subprocess
@@ -44,10 +45,10 @@ class AlbaemCoTiCtrl(CounterTimerController):
                                 },
                             }
 
-    def __init__(self, inst, props):
+    def __init__(self, inst, props, *args, **kwargs):
         #        self._log.setLevel(logging.DEBUG)
-        CounterTimerController.__init__(self,inst,props)
-        self._log.setLevel(logging.INFO)
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
+        self._log.setLogLevel(logging.INFO)
         self._log.debug( "__init__(%s, %s): Entering...", repr(inst), repr(props))
         #self.sd = {}
         self.master = None
@@ -183,7 +184,11 @@ class AlbaemCoTiCtrl(CounterTimerController):
         #print "Read:", self.readchannels
         #if self.state == PyTango.DevState.ON and self.acqchannels == self.readchannels: #This didn't solve the speed issue. Therefore I left it as it was
         if self.state == PyTango.DevState.ON:
-            self.measures, self.status = self.AemDevice.getMeasures(['1', '2', '3', '4'])
+            data = self.AemDevice.getMeasures(['1', '2', '3', '4'])
+            self._log.info("ReadAll: AemDevice.getMeasures answers: %s", data)
+            if data is None:
+                raise Exception("Could not communicate")
+            self.measures, self.status = data
 
     def AbortOne(self, axis):
         self._log.debug("AbortOne(%d): Entering...", axis)

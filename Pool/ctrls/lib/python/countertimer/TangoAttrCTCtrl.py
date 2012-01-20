@@ -1,9 +1,10 @@
 import math
 import PyTango
 from PyTango import DevState
-from pool import CounterTimerController
-from pool import ZeroDController
-from pool import PoolUtil
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import CounterTimerController, ZeroDController
+
 import math
 
 TANGO_ATTR = 'TangoAttribute'
@@ -108,7 +109,7 @@ class ReadTangoAttributes():
             self.axis_by_tango_attribute[value] = axis
 
 
-class TangoAttrCTController(CounterTimerController, ReadTangoAttributes):
+class TangoAttrCTController(ReadTangoAttributes, CounterTimerController):
     """This controller offers as many channels as the user wants.
     Each channel has two _MUST_HAVE_ extra attributes:
     +) TangoAttribute - Tango attribute to retrieve the value of the counter
@@ -131,9 +132,10 @@ class TangoAttrCTController(CounterTimerController, ReadTangoAttributes):
                      
     MaxDevice = 1024
 
-    def __init__(self, inst, props):
-        CounterTimerController.__init__(self, inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
         ReadTangoAttributes.__init__(self)
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
+        
 
     def AddDevice(self, axis):
         self.add_device(axis)
