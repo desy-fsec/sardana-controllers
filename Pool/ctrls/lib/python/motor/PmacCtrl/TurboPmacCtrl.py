@@ -33,7 +33,10 @@
 ###########################################################################
 
 import PyTango
-from pool import MotorController
+
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import MotorController
 
 
 class TurboPmacController(MotorController):
@@ -102,8 +105,8 @@ class TurboPmacController(MotorController):
     ctrl_extra_attributes.update(motor_extra_attributes)
     ctrl_extra_attributes.update(cs_extra_attributes)
     
-    def __init__(self,inst,props):
-        MotorController.__init__(self,inst,props)
+    def __init__(self, inst, props, *args, **kwargs):
+        MotorController.__init__(self, inst, props, *args, **kwargs)
         try:
             self.pmacEth = PyTango.DeviceProxy(self.PmacEthDevName)
         except PyTango.DevFailed, e:
@@ -116,7 +119,7 @@ class TurboPmacController(MotorController):
 
     def AddDevice(self, axis):
         self.axesList.append(axis)
-        self.attributes[axis] = {}
+        self.attributes[axis] = {"step_per_unit" : 1.0, "base_rate" : float("nan")}
 
     def DeleteDevice(self, axis):
         self.axesList.remove(axis)
@@ -272,10 +275,14 @@ class TurboPmacController(MotorController):
         return self.positionMultiple[axis] / self.attributes[axis]["step_per_unit"]
     
     def PreStartAll(self):
+        self._log.debug("Entering PreStartAll")
         self.startMultiple = {}
+        self._log.debug("Leaving PreStartAll")
 
     def PreStartOne(self, axis, position):
+        self._log.debug("Entering PreStartOne")
         self.startMultiple[axis] = position
+        self._log.debug("Leaving PreStartOne")
         return True
 
     def StartOne(self, axis, position):
@@ -303,7 +310,7 @@ class TurboPmacController(MotorController):
                 self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed.", axis, name, value, ivar, pmacVelocity)
                 raise
 
-        elif name.lower() == "acceleration":
+        elif name.lower() == "acceleration" or name.lower() == "deceleration":
             #here we convert acceleration time from sec(Sardana standard) to msec(TurboPmac expected unit)  
             pmacAcceleration =  value * 1000
             self._log.debug("setting acceleration to: %f" % pmacAcceleration)
@@ -316,6 +323,8 @@ class TurboPmacController(MotorController):
                 raise
         elif name.lower() == "step_per_unit":
             self.attributes[axis]["step_per_unit"] = float(value)
+        elif name.lower() == "base_rate":
+            self.attributes[axis]["base_rate"] = float(value)
         #@todo implement base_rate
 
     def GetPar(self, axis, name):
@@ -336,7 +345,7 @@ class TurboPmacController(MotorController):
             sardanaVelocity = (float(pmacVelocity) * 1000) / self.attributes[axis]["step_per_unit"]
             return sardanaVelocity
     
-        elif name.lower() == "acceleration":
+        elif name.lower() == "acceleration" or name.lower() == "deceleration":
                 #pmac acceleration time from msec(returned by TurboPmac) to sec(Sardana standard)
             ivar = long("%d20" % axis)
             try:
@@ -351,6 +360,8 @@ class TurboPmacController(MotorController):
         elif name.lower() == "step_per_unit":
             return self.attributes[axis]["step_per_unit"]
             #@todo implement base_rate
+        elif name.lower() == "base_rate":
+            return self.attributes[axis]["base_rate"]
         else:
             return None
 
