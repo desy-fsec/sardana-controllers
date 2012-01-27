@@ -152,8 +152,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
         self._log.info("expTime %fs (ccd attr %fms)"%(self.expTimeValue,
                                                       self._ccdProxy.read_attribute('ExposureTime').value))
         #self._log.warn("ccd imgCounter %d"%self.__flag_ccdImgCt)
-        #self._ccdProxy.Snap()#FIXME: Snap command in the IG-ds doesnt' work
-        self._ccdProxy.Start()
+        self._ccdProxy.Snap()
         self.ctrlState = [PyTango.DevState.MOVING,""]
 
     def AbortOne(self,ind):
@@ -212,7 +211,6 @@ class ImgBeamAnalyzerController(CounterTimerController):
         if self.__flag_ccdImgCt == None and not self.__flag_ibaImgCt == None:
             return True
         elif self.__flag_ccdImgCt < (current_ccdImgCt):#at least one image has been taken
-            self._ccdProxy.Stop()#FIXME: this is because Snap doesn't work
             self._log.info("image has been taken")
             self.__flag_ccdImgCt = None#reset flag
             #due to the image is already take, can be processed
@@ -280,6 +278,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
         self._restore(self._ibaProxy, "Mode", "prop")
         self._restore(self._ccdProxy, None, "state")
         self.__flag_backup = False
+        self._backupDict = {}
 
     def _restore(self,dev,vble,vbletype):
         self._log.debug("restore the %s %s of the %s"%(vbletype,vble,dev.name()))
@@ -297,6 +296,8 @@ class ImgBeamAnalyzerController(CounterTimerController):
             value = self._backupDict[dictKey]
             dev.put_property({vble:value})
             dev.Init()
+            if dev == self._ibaProxy:
+                dev.Process()#FIXME: HACKISH!!!
 
     def _restoreAttribute(self,dev,vble):
         dictKey = dev.name()+'_attr_'+vble
