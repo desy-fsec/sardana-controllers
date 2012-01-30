@@ -1,8 +1,7 @@
 import time
 import PyTango
 
-from macro import Macro, Type
-#from icepap import home_group_strict, home_group, create_motor_info_dict
+from sardana.macroserver.macro import Macro, Type
 from macro_utils.motors import moveToHardLim
 from macro_utils.icepap import *
             

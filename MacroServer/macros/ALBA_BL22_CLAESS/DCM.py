@@ -1,7 +1,7 @@
 import time
 import PyTango
 
-from macro import Macro, Type
+from sardana.macroserver.macro import Macro, Type
 from macro_utils.motors import moveToPosHardLim, moveToNegHardLim
 from macro_utils.icepap import *
 

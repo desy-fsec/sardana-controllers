@@ -1,6 +1,8 @@
-from scan import SScan, ascan, getCallable, UNCONSTRAINED
-from macro import Type, Macro, Hookable
 import math
+
+from sardana.macroserver.macro import Type, Macro, Hookable
+from sardana.macroserver.scan import SScan
+from sardana.macroserver.macros.scan import ascan, getCallable, UNCONSTRAINED
 
 EV2REVA = 0.2624682843
 
@@ -8,7 +10,7 @@ class constKscan(Macro, Hookable):
     """"""
 
     param_def = [
-       ['motor',            Type.Motor,   None, 'Motor to move'],
+       ['motor',            Type.Moveable,   None, 'Motor to move'],
        ['start_pos',        Type.Float,   None, 'Scan start position'],
        ['final_pos',        Type.Float,   None, 'Scan final position'],
        ['edge_pos',         Type.Float,   None, 'Edge position'],
