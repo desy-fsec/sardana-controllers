@@ -1,5 +1,5 @@
 import PyTango 
-from macro import *
+from sardana.macroserver.macro import *
 
 TIMEOUT_LIM = 1
     
