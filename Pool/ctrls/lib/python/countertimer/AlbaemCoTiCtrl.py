@@ -1,8 +1,7 @@
 import logging
 import numpy
 import PyTango
-from sardana import pool
-from sardana.pool.controller import CounterTimerController
+from pool import CounterTimerController
 import time
 from AlbaEmLib import albaem
 import subprocess
@@ -29,7 +28,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
     
     MaxDevice = 5
     DEBUG = True
-    mode = 'HW' #For the time being must be like this
+    mode = 'SW' #For the time being must be like this
     class_prop = {'Albaemname':{'Description' : 'Albaem DNS name', 'Type' : 'PyTango.DevString'},
                   'SampleRate':{'Description' : 'SampleRate set for AIDevice','Type' : 'PyTango.DevLong'}}
     
@@ -45,10 +44,10 @@ class AlbaemCoTiCtrl(CounterTimerController):
                                 },
                             }
 
-    def __init__(self, inst, props, *args, **kwargs):
+    def __init__(self, inst, props):
         #        self._log.setLevel(logging.DEBUG)
-        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
-        self._log.setLogLevel(logging.INFO)
+        CounterTimerController.__init__(self,inst,props)
+        self._log.setLevel(logging.INFO)
         self._log.debug( "__init__(%s, %s): Entering...", repr(inst), repr(props))
         #self.sd = {}
         self.master = None
@@ -133,7 +132,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
                 self.state = PyTango.DevState.ON
             return self.state
         else:
-            self.state = self.evalState(self.AemDevice.getState())
+            self.state = self.evalState(self.AemDevice.state())
             return self.state
         
     def PreReadOne(self, axis):
@@ -239,17 +238,8 @@ class AlbaemCoTiCtrl(CounterTimerController):
         #if not (len(self.axesToStart) == 1 and self.axesToStart[0] == self.master):
         #    return
         if self.acqstarted == False:
-          if self.mode == 'SW':  
             try:
                 self.AemDevice.StartAdc()
-                self.acqtimeini = time.time()
-                self.acqstarted = True
-            except Exception, e:
-                self._log.error("StartAllCT(): Could not start acquisition on the device: %s.\nException: %s", self.Albaemname, e)
-                raise
-          else:
-            try:
-                self.AemDevice.Start()
                 self.acqtimeini = time.time()
                 self.acqstarted = True
             except Exception, e:
@@ -284,21 +274,12 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def evalState(self, state):
         """This function converts Adlink device states into counters state."""
         #self._log.debug('evalState: #%s# len:%s'%(state, len(state)))
-        if self.mode == 'SW':
-          if state == 'RUNNING' or state == 'ON':
+        if state == 'RUNNING' or state == 'ON':
             #self._log.debug('evalState: RUNNING')
             return PyTango.DevState.MOVING
-          elif state == 'IDLE':
+        elif state == 'IDLE':
             return PyTango.DevState.ON
-          else:
-            raise Exception('Wrong state')
         else:
-          if state == 'RUNNING':
-            #self._log.debug('evalState: RUNNING')
-            return PyTango.DevState.MOVING
-          elif state == 'IDLE' or state == 'ON':
-            return PyTango.DevState.ON
-          else:
             raise Exception('Wrong state')
 
     def GetExtraAttributePar(self, axis, name):
@@ -328,7 +309,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
          
     
 if __name__ == "__main__":
-    obj = AlbaemCoTiCtrl('test',{'Albaemname':'ELEM01R42-046.cells.es','SampleRate':1000})
+    obj = AlbaemCoTiCtrl('test',{'Albaemname':'ELEM01R42-020-bl29.cells.es','SampleRate':1000})
     obj.AddDevice(1)
     obj.AddDevice(2)
     obj.AddDevice(3)
