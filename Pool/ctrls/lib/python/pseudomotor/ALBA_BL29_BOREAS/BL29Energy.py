@@ -2,6 +2,7 @@
 
 import math
 import PyTango
+import logging
 from pool import PseudoMotorController
 
 
@@ -9,7 +10,7 @@ class Energy(PseudoMotorController):
     """Energy pseudo motor controller for handling BL29-Boreas energy calculation given the positions
     of all the motors involved (and viceversa)."""
 
-    gender = "Energy"
+    gender = "PseudoMotor"
     model  = "BL29-Boreas energy calculation"
     organization = "CELLS - ALBA"
     image = "energy.png"
@@ -22,9 +23,9 @@ class Energy(PseudoMotorController):
     c = 2.997925e17 # nm/s
     constant = h * c
     include_angles = [ 177*math.pi/180, 175*math.pi/180 ] # spherical mirrors include angles in radians (sm2 - sm1 respectively)
-    offset = [0, 2.0*math.pi/180] #used to set the correct origin of the grating pitch axis (sm2 - sm1 respectively)
+    sm_offset = [0, 2.0*math.pi/180] #used to set the correct origin of the grating pitch axis (sm2 - sm1 respectively)
     energy_ranges = [ [ (1900,4500), (600,2100) ],
-                      [ (950,3000), (380,1700) ],
+                      [ (950,3000),  (380,1700) ],
                       [ (250, 600), (80,500) ]
                     ] #working energy ranges in eV (electron volts), i is grating selected (he, me, le), j is sm selected (sm2, sm1)
 
@@ -69,6 +70,10 @@ class Energy(PseudoMotorController):
         {'Type':'PyTango.DevString',
         'Description':'Energy ranges for each combination of SM and GR',
         'R/W Type':'PyTango.READ'},
+        'debug':
+        {'Type':'PyTango.DevBoolean',
+        'Description':'If set to true, it will output verbose information on the Pool console',
+        'R/W Type':'PyTango.READ_WRITE'},
     }
 
 
@@ -82,18 +87,21 @@ class Energy(PseudoMotorController):
         self.gr_selected_ior_dev = PyTango.DeviceProxy(self.gr_selected_ior)
         self.lock_mirrors = True
 
-        #initialization of energy_offsets; this is just so the variables exist,
+        #Initialization of grating_offsets; this is just so the variables exist,
         #since their memorized values will be written in SetExtraAttributePar
-        #These are offset in eV to sum to the computed energy (since the 3
-        #gratings are no perfectly aligned) i is grating selected (he, me, le),
-        #j is sm selected (sm2, sm1)
+        #These are offsets in grating pitch units to be summed to the read pitch
+        #before computing the energy (since the 3 gratings are no perfectly aligned)
+        #i is grating selected (he, me, le), j is sm selected (sm2, sm1)
+        #This is different to sm_offset, which also causes an offset depending on the SM selected
+        #Also note that sm_offset units are radians, while the grating offsets are expressed in
+        #gr_pitch units (current user units are micro radians)
         self.heg_sm2_offset = 0.0
         self.heg_sm1_offset = 0.0
         self.meg_sm2_offset = 0.0
         self.meg_sm1_offset = 0.0
         self.leg_sm2_offset = 0.0
         self.leg_sm1_offset = 0.0
-        self.energy_offsets = [ [ self.heg_sm2_offset, self.heg_sm1_offset ],
+        self.grating_offsets = [[ self.heg_sm2_offset, self.heg_sm1_offset ],
                                 [ self.meg_sm2_offset, self.meg_sm1_offset ],
                                 [ self.leg_sm2_offset, self.leg_sm1_offset ]]
 
@@ -105,7 +113,10 @@ class Energy(PseudoMotorController):
                       'LEG + SM2: %s\n' % str(self.energy_ranges[2][0]) + \
                       'LEG + SM1: %s\n' % str(self.energy_ranges[2][1])
 
+        #debug disabled by default
         self.debug = False
+        #save logger original level (we may need to restore it) 
+        self.log_level_original = self._log.level
 
 
     def calc_physical(self,index,pseudo_pos):
@@ -159,10 +170,7 @@ class Energy(PseudoMotorController):
             except Exception, e:
                 raise RuntimeError("Error while trying to position mirrors in %s::calc_physical: %s" % (self.__class__.__name__, str(e)) )
 
-        offset = Energy.offset[sm_selected]
-
-        #apply energy offset before computing the grating pitch
-        energy -= self.energy_offsets[gr_selected][sm_selected]
+        sm_offset = Energy.sm_offset[sm_selected]
 
         if index == 1:
             #compute gr_pitch
@@ -181,23 +189,23 @@ class Energy(PseudoMotorController):
 
             alpha = theta + beta
 
-            gr_pitch = (math.pi/2 - alpha - offset) #radians
+            gr_pitch = (math.pi/2 - alpha - sm_offset) #radians
 
-            if self.debug:
-                print "<------------------------------------------------------- calc_physical"
-                print "offset", offset
-                print "lambda", wave_length
-                print "theta", theta * 180 / math.pi
-                print "beta", beta * 180 / math.pi
-                print "alpha", alpha * 180 / math.pi
-                print "(sm_selected, gr_selected, gr-pitch (rad),gr-pitch (deg), gr_pitch (microrad)", sm_selected, gr_selected, gr_pitch, gr_pitch * 180 / math.pi, gr_pitch * 1.0e6
-                print "-------------------------------------------------------> calc_physical"
+            self._log.debug("<------------------------------------------------------- calc_physical")
+            self._log.debug("sm_offset %f" % sm_offset)
+            self._log.debug("lambda: %f" % wave_length)
+            self._log.debug("theta: %f" % (theta * 180 / math.pi))
+            self._log.debug("beta: %f" % (beta * 180 / math.pi))
+            self._log.debug("alpha: %f" % (alpha * 180 / math.pi))
+            self._log.debug("(sm_selected, gr_selected, gr-pitch (rad),gr-pitch (deg), gr_pitch (microrad): %d %d %f %f %f" % (sm_selected, gr_selected, gr_pitch, gr_pitch * 180 / math.pi, gr_pitch * 1.0e6))
+            self._log.debug("-------------------------------------------------------> calc_physical")
 
             gr_pitch = gr_pitch * 1.0e6 #rads -> microrads
 
-            return gr_pitch
+            #apply the corresponding grating offset
+            return (gr_pitch - self.grating_offsets[gr_selected][sm_selected])
         else:
-            raise RuntimeError("Invalid index %s to compute energy %s calc_physical()" % (str(index), str(index)))
+            raise RuntimeError("Invalid index %s to compute energy %s calc_physical()" % (str(index), str(pseudo_pos)))
 
 
     def calc_pseudo(self,index,physical_pos):
@@ -215,13 +223,16 @@ class Energy(PseudoMotorController):
         except Exception, e:
             raise RuntimeError("Spherical mirror and/or grating positions are invalid: %s" % repr(e))
 
-        offset = Energy.offset[sm_selected]
+        sm_offset = Energy.sm_offset[sm_selected]
 
         #compute energy
         D0 = Energy.line_spacing[gr_selected] * 1.0e-6
-        gr_pitch = gr_pitch * 1e-6  #convert from micro radians to radians
+        #apply the user supplied grating offset depending on the GR and SM
+        #selected and convert it from micro radians to radians
+        gr_pitch += self.grating_offsets[gr_selected][sm_selected]
+        gr_pitch = gr_pitch * 1e-6
 
-        alpha = math.pi/2 - offset - gr_pitch
+        alpha = math.pi/2 - sm_offset - gr_pitch
         theta = Energy.include_angles[sm_selected]
         beta = alpha - theta
 
@@ -229,19 +240,18 @@ class Energy(PseudoMotorController):
 
         energy = Energy.constant / wave_length #will throw exception if wave_length == 0
 
-        if self.debug:
-            print "<------------------------------------------------------- calc_pseudo"
-            print "offset", offset
-            print "physical_pos:", physical_pos
-            print "sm_selected, gr_selected", sm_selected, gr_selected
-            print "alpha (deg)", alpha * 180 / math.pi
-            print "theta (deg)", theta * 180 / math.pi
-            print "beta (deg)", beta * 180 / math.pi
-            print "lambda", wave_length
-            print "energy", energy
-            print "-------------------------------------------------------> calc_pseudo"
+        self._log.debug("<------------------------------------------------------- calc_pseudo")
+        self._log.debug("sm_offset %f" % sm_offset)
+        self._log.debug("physical_pos: %f" % physical_pos)
+        self._log.debug("sm_selected, gr_selected: %d %d" % (sm_selected, gr_selected))
+        self._log.debug("alpha (deg): %f" % (alpha * 180 / math.pi))
+        self._log.debug("theta (deg): %f" % (theta * 180 / math.pi))
+        self._log.debug("beta (deg): %f" % (beta * 180 / math.pi))
+        self._log.debug("lambda: %f" % wave_length)
+        self._log.debug("energy: %f" % energy)
+        self._log.debug("-------------------------------------------------------> calc_pseudo")
 
-        return energy + self.energy_offsets[gr_selected][sm_selected]
+        return energy
 
 
     def GetExtraAttributePar(self,axis,name):
@@ -266,6 +276,8 @@ class Energy(PseudoMotorController):
             return self.leg_sm1_offset
         elif name == 'ranges':
             return self.ranges
+        elif name == 'debug':
+            return self.debug
 
 
     def SetExtraAttributePar(self,axis,name,value):
@@ -278,19 +290,27 @@ class Energy(PseudoMotorController):
             self.lock_mirrors = value
         elif name == 'heg_sm2_offset':
             self.heg_sm2_offset = value
-            self.energy_offsets[0][0] = value
+            self.grating_offsets[0][0] = value
         elif name == 'heg_sm1_offset':
             self.heg_sm1_offset = value
-            self.energy_offsets[0][1] = value
+            self.grating_offsets[0][1] = value
         elif name == 'meg_sm2_offset':
             self.meg_sm2_offset = value
-            self.energy_offsets[1][0] = value
+            self.grating_offsets[1][0] = value
         elif name == 'meg_sm1_offset':
             self.meg_sm1_offset = value
-            self.energy_offsets[1][1] = value
+            self.grating_offsets[1][1] = value
         elif name == 'leg_sm2_offset':
             self.leg_sm2_offset = value
-            self.energy_offsets[2][0] = value
+            self.grating_offsets[2][0] = value
         elif name == 'leg_sm1_offset':
             self.leg_sm1_offset = value
-            self.energy_offsets[2][1] = value
+            self.grating_offsets[2][1] = value
+        elif name == 'debug':
+            self.debug = value
+            if self.debug:
+                #put logger in debug mode
+                self._log.setLevel(logging.DEBUG)
+            else:
+                #restore original logger level
+                self._log.setLevel(self.log_level_original)
