@@ -38,7 +38,7 @@ from pool import CounterTimerController
 import time
 from copy import copy
 
-hackish_IBAProcessSleep = 0.5
+hackish_IBAProcessSleep = 0.2
 hackish_IBAInitSleep = 0.5
 
 class ImgBeamAnalyzerController(CounterTimerController):
@@ -216,7 +216,8 @@ class ImgBeamAnalyzerController(CounterTimerController):
             #due to the image is already take, can be processed
             self.__flag_ibaImgCt = self._ibaProxy.read_attribute('ImageCounter').value
             #self._log.warn("iba imgCounter %d"%self.__flag_ibaImgCt)
-            self._ibaProxy.Process()
+            try: self._ibaProxy.Process()
+            except: pass
             self.expTimeValue = self._ccdProxy.read_attribute('ExposureTime').value/1000 #convert from ms to seconds
             return True
         return False
@@ -235,11 +236,11 @@ class ImgBeamAnalyzerController(CounterTimerController):
         return False
     
     def _doBackup(self):
-        self._backup(self._ccdProxy, None, 'state', None)
-        self._backup(self._ibaProxy, "Mode", 'prop', 'ONESHOT')
+        self._backup(self._ccdProxy, None, 'state')
+        #self._backup(self._ibaProxy, "Mode", 'prop', 'ONESHOT')
         self._backup(self._ccdProxy, "TriggerMode", 'attr', 0)
 
-    def _backup(self,dev,vble,vbletype,value):
+    def _backup(self,dev,vble,vbletype,value=None):
         self._log.debug("backup the %s %s of the %s and set value %s"%(vbletype,vble,dev.name(),value))
         case = {'prop':self._backupProperty,
                 'attr':self._backupAttribute,
@@ -275,8 +276,8 @@ class ImgBeamAnalyzerController(CounterTimerController):
     def _doRestore(self):
         self._restore(self._ccdProxy, "ExposureTime", "attr")
         self._restore(self._ccdProxy, "TriggerMode", "attr")
-        self._restore(self._ibaProxy, "Mode", "prop")
-        self._restore(self._ccdProxy, None, "state")
+        #self._restore(self._ibaProxy, "Mode", "prop")
+        #self._restore(self._ccdProxy, None, "state")
         self.__flag_backup = False
         self._backupDict = {}
 
@@ -298,6 +299,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             dev.Init()
             if dev == self._ibaProxy:
                 dev.Process()#FIXME: HACKISH!!!
+                #time.sleep(hackish_IBAProcessSleep)
 
     def _restoreAttribute(self,dev,vble):
         dictKey = dev.name()+'_attr_'+vble
