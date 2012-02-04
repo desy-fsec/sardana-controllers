@@ -23,7 +23,7 @@ class AlbaBl04XBPMPCController(PseudoCounterController):
             return ixbz
         elif index == 2: #horizontal
             offset = self.extra_attributes[2]["offset"]
-            ixbx = (ixbr * offset - ixbl)/(ixbr * offset + ixbb)
+            ixbx = (ixbr * offset - ixbl)/(ixbr * offset + ixbl)
             return ixbx
         elif index == 3:
             ixbtot = (ixbt + ixbb + ixbr + ixbl) / 4
