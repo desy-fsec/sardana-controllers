@@ -9,7 +9,7 @@ class AlbaBl04XBPMPCController(PseudoCounterController):
 
     def __init__(self, inst, props):
         PseudoCounterController.__init__(self, inst, props)
-        self.extra_attributes = {1:{'offset':0.0},2:{'offset':0.0},3:{'offset':float('nan')}}
+        self.extra_attributes = {1:{'offset':1.0},2:{'offset':1.0},3:{'offset':float('nan')}}
 
     def pseudo_current(self, first, second):
         return (first - second) / (first + second)
