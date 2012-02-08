@@ -29,7 +29,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
     MaxDevice = 5
     DEBUG = True
     mode = 'SW' #For the time being must be like this
-    class_prop = {'Albaemname':{'Description' : 'Albaem DNS name', 'Type' : 'PyTango.DevString'},
+    class_prop = {'Albaemname':{'Description' : 'Albaem DS name', 'Type' : 'PyTango.DevString'},
                   'SampleRate':{'Description' : 'SampleRate set for AIDevice','Type' : 'PyTango.DevLong'}}
     
     ctrl_extra_attributes ={ "Range": 
@@ -53,7 +53,8 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self.master = None
         self.integrationTime = 0.0
         self.channels = []
-        self.measures = [['1',0.0],['2',0.0],['3',0.0],['4',0.0]]
+        #self.measures = [['1',0.0],['2',0.0],['3',0.0],['4',0.0]]
+        self.measures = ['','','','']
         self.status = ''
         self.acqtimeini = 0
         self.acqstarted = False
@@ -63,21 +64,21 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self.ranges = ['','','','']
         self.filters = ['','','',''] 
         try:
-            #self.AemDevice = PyTango.DeviceProxy(self.Albaemname)
+            self.AemDevice = PyTango.DeviceProxy(self.Albaemname)
             
             #Check if the device is pinging before instantiate the object
             #Needed for avoid problems starting the pool.
             
-            ping = subprocess.Popen(
-                                    ['ping','c','2',self.Albaemname],
-                                    stdout = subprocess.PIPE,
-                                    stderr = subprocess.PIPE
-                                    )
-            out, error = ping.communicate()
+            #ping = subprocess.Popen(
+            #                        ['ping','c','2',self.Albaemname],
+            #                        stdout = subprocess.PIPE,
+            #                        stderr = subprocess.PIPE
+            #                        )
+            #out, error = ping.communicate()
 
-            if out.find("Destination Host Unreachable") == -1:
-                self.AemDevice = albaem(self.Albaemname)
-                self.AemDevice.StartAdc()
+            #if out.find("Destination Host Unreachable") == -1:
+            #    self.AemDevice = albaem(self.Albaemname)
+            #    self.AemDevice.StartAdc()
                 #self.AemDevice.disableAll()
         except Exception, e:
             self._log.error("__init__(): Could not create a device from following device name: %s.\nException: %s", 
@@ -146,30 +147,12 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self._log.debug("ReadOne(%d): Entering...", axis)
         if axis == 1:
             return self.integrationTime
-        for measure in self.measures:
-            auxAxis = axis-1
-            if measure[0] == '%s'%auxAxis:
-                return float(measure[1])
-
-        '''
-        state = self.AemDevice.getState() 
-        mean = 0
-        if axis == 1:
-            return self.integrationTime
-
-        if state == PyTango.DevState.ON: 
-            mean = self.AemDevice["C0%s_MeanLast" % (axis - 2)].value
-            std = self.AemDevice["C0%s_StdDevLast" % (axis - 2)].value
-            
-            self.sd[axis] = std
-
-            value = mean
-            mean = eval(self.formulas[axis])
-
-            self._log.debug("ReadOne(%d): mean=%f, sd=%f", 
-                            axis, mean, std)
-        return mean
-        '''
+        #for measure in self.measures:
+        #print self.measures
+        return self.measures[axis-2]
+#            auxAxis = axis-1
+#            if measure[0] == '%s'%auxAxis:
+#                return float(measure[1])
 
     def PreReadAll(self):
         #print "PreReadAll"
@@ -183,7 +166,8 @@ class AlbaemCoTiCtrl(CounterTimerController):
         #print "Read:", self.readchannels
         #if self.state == PyTango.DevState.ON and self.acqchannels == self.readchannels: #This didn't solve the speed issue. Therefore I left it as it was
         if self.state == PyTango.DevState.ON:
-            self.measures, self.status = self.AemDevice.getMeasures(['1', '2', '3', '4'])
+            #self.measures, self.status = self.AemDevice.getMeasures(['1', '2', '3', '4'])
+            self.measures=self.AemDevice['AllChannels'].value
 
     def AbortOne(self, axis):
         self._log.debug("AbortOne(%d): Entering...", axis)
@@ -239,7 +223,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         #    return
         if self.acqstarted == False:
             try:
-                self.AemDevice.StartAdc()
+                self.AemDevice.StartAdc() #check
                 self.acqtimeini = time.time()
                 self.acqstarted = True
             except Exception, e:
@@ -285,31 +269,40 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def GetExtraAttributePar(self, axis, name):
         self._log.debug("GetExtraAttributePar(%d, %s): Entering...", axis, name)
         if name.lower() == "range":
-            self.ranges[axis-2] = self.AemDevice.getRanges([str(axis-1)])
+            #self.ranges[axis-2] = self.AemDevice.getRanges([str(axis-1)])
+            self.ranges[axis-2] = self.AemDevice['Ranges'].value[axis-2]
 #            print '/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/'
 #            print self.ranges[axis-2][0][1]
 #            print axis
 #            print '/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/'
-            return self.ranges[axis-2][0][1] 
+            #return self.ranges[axis-2][0][1]
+            return self.ranges[axis-2] 
         if name.lower() == "filter":
-            self.filters[axis-2] = self.AemDevice.getFilters([str(axis-1)])
+            #self.filters[axis-2] = self.AemDevice.getFilters([str(axis-1)])
+            self.filters[axis-2] = self.AemDevice['Filters'].value[axis-2]
 #            print '/*******************************/'
 #            print self.filters
 #            print type(self.filters[axis-1])
 #            print '/*******************************/'
-            return self.filters[axis-2][0][1] 
+            #return self.filters[axis-2][0][1]
+            return self.filters[axis-2] 
 
     def SetExtraAttributePar(self,axis, name, value):
         if name.lower() == "range":
             self.ranges[axis-2] = value
-            self.AemDevice.setRanges([[str(axis-1),str(value)]])
+            #self.AemDevice.setRanges([[str(axis-1),str(value)]])
+            channel = 'range_ch'+ str(axis-1)
+            self.AemDevice[channel]=str(value)
         if name.lower() == "filter":
             self.filters[axis-2] = value
-            self.AemDevice.setFilters([[str(axis-1),str(value)]])
+            #self.AemDevice.setFilters([[str(axis-1),str(value)]])
+            channel = 'filter_ch'+ str(axis-1)
+            self.AemDevice[channel]=str(value)
          
     
 if __name__ == "__main__":
-    obj = AlbaemCoTiCtrl('test',{'Albaemname':'ELEM01R42-020-bl29.cells.es','SampleRate':1000})
+    #obj = AlbaemCoTiCtrl('test',{'Albaemname':'ELEM01R42-020-bl29.cells.es','SampleRate':1000})
+    obj = AlbaemCoTiCtrl('test',{'Albaemname':'amilan/emet/01','SampleRate':1000})
     obj.AddDevice(1)
     obj.AddDevice(2)
     obj.AddDevice(3)
@@ -317,8 +310,8 @@ if __name__ == "__main__":
     obj.AddDevice(5)
     obj.LoadOne(1,1)
     print obj.PreStartAllCT()
-    print obj.AemDevice.setFilters([['1', 'NO'],['2', 'NO'],['3', 'NO'],['4', 'NO']])
-    print obj.AemDevice.setRanges([['1', '1mA'],['2', '1mA'],['3', '1mA'],['4', '1mA']])
+    #print obj.AemDevice.setFilters([['1', 'NO'],['2', 'NO'],['3', 'NO'],['4', 'NO']])
+    #print obj.AemDevice.setRanges([['1', '1mA'],['2', '1mA'],['3', '1mA'],['4', '1mA']])
     print obj.StartOneCT(1)
     print obj.StartOneCT(2)
     print obj.StartOneCT(3)
