@@ -1,5 +1,5 @@
-from pool import PseudoCounterController
-import taurus
+from sardana.pool.controller import PseudoCounterController
+import PyTango
 
 class MachinePCController(PseudoCounterController):
 
@@ -27,7 +27,7 @@ class MachinePCController(PseudoCounterController):
         self.IFE = 8
 
     def read_tango_attribute(self, machine_tango_attribute):
-        attr = taurus.Attribute(machine_tango_attribute)
+        attr = PyTango.AttributeProxy(machine_tango_attribute)
         return attr.read().value
 
     def calc(self, index, counter_values):
