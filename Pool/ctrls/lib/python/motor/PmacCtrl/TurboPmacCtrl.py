@@ -126,6 +126,7 @@ class TurboPmacController(MotorController):
         self.attributes[axis] = None
     
     def PreStateAll(self):
+        self._log.debug("Entering PreStateAll")
         self.pmacEthOk = False
         try:
             pmacEthState = self.pmacEth.state()
@@ -133,9 +134,11 @@ class TurboPmacController(MotorController):
             self._log.error("PreStateAll(): PmacEth DeviceProxy state command failed.")
         if pmacEthState == PyTango.DevState.ON:
             self.pmacEthOk = True
+        self._log.debug("Leaving PreStateAll")
             
     def StateAll(self):
         """ Get State of all axes with just one command to the Pmac Controller. """
+        self._log.debug("Entering StateAll")
         if not self.pmacEthOk: return
         try:
             motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
@@ -216,6 +219,7 @@ class TurboPmacController(MotorController):
                         
             csBinState = csStateBinArray[attributes["CoordinateSystem"]-1]
             self.attributes[axis]["MotionProgramRunning"] = bool(csBinState[5] & 0x1)
+        self._log.debug("Leaving StateAll")
     
     def StateOne(self, axis):
         switchstate = 0
@@ -259,9 +263,12 @@ class TurboPmacController(MotorController):
         return (state, status, switchstate)
     
     def PreReadAll(self):
+        self._log.debug("Entering PreReadAll")
         self.positionMultiple = {}
+        self._log.debug("Leaving PreReadAll")
     
     def ReadAll(self):
+        self._log.debug("Entering ReadAll")
         try:
             motPosAns = self.pmacEth.command_inout("SendCtrlChar", "P")
         except PyTango.DevFailed, e:
@@ -270,8 +277,11 @@ class TurboPmacController(MotorController):
         motPosFloatArray = [float(s) for s in motPosAns.split()]
         for axis in self.axesList:
             self.positionMultiple[axis] = motPosFloatArray[axis-1]
+        self._log.debug("Leaving ReadAll")
             
     def ReadOne(self, axis):
+        self._log.debug("Entering ReadOne")
+        self._log.debug("Leaving ReadOne")
         return self.positionMultiple[axis] / self.attributes[axis]["step_per_unit"]
     
     def PreStartAll(self):
