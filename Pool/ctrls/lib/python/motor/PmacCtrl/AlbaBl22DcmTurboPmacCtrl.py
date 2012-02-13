@@ -33,7 +33,9 @@
 ###########################################################################
 import math, logging, time
 import PyTango
-from pool import PoolUtil, MotorController
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import MotorController
 import TurboPmacCtrl
 
 class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
@@ -43,15 +45,12 @@ class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
 
     superklass = TurboPmacCtrl.TurboPmacController    
     MaxDevice = 2
-    #class_prop = {'EnergyDeviceName':{'Type' : 'PyTango.DevString', 'Description' : 'Energy pseudomotor device name'}}
-    #class_prop.update(superklass.class_prop)
     
-    def __init__(self,inst,props):
-        self.superklass.__init__(self,inst,props)
-        #self._log.setLevel(logging.DEBUG)
-        #self.energyPseudoMotor = PyTango.DeviceProxy(self.EnergyDeviceName) 
+    def __init__(self, inst, props, *args, **kwargs):
+        self.superklass.__init__(self, inst, props, *args, **kwargs)
 
     def StateOne(self, axis):
+        self._log.debug("Entering StateOne")
         attributes = self.attributes[axis]
         switchstate = 0
         if not self.pmacEthOk:
@@ -91,18 +90,22 @@ class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
                    state = PyTango.DevState.ALARM
                    status += "\nAt least one of the negative/positive limit is activated"
                    switchstate += 2
+        self._log.debug("Leaving StateOne")
         return (state, status, switchstate)
        
     def StartAll(self):
+        self._log.debug("Entering StartAll")
         #@todo: here we should use some extra_attribute of energy pseudomotor saying if we want to do energy motion or single axis motion, cause len(self.startMultiple) > 1 is true if we move a MotorGroup(e.g. mv macro with bragg and perp) 
         if len(self.startMultiple) > 1:
-            #@todo: this is only a workaroud, if we try to read an attribute from PseudoMotor it throws a serialization exception, to be fixed by tcoutinho. To use this workaround be sure that you set an ExitOffset attribute for energy pseudomotor at least one in it its lifetime
-            #exitOffset = self.energyPseudoMotor.ExitOffset
-            exitOffset = float(PyTango.Database().get_device_attribute_property('pm/dcm_energy_ctrl/1', "ExitOffset")["ExitOffset"]["__value"][0])
-            bragg = self.startMultiple[1]
-            self._log.debug('Starting energy movement with bragg: %f, exitOffset: %f' %(bragg,exitOffset))
-            self.pmacEth.command_inout("SetPVariable", [100,bragg])
+            bragg_deg = self.startMultiple[1]
+            bragg_rad = math.radians(bragg_deg)
+            perp = self.startMultiple[3]
+            #we calculate exit offset form the current position of the perpendicular motor, during energy motion program pmac will try to keep this fixed
+            exitOffset = 2 * perp * math.cos(bragg_rad)
+            self._log.debug('Starting energy movement with bragg: %f, exitOffset: %f' %(bragg_deg,exitOffset))
+            self.pmacEth.command_inout("SetPVariable", [100,bragg_deg])
             self.pmacEth.command_inout("SetPVariable", [101,exitOffset])
             self.pmacEth.command_inout("RunMotionProg", 11)
         else:
             self.superklass.StartAll(self)
+        self._log.debug("Leaving StartAll")
