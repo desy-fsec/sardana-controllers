@@ -1,7 +1,9 @@
 import math, logging
 
 import PyTango
-from pool import PseudoMotorController, PoolUtil
+from sardana import pool 
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
 
 #def siliconBondLength(ior_value):
     #"""Returns silicon bond length depending on the ior_value parameter. 
@@ -36,36 +38,42 @@ class DCM_Energy_Controller(PseudoMotorController):
      
     hc = 12398.419 #eV *Angstroms
                              
-    def __init__(self, inst, props):    
-        PseudoMotorController.__init__(self, inst, props)
-        #self._log.setLevel(logging.DEBUG)
+    def __init__(self, inst, props, *args, **kwargs):    
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         self.attributes = {}
         self.attributes[1] = {'ExitOffset':18.5, 'dSi311':1.637418, 'dSi111':3.1354161}
         try:
             self.vcm_pitch = PoolUtil().get_motor(self.inst_name, self.VCMPitchName)
         except Exception, e:
-            self._log.error("Couldn't create DeviceProxy for %s motor." % self.VCMPitchName)
+            self._log.debug("Couldn't create DeviceProxy for %s motor." % self.VCMPitchName, exc_info=1)
             raise e
 
         try:
             self.dcm_crystal = PoolUtil().get_ioregister(self.inst_name, self.DCMCrystalIORName)
         except Exception, e:
-            self._log.error("Couldn't create DeviceProxy for %s ior." % self.DCMCrystalIORName)
+            self._log.debug("Couldn't create DeviceProxy for %s ior." % self.DCMCrystalIORName)
             raise e
 
     def calc_physical(self, index, pseudos):
-        return self.calc_all_physical(pseudos)[index - 1]
+        self._log.debug("Entering calc_physical")
+        ret = self.calc_all_physical(pseudos)[index - 1]
+        self._log.debug("Leaving calc_physical")
+        return ret
     
     def calc_pseudo(self, index, physicals):
-        return self.calc_all_pseudo(physicals)[index - 1]
+        self._log.debug("Entering calc_pseudo")
+        ret = self.calc_all_pseudo(physicals)[index - 1]
+        self._log.debug("Leaving calc_pseudo")
+        return ret
     
     def calc_all_physical(self, pseudos):
+        self._log.debug("Entering calc_all_physical")
         energy, = pseudos
 
         try:
             vcm_pitch_mrad = self.vcm_pitch.Position
         except PyTango.DevFailed, e:
-            self._log.error("Couldn't read %s motor position." % self.VCMPitchName)
+            self._log.debug("Couldn't read %s motor position." % self.VCMPitchName)
             raise e
         vcm_pitch_rad = vcm_pitch_mrad / 1000
         self._log.debug("       VCM pitch: %f rad." % vcm_pitch_rad)
@@ -74,7 +82,7 @@ class DCM_Energy_Controller(PseudoMotorController):
             crystal_ior = self.dcm_crystal.Value
             d = self.siliconBondLength(crystal_ior)
         except PyTango.DevFailed, e:
-            self._log.error("Couldn't read %s ior value." % self.DCMCrystalIORName)
+            self._log.debug("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
         self._log.debug("       d: %f Angstroms." % d)
         
@@ -92,18 +100,18 @@ class DCM_Energy_Controller(PseudoMotorController):
             perp = exitOffset/2/math.cos(bragg_rad) #mm
         except ZeroDivisionError,e:
             perp = float('nan')
-            
+        self._log.debug("Leaving calc_all_physical")    
         return (bragg_deg,perp)
         
     def calc_all_pseudo(self, physicals):
-        
+        self._log.debug("Entering calc_all_pseudo")
         bragg_deg,perp_mm = physicals
         bragg_rad = math.radians(bragg_deg)
         self._log.debug("       Bragg: %f rad." % bragg_rad)
         try:
             vcm_pitch_mrad = self.vcm_pitch.Position
         except PyTango.DevFailed, e:
-            self._log.error("Couldn't read %s motor position." % self.VCMPitchName)
+            self._log.debug("Couldn't read %s motor position." % self.VCMPitchName)
             raise e
         vcm_pitch_rad = vcm_pitch_mrad / 1000
         self._log.debug("       VCM pitch: %f rad." % vcm_pitch_rad)
@@ -111,14 +119,14 @@ class DCM_Energy_Controller(PseudoMotorController):
             crystal_ior = self.dcm_crystal.Value
             d = self.siliconBondLength(crystal_ior)
         except PyTango.DevFailed, e:
-            self._log.error("Couldn't read %s ior value." % self.DCMCrystalIORName)
+            self._log.debug("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
         self._log.debug("       d: %f Angstroms." % d)
         try:
             energy = self.hc / (2 * d * math.sin(bragg_rad - 2 * vcm_pitch_rad))
         except ZeroDivisionError, e:
             energy = float('nan')
-
+        self._log.debug("Leaving calc_all_pseudo")
         return (energy,)
         
     def GetExtraAttributePar(self, axis, name):
