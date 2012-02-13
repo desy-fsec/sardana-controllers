@@ -1,5 +1,6 @@
 import math, logging
-from pool import PseudoMotorController
+from sardana import pool 
+from sardana.pool.controller import PseudoMotorController
 
 class TwoXStageController(PseudoMotorController):
     """This is a pseudomotor controller for a stage with two lateral translation motors.
@@ -18,9 +19,8 @@ class TwoXStageController(PseudoMotorController):
                   'Tx2Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'tx2 coordination: x,y in local system'},
                   'Dx'             : {'Type' : 'PyTango.DevDouble', 'Description' : 'nominal x shift of the center in local system', 'DefaultValue' : 0}}
 
-    def __init__(self, inst, props):  
-        PseudoMotorController.__init__(self, inst, props)
-        #self._log.setLevel(logging.DEBUG)
+    def __init__(self, inst, props, *args, **kwargs):  
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
 
         try:
             self.tx1 = [float(c) for c in props['Tx1Coordinates'].split(',')]

@@ -1,5 +1,7 @@
 import math, logging
-from pool import PseudoMotorController
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
 
 def rotate_x(y, z, cosangle, sinangle):
     """3D rotaion around *x* (pitch). *y* and *z* are values or arrays.
@@ -60,9 +62,8 @@ class TripodTableController(PseudoMotorController):
     cosAzimuth = 0.70710681665463704
     sinAzimuth = -0.70710674571845633
 
-    def __init__(self, inst, props):
-        PseudoMotorController.__init__(self, inst, props)
-        #self._log.setLevel(logging.DEBUG)
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
 
         try:
             self.jack1 = [float(c) for c in props['Jack1Coordinates'].split(',')]
@@ -98,12 +99,19 @@ class TripodTableController(PseudoMotorController):
         self._log.debug("jack3local: %s" %repr(self.jack3local))
 
     def calc_physical(self, index, pseudos):
-        return self.calc_all_physical(pseudos)[index - 1]
+        self._log.debug("Entering calc_physical")
+        ret = self.calc_all_physical(pseudos)[index - 1]
+        self._log.debug("Leaving calc_physical")
+        return ret
 
     def calc_pseudo(self, index, physicals):
-        return self.calc_all_pseudo(physicals)[index - 1]
+        self._log.debug("Entering calc_pseudo")
+        ret = self.calc_all_pseudo(physicals)[index - 1]
+        self._log.debug("Leaving calc_pseudo")
+        return ret
 
     def calc_all_physical(self, pseudos):
+        self._log.debug("Entering calc_all_physical")
         z, pitch, roll = pseudos
         # Ax + By + Cz = D in local system:
         pitch = pitch / 1000
@@ -141,10 +149,11 @@ class TripodTableController(PseudoMotorController):
         jack1 = jack1_local + z #+ self.zOffset
         jack2 = jack2_local + z #+ self.zOffset
         jack3 = jack3_local + z #+ self.zOffset
-
+        self._log.debug("Leaving calc_all_physical")
         return jack1, jack2, jack3 
 
     def calc_all_pseudo(self, physicals):
+        self._log.debug("Entering calc_all_pseudo")
         jack1, jack2, jack3 = physicals
 
 #      Ax + By + Cz = D in global system:
@@ -181,4 +190,5 @@ class TripodTableController(PseudoMotorController):
         tanPitch = -locB / (locA * math.sin(roll) + C * math.cos(roll))
         pitch = math.atan(tanPitch) * 1000
         roll *= 1000
+        self._log.debug("Leaving calc_all_pseudo")
         return z, pitch, roll

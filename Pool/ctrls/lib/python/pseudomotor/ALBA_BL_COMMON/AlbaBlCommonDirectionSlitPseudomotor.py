@@ -1,7 +1,8 @@
-from pool import PseudoMotorController, PoolUtil
-
-import PyTango
 import math
+import PyTango
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
 
 class CommonDirectionSlit(PseudoMotorController):
     """A Slit pseudo motor controller for handling gap and offset pseudo 
