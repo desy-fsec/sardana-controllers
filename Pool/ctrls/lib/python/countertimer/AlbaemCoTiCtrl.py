@@ -167,7 +167,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         #if self.state == PyTango.DevState.ON and self.acqchannels == self.readchannels: #This didn't solve the speed issue. Therefore I left it as it was
         if self.state == PyTango.DevState.ON:
             #self.measures, self.status = self.AemDevice.getMeasures(['1', '2', '3', '4'])
-            self.measures=self.AemDevice['AllChannels'].value
+            self.measures=self.AemDevice['LastValues'].value
 
     def AbortOne(self, axis):
         self._log.debug("AbortOne(%d): Entering...", axis)
