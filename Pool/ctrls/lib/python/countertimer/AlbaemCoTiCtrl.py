@@ -27,8 +27,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         2- Add an ExtraColumn with the attribute SD."""
     
     MaxDevice = 5
-    DEBUG = True
-    mode = 'SW' #For the time being must be like this
+    #mode = 'SW' #@note: this will be better if it's an extraattribute.
     class_prop = {'Albaemname':{'Description' : 'Albaem DS name', 'Type' : 'PyTango.DevString'},
                   'SampleRate':{'Description' : 'SampleRate set for AIDevice','Type' : 'PyTango.DevLong'}}
     
@@ -40,6 +39,11 @@ class AlbaemCoTiCtrl(CounterTimerController):
                              "Filter": 
                                 {'Type':'PyTango.DevString',
                                  'Description':'Filter for the channel',
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                             "Mode": 
+                                {'Type':'PyTango.DevString',
+                                 'Description':'TriggerMode',
                                  'R/W Type':'PyTango.READ_WRITE'
                                 },
                             }
@@ -63,23 +67,12 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self.state = None
         self.ranges = ['','','','']
         self.filters = ['','','',''] 
+        self.mode = 'HW'
         try:
             self.AemDevice = PyTango.DeviceProxy(self.Albaemname)
-            
-            #Check if the device is pinging before instantiate the object
-            #Needed for avoid problems starting the pool.
-            
-            #ping = subprocess.Popen(
-            #                        ['ping','c','2',self.Albaemname],
-            #                        stdout = subprocess.PIPE,
-            #                        stderr = subprocess.PIPE
-            #                        )
-            #out, error = ping.communicate()
-
-            #if out.find("Destination Host Unreachable") == -1:
-            #    self.AemDevice = albaem(self.Albaemname)
-            #    self.AemDevice.StartAdc()
-                #self.AemDevice.disableAll()
+            if self.AemDevice.state() == PyTango.DevState.STANDBY:
+                self.AemDevice.StartAdc()
+                #self.AemDevice.disableAll() #@todo: Check if is this needed??
         except Exception, e:
             self._log.error("__init__(): Could not create a device from following device name: %s.\nException: %s", 
                             self.Albaemname, e)
@@ -90,38 +83,17 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self.channels.append(axis)
         self.AemDevice.StopAdc()
         self.AemDevice.enableChannel(axis)
-        self.AemDevice.StartAdc()
-        #self.sd[axis] = 0
-        #self.formulas[axis] = 'value'
-        #self.sharedFormula[axis] = False
         
     def DeleteDevice(self, axis):
         self._log.debug("DeleteDevice(%d): Entering...", axis)
         self.channels.remove(axis)
-        #self.sd.pop(axis)
-        #self.formulas.pop(axis)
-        #self.sharedFormula.pop(axis)
-
+        self.ranges.pop(axis)
+        self.filters.pop(axis)
+        
     def StateOne(self, axis):
         self._log.debug("StateOne(%d): Entering...", axis)
         return (self.state, 'Device present')
     def StateAll(self):
-        '''
-        if self.AemDevice is None:
-            return PyTango.DevState.FAULT
-        try:
-            self.state = self.AemDevice.state()
-            if self.master is None:
-                self.state = PyTango.DevState.ON
-            else:
-                if self.state == PyTango.DevState.ON:
-                    self.master = None
-            return (evalState(self.state), "AI DeviceProxy present.") 
-        except Exception, e:
-            self._log.error("StateOne(%d): Could not verify state of the device: %s.\nException: %s", 
-                            axis, self.Albaemname, e)
-            return (PyTango.DevState.UNKNOWN, "AI DeviceProxy is not responding.")
-        '''
         self._log.debug("StateAll(): Entering...")
         if self.mode == 'SW':
             currentacqtime = time.time()-self.acqtimeini
@@ -132,103 +104,87 @@ class AlbaemCoTiCtrl(CounterTimerController):
                 self.acqstarted = False
                 self.state = PyTango.DevState.ON
             return self.state
-        else:
+        elif self.mode == 'HW':
             self.state = self.evalState(self.AemDevice.state())
             return self.state
         
-    def PreReadOne(self, axis):
-        #print "PreReadOne", axis
-        self._log.debug("PreReadOne(%d): Entering...", axis)
-        self.readchannels.append(axis)
-        #self.sd[axis] = 0
+#    def PreReadOne(self, axis):
+#        self._log.debug("PreReadOne(%d): Entering...", axis)
+#        self.readchannels.append(axis)
         
     def ReadOne(self, axis):
-        #print "ReadOne", axis
         self._log.debug("ReadOne(%d): Entering...", axis)
         if axis == 1:
             return self.integrationTime
-        #for measure in self.measures:
-        #print self.measures
-        return self.measures[axis-2]
-#            auxAxis = axis-1
-#            if measure[0] == '%s'%auxAxis:
-#                return float(measure[1])
+        return float(self.measures[axis-2])
 
-    def PreReadAll(self):
-        #print "PreReadAll"
-        self.readchannels = []
-        self._log.debug("PreReadAll(): Entering...")
+#    def PreReadAll(self):
+#        self.readchannels = []
+#        self._log.debug("PreReadAll(): Entering...")
 
     def ReadAll(self):
         #self._log.debug("ReadAll(): Entering...")
-        #print "ReadAll"
-        #print "Started:", self.acqchannels 
-        #print "Read:", self.readchannels
-        #if self.state == PyTango.DevState.ON and self.acqchannels == self.readchannels: #This didn't solve the speed issue. Therefore I left it as it was
         if self.state == PyTango.DevState.ON:
-            #self.measures, self.status = self.AemDevice.getMeasures(['1', '2', '3', '4'])
             self.measures=self.AemDevice['LastValues'].value
 
-    def AbortOne(self, axis):
-        self._log.debug("AbortOne(%d): Entering...", axis)
-        self.acqstarted = False
-        '''
-        state = self.AemDevice.state()
-        if state == PyTango.DevState.RUNNING:
-            self.AemDevice.stop()
-        '''
+#    def AbortOne(self, axis):
+#        self._log.debug("AbortOne(%d): Entering...", axis)
+#        self.acqstarted = False
+#        state = self.AemDevice['state']
+#        if state == PyTango.DevState.RUNNING:
+#            self.AemDevice.Stop()
 
     def AbortAll(self):
         #self._log.debug("AbortAll(): Entering...", axis)
-        #self.AemDevice.Stop()
+        state = self.AemDevice.state()
+        if state == PyTango.DevState.RUNNING:
+            self.AemDevice.Stop()
         self.acqstarted = False
     
     def PreStartAllCT(self):
         self._log.debug("PreStartAllCT(): Entering...")
         self.acqchannels = []
-        '''
-        self.axesToStart = []
+
         try:
-            state = self.AemDevice.state()
-            if state == PyTango.DevState.RUNNING:
-                self.AemDevice.stop()
+            self.state = self.AemDevice.state()
+            if self.state == PyTango.DevState.RUNNING:
+                self.AemDevice.Stop()
+            elif self.state == PyTango.DevState.STANDBY:
+                self.AemDevice.StartAdc()
         except Exception, e:
-            self._log.error("PreStartAllCT(): Could not ask about state of the device: %s and/or stop it.\nException: %s", 
+            self._log.error("PreStartAllCt(): Could not ask about state of the device: %s and/or stop it.\nException: %s", 
                             self.Albaemname, e)
             raise
-        '''
         
     def PreStartOneCT(self, axis):
         """Here we are counting which axes are going to be start, so later we can distinguish 
         if we are starting only the master channel."""
         self._log.debug("PreStartOneCT(%d): Entering...", axis)
-        #print "PreStartOne", axis
-        #self.acqchannels = []
         self.acqchannels.append(axis)
-        #self.axesToStart.append(axis) #I think this is not needed because you can not start only one channel.
         return True
     def StartOneCT(self, axis):
         """Here we are counting which axes are going to be start, so later we can distinguish 
         if we are starting only the master channel."""
         self._log.debug("StartOneCT(%d): Entering...", axis)
-        #print "StartOne", axis
-        #self.axesToStart.append(axis) #I think this is not needed because you can not start only one channel.
         return True
 
     def StartAllCT(self):
         """Starting the acquisition is done only if before was called PreStartOneCT for master channel."""
         self._log.debug("StartAllCT(): Entering...")
-        #print "StartAll"
-        #if not (len(self.axesToStart) == 1 and self.axesToStart[0] == self.master):
-        #    return
         if self.acqstarted == False:
             try:
-                self.AemDevice.StartAdc() #check
                 self.acqtimeini = time.time()
                 self.acqstarted = True
             except Exception, e:
                 self._log.error("StartAllCT(): Could not start acquisition on the device: %s.\nException: %s", self.Albaemname, e)
                 raise
+        #@todo: All the part above will be removed ... i think it's not needed anymore. (AM)
+        try:
+            self.AemDevice.Start()
+        except Exception, e:
+            self._log.error("StartAllCT(): Could not start acquisition on the device: %s.\nException: %s", 
+                            self.Albaemname, e)
+            raise
         
     def PreLoadOne(self, axis, value):
         """Here we are keeping a reference to the master channel, so later in StartAll() 
@@ -246,58 +202,49 @@ class AlbaemCoTiCtrl(CounterTimerController):
         try:
             if self.mode == 'SW': ##Watch out!!! this is not called in the old pool versions
                 self.AemDevice.setAvsamples(1000*value)
-            else:
+            elif self.mode == 'HW': #@todo: This mode should be implemented and managed in the DS
                 self.AemDevice.setAvsamples(1000*value)
                 self.AemDevice.setTrigperiode(1000*value)
                 self.AemDevice.setPoints(1)
         except PyTango.DevFailed, e:
-            self.AemDevice.StartAdc() #keep it running baby
+            if self.AemDevice.state() == PyTango.DevState.STANDBY:
+                self.AemDevice.StartAdc() #@todo: check if it's really needed.
             self._log.error("LoadOne(%d, %f): Could not configure device: %s.\nException: %s", self.Albaemname, e)
             raise
 
     def evalState(self, state):
-        """This function converts Adlink device states into counters state."""
+        """This function converts PyAlbaEm device states into counters state."""
         #self._log.debug('evalState: #%s# len:%s'%(state, len(state)))
-        if state == 'RUNNING' or state == 'ON':
+        if state == PyTango.DevState.RUNNING:
             #self._log.debug('evalState: RUNNING')
             return PyTango.DevState.MOVING
-        elif state == 'IDLE':
+        elif state == PyTango.DevState.STANDBY or state == PyTango.DevState.ON:
             return PyTango.DevState.ON
         else:
-            raise Exception('Wrong state')
+            raise Exception('Wrong state: %s'%state)
 
     def GetExtraAttributePar(self, axis, name):
         self._log.debug("GetExtraAttributePar(%d, %s): Entering...", axis, name)
         if name.lower() == "range":
-            #self.ranges[axis-2] = self.AemDevice.getRanges([str(axis-1)])
             self.ranges[axis-2] = self.AemDevice['Ranges'].value[axis-2]
-#            print '/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/'
-#            print self.ranges[axis-2][0][1]
-#            print axis
-#            print '/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/'
-            #return self.ranges[axis-2][0][1]
             return self.ranges[axis-2] 
         if name.lower() == "filter":
-            #self.filters[axis-2] = self.AemDevice.getFilters([str(axis-1)])
             self.filters[axis-2] = self.AemDevice['Filters'].value[axis-2]
-#            print '/*******************************/'
-#            print self.filters
-#            print type(self.filters[axis-1])
-#            print '/*******************************/'
-            #return self.filters[axis-2][0][1]
-            return self.filters[axis-2] 
+            return self.filters[axis-2]
+        if name.lower() == "mode":
+            return self.mode 
 
     def SetExtraAttributePar(self,axis, name, value):
         if name.lower() == "range":
             self.ranges[axis-2] = value
-            #self.AemDevice.setRanges([[str(axis-1),str(value)]])
             channel = 'range_ch'+ str(axis-1)
             self.AemDevice[channel]=str(value)
         if name.lower() == "filter":
             self.filters[axis-2] = value
-            #self.AemDevice.setFilters([[str(axis-1),str(value)]])
             channel = 'filter_ch'+ str(axis-1)
             self.AemDevice[channel]=str(value)
+        if name.lower() == "mode":
+            self.mode = value
          
     
 if __name__ == "__main__":
