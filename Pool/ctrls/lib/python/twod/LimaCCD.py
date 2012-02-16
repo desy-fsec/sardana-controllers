@@ -1,5 +1,5 @@
 import PyTango
-from pool import TwoDController
+from sardana.pool.controller import TwoDController
 import time
 
 class LimaCCDCtrl(TwoDController):
@@ -25,8 +25,8 @@ class LimaCCDCtrl(TwoDController):
 			     
     MaxDevice = 97
 
-    def __init__(self,inst,props):
-        TwoDController.__init__(self,inst,props)
+    def __init__(self,inst,props, *args, **kwargs):
+        TwoDController.__init__(self,inst,props *args, **kwargs)
         print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "LimaCCDCtrl/" + self.inst_name
@@ -73,6 +73,7 @@ class LimaCCDCtrl(TwoDController):
         
     def AddDevice(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AddDevice method for index",ind
+        TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
             return
@@ -94,6 +95,7 @@ class LimaCCDCtrl(TwoDController):
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+        TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         

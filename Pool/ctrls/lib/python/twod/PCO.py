@@ -1,5 +1,5 @@
 import PyTango
-from pool import TwoDController
+from sardana.pool.controller import TwoDController
 import time
 
 class PCOCtrl(TwoDController):
@@ -17,8 +17,8 @@ class PCOCtrl(TwoDController):
 			     
     MaxDevice = 97
 
-    def __init__(self,inst,props):
-        TwoDController.__init__(self,inst,props)
+    def __init__(self,inst,props, *args, **kwargs):
+        TwoDController.__init__(self,inst,props, *args, **kwargs)
         print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "PCOCtrl/" + self.inst_name
@@ -51,6 +51,7 @@ class PCOCtrl(TwoDController):
         
     def AddDevice(self,ind):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In AddDevice method for index",ind
+        TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
             return
@@ -65,6 +66,7 @@ class PCOCtrl(TwoDController):
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+        TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
@@ -122,7 +124,7 @@ class PCOCtrl(TwoDController):
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Heigth").value)
 
-    def SetPar(self,axis,name,value):
+    def SetPar(self,ind,par_name,value):
         if par_name == "XDim":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Width",value)

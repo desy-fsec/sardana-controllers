@@ -1,5 +1,5 @@
 import PyTango
-from pool import TwoDController
+from sardana.pool.controller import TwoDController
 import time
 
 class PilatusCtrl(TwoDController):
@@ -26,8 +26,8 @@ class PilatusCtrl(TwoDController):
 			     
     MaxDevice = 97
 
-    def __init__(self,inst,props):
-        TwoDController.__init__(self,inst,props)
+    def __init__(self,inst,props, *args, **kwargs):
+        TwoDController.__init__(self,inst,props, *args, **kwargs)
         print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "PilatusCtrl/" + self.inst_name
@@ -78,6 +78,7 @@ class PilatusCtrl(TwoDController):
         
     def AddDevice(self,ind):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In AddDevice method for index",ind
+        TwoDController.AddDevice()
         if ind > self.max_device:
             print "False index"
             return
@@ -101,6 +102,7 @@ class PilatusCtrl(TwoDController):
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+        TwoDController.DeleteDevice()
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
