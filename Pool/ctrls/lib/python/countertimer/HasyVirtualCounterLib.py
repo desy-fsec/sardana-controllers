@@ -1,7 +1,7 @@
 #!/bin/env python
 import sys
 
-import tau
+import taurus
 import PyTango
 
 import time
