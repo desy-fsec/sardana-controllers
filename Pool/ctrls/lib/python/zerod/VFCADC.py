@@ -1,5 +1,5 @@
 import PyTango
-from pool import ZeroDController
+from sardana.pool.controller import ZeroDController
 import time
 
 class VFCADCController(ZeroDController):
@@ -14,8 +14,8 @@ class VFCADCController(ZeroDController):
 			     
     MaxDevice = 97
 
-    def __init__(self,inst,props):
-        ZeroDController.__init__(self,inst,props)
+    def __init__(self,inst,props,*args, **kwargs):
+        ZeroDController.__init__(self,inst,props,*args, **kwargs)
 #        print "PYTHON -> ZeroDController ctor for instance",inst
 
         self.ct_name = "VFCADCCtrl/" + self.inst_name
@@ -42,6 +42,7 @@ class VFCADCController(ZeroDController):
         
     def AddDevice(self,ind):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In AddDevice method for index",ind
+        ZeroDController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
             return
@@ -53,6 +54,7 @@ class VFCADCController(ZeroDController):
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+        ZeroDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
