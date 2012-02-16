@@ -1,6 +1,6 @@
 import PyTango
-import pool
-from pool import CounterTimerController
+from sardana import pool
+from sardana.pool.controller import CounterTimerController
 import time
 import datetime
 import sys
@@ -22,15 +22,16 @@ class HasyVirtualCounter(CounterTimerController):
                      
     MaxDevice = 1
 
-    def __init__(self, inst, props):
-        CounterTimerController.__init__(self, inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
 
     def AddDevice(self, axis):
+        CounterTimerController.AddDevice(self, axis)
         if axis > self.MaxDevice:
             raise Exception("Only one axis ist allowed")
 
     def DeleteDevice(self, axis):
-        pass
+        CounterTimerController.DeleteDevice(self, axis)
         
     def PreStateAll(self):
         pass
