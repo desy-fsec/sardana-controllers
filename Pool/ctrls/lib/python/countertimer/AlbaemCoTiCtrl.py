@@ -84,7 +84,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         except Exception, e:
             self._log.error("__init__(): Could not create a device from following device name: %s.\nException: %s", 
                             self.Albaemname, e)
-            raise
+            #raise #@warning: if you raise an exception, the pool doesn't start if the electrometer is switch off.
         
     def AddDevice(self, axis):  
         self._log.debug("AddDevice(%d): Entering...", axis)
@@ -226,10 +226,12 @@ class AlbaemCoTiCtrl(CounterTimerController):
             self.integrationTime = value
         try:
             #@todo: This will be done too many times, only one is needed.
-            self.AemDevice['Avsamples'] = value
-            self.AemDevice['TriggerPeriod'] = value
-            self.AemDevice['BufferSize'] = 1
-            
+            if axis == 1:
+                self.AemDevice['Avsamples'] = value
+                self.AemDevice['TriggerPeriod'] = value
+                self.AemDevice['BufferSize'] = 1
+            else:
+                print axis
 #            state = self.AemDevice.state()
 #            if state == PyTango.DevState.RUNNING:
 #                self.AemDevice.Stop()
@@ -255,7 +257,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         elif state == PyTango.DevState.UNKNOWN:
             ##@warning: que mierda de comunicaciones
             print('Wrong state: %s'%state)
-            return PyTango.DevState.ON
+            #return PyTango.DevState.ON
             #raise Exception('Wrong state: %s'%state)
 
     def GetExtraAttributePar(self, axis, name):
