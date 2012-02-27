@@ -65,18 +65,18 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self.filters = ['','','',''] 
         try:
             self.AemDevice = PyTango.DeviceProxy(self.Albaemname)
-            self.state = self.AemDevice.getEmState())
+            self.state = self.AemDevice.getEmState()
             #@warning: La misma chapuza que en el device server ... quien co...nes borra el buffer???
-            if self.state == 'IDLE' #PyTango.DevState.STANDBY:
+            if self.state == 'IDLE': #PyTango.DevState.STANDBY:
                 self.AemDevice.StartAdc()
                 self.AemDevice['BufferSize'] = 1
                 self.AemDevice.Start()
                 #self.AemDevice.disableAll() #@todo: Check if is this needed??
-            elif self.state == 'ON' #PyTango.DevState.ON:
+            elif self.state == 'ON': #PyTango.DevState.ON:
                 self.AemDevice['BufferSize'] = 1
                 self.AemDevice.Start()
             
-            elif self.state == 'RUNNING' #PyTango.DevState.RUNNING:
+            elif self.state == 'RUNNING': #PyTango.DevState.RUNNING:
                 self.AemDevice.Stop()
                 self.AemDevice['BufferSize'] = 1
                 self.AemDevice.Start()
@@ -161,7 +161,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def AbortAll(self):
         #self._log.debug("AbortAll(): Entering...", axis)
         state = self.AemDevice.getEmState()
-        if state == 'RUNNING' #PyTango.DevState.RUNNING:
+        if state == 'RUNNING': #PyTango.DevState.RUNNING:
             self.AemDevice.Stop()
         #self.acqstarted = False
     
@@ -171,9 +171,9 @@ class AlbaemCoTiCtrl(CounterTimerController):
 
         try:
             state = self.AemDevice.getEmState()
-            if state == 'RUNNING' #When live was easy: PyTango.DevState.RUNNING:
+            if state == 'RUNNING': #When live was easy: PyTango.DevState.RUNNING:
                 self.AemDevice.Stop()
-            elif state == 'IDLE' #PyTango.DevState.STANDBY:
+            elif state == 'IDLE': #PyTango.DevState.STANDBY:
                 self.AemDevice.StartAdc()
         except Exception, e:
             self._log.error("PreStartAllCt(): Could not ask about state of the device: %s and/or stop it.\nException: %s", 
