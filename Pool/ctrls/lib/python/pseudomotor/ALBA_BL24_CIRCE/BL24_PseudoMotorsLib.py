@@ -1,4 +1,6 @@
-from pool import PseudoMotorController
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
 import math
 import PyTango
 
@@ -50,8 +52,8 @@ class EnergyCffFixed(PseudoMotorController):
                             }
 
     
-    def __init__(self, inst, props):
-        PseudoMotorController.__init__(self,inst,props)
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self,inst,props,*args,**kwargs)
 
         self.ior = PyTango.DeviceProxy(self.iorGrx)
 
@@ -72,20 +74,20 @@ class EnergyCffFixed(PseudoMotorController):
         """From a given energy, we calculate the physical
          position for the real motors."""
 
-        energy = pseudo_pos[0]
+        self.energy = pseudo_pos[0]
         self.Cff = pseudo_pos[1]
 
-        print("---------------------ENERGY: %f:" %energy)
-        print("---------------------Cff: %f:" %self.Cff)
+        #print("---------------------ENERGY: %f:" %self.energy)
+        #print("---------------------Cff: %f:" %self.Cff)
         #self.calc_constants(energy)
         #sqrt1 = math.sqrt( (self.cffl**2.0) + (self.c2ff*self.mkl2) )
         #sqrt2 = math.sqrt((2.0 * math.fabs(self.mkl) * sqrt1) - (self.mkl2 * self.cffp))
         #cosa = sqrt2 / math.fabs(self.cffl)
 
-        if energy == 0.0:
+        if self.energy == 0.0:
             waveLen = 0.0
         else:
-            waveLen = self.hc / energy
+            waveLen = self.hc / self.energy
         
         if not self.FixedM2Pit:
             f1 = self.Cff**2 + 1
@@ -104,11 +106,11 @@ class EnergyCffFixed(PseudoMotorController):
             return (m,g)
         else:
             mkl = self.DiffrOrder * self.look_at_grx() * waveLen
-            print 'MKL: %f'%mkl
+            #print 'MKL: %f'%mkl
             A1 = (mkl/2.0) * math.tan(self.theta)
-            print 'A1: %f'%A1
+            #print 'A1: %f'%A1
             A2 = math.sqrt(((math.cos(self.theta))**2) - ((mkl/2.0)**2))
-            print 'A2: %f'%A2
+            #print 'A2: %f'%A2
 
             self.beta = -math.acos(A2 - A1)
             self.alpha = (2*self.theta) + self.beta #Theta estaba sin multiplicar y antes se cogia el valor y lo dividia por 2 ?? O_o!
@@ -120,7 +122,7 @@ class EnergyCffFixed(PseudoMotorController):
             return (m,g)
 
 
-        print("-----------------Alpha: %f, Beta:%f, Theta:%f, WaveLength:%f" %(self.alpha, self.beta, self.theta, waveLen))
+        #print("-----------------Alpha: %f, Beta:%f, Theta:%f, WaveLength:%f" %(self.alpha, self.beta, self.theta, waveLen))
 
 #        if index == 2:
 #            energy = pseudo_pos[1]
@@ -148,16 +150,16 @@ class EnergyCffFixed(PseudoMotorController):
         self.theta = (math.pi/2.0) - (physical_pos[0]/1000) - self.offsetM
         self.alpha = (2.0*self.theta) + self.beta
         wavelength = (math.sin(self.alpha) + math.sin(self.beta)) / (self.DiffrOrder * self.look_at_grx())
-        print('*******************************beta:%f, theta:%f, alpha:%f, wavelength:%f, look_at:%f ' %(self.beta, self.theta, self.alpha, wavelength, self.look_at_grx()))
+        #print('*******************************beta:%f, theta:%f, alpha:%f, wavelength:%f, look_at:%f ' %(self.beta, self.theta, self.alpha, wavelength, self.look_at_grx()))
         
         if wavelength == 0.0:
-            energy = 0.0
+            self.energy = 0.0
         else:
-            energy = self.hc / wavelength
+            self.energy = self.hc / wavelength
         #if self.FixedM2Pit: 
         self.Cff = math.cos(self.beta)/math.cos(self.alpha)
-        if energy < 0 : energy = energy *(-1) #warning: wavelength se vuelve negativo ... ??????
-        return (energy,self.Cff)
+        if self.energy < 0 : self.energy = self.energy *(-1) #warning: wavelength se vuelve negativo ... ??????
+        return (self.energy,self.Cff)
 
     def GetExtraAttributePar(self, axis, name):
         
@@ -185,24 +187,25 @@ class EnergyCffFixed(PseudoMotorController):
             
         iorPos = self.ior['Value'].value
         
-        energyRange = 0
+        #validEnergyRange = False
 
-        #if iorPos == 0 and energy >= 100 and energy <= 600:
-        #    energyRange = True
+        #if iorPos == 4 and self.energy >= 100 and self.energy <= 600: return 700.0 * 1E-7
+        #    validEnergyRange = True
 
-        #if iorPos == 1 and energy >= 500 and energy <= 1300:
-        #    energyRange = True
+        #elif iorPos == 3 and self.energy >= 500 and self.energy <= 1300: return 900.0 * 1E-7
+        #    validEnergyRange = True
         
-        #if iorPos == 2 and energy >= 1100 and energy <= 2000:
-        #    energyRange = True
+        #elif iorPos == 2 and self.energy >= 1100 and self.energy <= 2000: return 1200.0 * 1E-7
+        #    validEnergyRange = True
 
-        #if not energyRange:
+        #if not validEnergyRange:
         #    self._log.debug("GRX doesn't match with the energy selected")
             #@todo Change the status of the pseudo if the energy doesn't match?
+        #else: raise 'You are not on a valid energy range!!!'
 
-        if iorPos == 0:
+        if iorPos == 4:
             return 700.0 * 1E-7
-        elif iorPos == 1:
+        elif iorPos == 3:
             return 900.0 * 1E-7
         elif iorPos == 2:
             return 1200.0 * 1E-7
