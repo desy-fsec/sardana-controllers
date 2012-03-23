@@ -1,25 +1,9 @@
-import math, logging
+import math
 
 import PyTango
 from sardana import pool 
 from sardana.pool import PoolUtil
 from sardana.pool.controller import PseudoMotorController
-
-#def siliconBondLength(ior_value):
-    #"""Returns silicon bond length depending on the ior_value parameter. 
-       #Allowed values for ior_value parameter are: 311, 1111. When receives other value raise
-       #ValueError exception. 
-
-       #:param ior_value: (int) representing silicon type, 311 coresponds to si311 and 111 do si111
-
-       #:return: (float) silicon bond length in Angstroms units (1e-10m) """
-
-    #if ior_value == 311:
-        #return 1.637418 #Angstroms
-    #elif ior_value == 111:
-        #return 3.1354161 #Angstroms
-    #else:
-        #raise ValueError("Wrong ior value")
 
 class DCM_Energy_Controller(PseudoMotorController):
     """This pseudomotor controller does the calculation of Bragg
@@ -30,10 +14,10 @@ class DCM_Energy_Controller(PseudoMotorController):
     motor_roles = ('bragg', 'perp')
     
     class_prop = { 'VCMPitchName':{'Type' : 'PyTango.DevString', 'Description' : 'VCM_pitch pseudomotor'},
-                   'DCMCrystalIORName' :{'Type' : 'PyTango.DevString', 'Description' : 'DCM_crystal IOR'}}
+                   'DCMCrystalIORName' :{'Type' : 'PyTango.DevString', 'Description' : 'DCM_crystal IOR'},
+                   'ExitOffsetName':{ 'Type':'PyTango.DevString', 'R/W Type': 'PyTango.READ_WRITE'}}
    
-    ctrl_extra_attributes = {"ExitOffset":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
-                             "dSi111":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
+    ctrl_extra_attributes = {"dSi111":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
                              "dSi311":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
      
     hc = 12398.419 #eV *Angstroms
@@ -41,11 +25,17 @@ class DCM_Energy_Controller(PseudoMotorController):
     def __init__(self, inst, props, *args, **kwargs):    
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         self.attributes = {}
-        self.attributes[1] = {'ExitOffset':18.5, 'dSi311':1.637418, 'dSi111':3.1354161}
+        self.attributes[1] = {'dSi311':1.637418, 'dSi111':3.1354161}
         try:
             self.vcm_pitch = PoolUtil().get_motor(self.inst_name, self.VCMPitchName)
         except Exception, e:
             self._log.debug("Couldn't create DeviceProxy for %s motor." % self.VCMPitchName, exc_info=1)
+            raise e
+
+        try:
+            self.exit_offset = PoolUtil().get_motor(self.inst_name, self.ExitOffsetName)
+        except Exception, e:
+            self._log.debug("Couldn't create DeviceProxy for %s motor." % self.ExitOffsetName, exc_info=1)
             raise e
 
         try:
@@ -76,7 +66,7 @@ class DCM_Energy_Controller(PseudoMotorController):
             self._log.debug("Couldn't read %s motor position." % self.VCMPitchName)
             raise e
         vcm_pitch_rad = vcm_pitch_mrad / 1000
-        self._log.debug("       VCM pitch: %f rad." % vcm_pitch_rad)
+        self._log.debug("VCM pitch: %f rad." % vcm_pitch_rad)
 
         try:
             crystal_ior = self.dcm_crystal.Value
@@ -84,7 +74,7 @@ class DCM_Energy_Controller(PseudoMotorController):
         except PyTango.DevFailed, e:
             self._log.debug("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
-        self._log.debug("       d: %f Angstroms." % d)
+        self._log.debug("d: %f Angstroms." % d)
         
         try:
             bragg_rad = math.asin(self.hc/2/d/energy) + 2 * vcm_pitch_rad
@@ -93,7 +83,8 @@ class DCM_Energy_Controller(PseudoMotorController):
         bragg_deg = math.degrees(bragg_rad)
         
         try: 
-            exitOffset = self.attributes[1]["ExitOffset"]
+            exitOffset = self.exit_offset.Position
+            self._log.debug("Desired exit offset: %f" % exitOffset)
             #@todo also include P178 - perp axis offset for fixed exit move
             #                   P179 - crystal separation offset
             #to calculate perp position
@@ -107,21 +98,21 @@ class DCM_Energy_Controller(PseudoMotorController):
         self._log.debug("Entering calc_all_pseudo")
         bragg_deg,perp_mm = physicals
         bragg_rad = math.radians(bragg_deg)
-        self._log.debug("       Bragg: %f rad." % bragg_rad)
+        self._log.debug("Bragg: %f rad." % bragg_rad)
         try:
             vcm_pitch_mrad = self.vcm_pitch.Position
         except PyTango.DevFailed, e:
             self._log.debug("Couldn't read %s motor position." % self.VCMPitchName)
             raise e
         vcm_pitch_rad = vcm_pitch_mrad / 1000
-        self._log.debug("       VCM pitch: %f rad." % vcm_pitch_rad)
+        self._log.debug("VCM pitch: %f rad." % vcm_pitch_rad)
         try:
             crystal_ior = self.dcm_crystal.Value
             d = self.siliconBondLength(crystal_ior)
         except PyTango.DevFailed, e:
             self._log.debug("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
-        self._log.debug("       d: %f Angstroms." % d)
+        self._log.debug("d: %f Angstroms." % d)
         try:
             energy = self.hc / (2 * d * math.sin(bragg_rad - 2 * vcm_pitch_rad))
         except ZeroDivisionError, e:
