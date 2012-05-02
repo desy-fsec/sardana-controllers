@@ -18,14 +18,16 @@ class DCM_Energy_Controller(PseudoMotorController):
                    'ExitOffsetName':{ 'Type':'PyTango.DevString', 'R/W Type': 'PyTango.READ_WRITE'}}
    
     ctrl_extra_attributes = {"dSi111":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
-                             "dSi311":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
+                             "dSi311":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
+                             "angularOffsetSi111":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"},
+                             "angularOffsetSi311":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
      
     hc = 12398.419 #eV *Angstroms
                              
     def __init__(self, inst, props, *args, **kwargs):    
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         self.attributes = {}
-        self.attributes[1] = {'dSi311':1.637418, 'dSi111':3.1354161}
+        self.attributes[1] = {'dSi311':1.637418, 'dSi111':3.1354161, 'angularOffsetSi111':0, 'angularOffsetSi311':0}
         try:
             self.vcm_pitch = PoolUtil().get_motor(self.inst_name, self.VCMPitchName)
         except Exception, e:
@@ -71,13 +73,15 @@ class DCM_Energy_Controller(PseudoMotorController):
         try:
             crystal_ior = self.dcm_crystal.Value
             d = self.siliconBondLength(crystal_ior)
+            angular_offset = self.angularOffset(crystal_ior)
+            self._log.debug("Angular offset used to calculate bragg: %f." % angular_offset)
         except PyTango.DevFailed, e:
             self._log.debug("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
         self._log.debug("d: %f Angstroms." % d)
         
         try:
-            bragg_rad = math.asin(self.hc/2/d/energy) + 2 * vcm_pitch_rad
+            bragg_rad = math.asin(self.hc/2/d/energy) + 2 * vcm_pitch_rad + angular_offset
         except ZeroDivisionError,e:
             bragg_rad = float('nan')
         bragg_deg = math.degrees(bragg_rad)
@@ -109,12 +113,14 @@ class DCM_Energy_Controller(PseudoMotorController):
         try:
             crystal_ior = self.dcm_crystal.Value
             d = self.siliconBondLength(crystal_ior)
+            angular_offset = self.angularOffset(crystal_ior)
+            self._log.debug("Angular offset used to calculate energy: %f." % angular_offset)
         except PyTango.DevFailed, e:
             self._log.debug("Couldn't read %s ior value." % self.DCMCrystalIORName)
             raise e
         self._log.debug("d: %f Angstroms." % d)
         try:
-            energy = self.hc / (2 * d * math.sin(bragg_rad - 2 * vcm_pitch_rad))
+            energy = self.hc / (2 * d * math.sin(bragg_rad - 2 * vcm_pitch_rad - angular_offset))
         except ZeroDivisionError, e:
             energy = float('nan')
         self._log.debug("Leaving calc_all_pseudo")
@@ -150,3 +156,12 @@ class DCM_Energy_Controller(PseudoMotorController):
             return self.attributes[1]['dSi111'] #Angstroms
         else:
             raise ValueError("Wrong ior value")
+
+    def angularOffset(self, ior_value):
+        if ior_value == 311:
+            return self.attributes[1]['angularOffsetSi311'] #Angstroms
+        elif ior_value == 111:
+            return self.attributes[1]['angularOffsetSi111'] #Angstroms
+        else:
+            raise ValueError("Wrong ior value")
+
