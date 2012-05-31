@@ -33,12 +33,15 @@
 ###########################################################################
 
 import PyTango
-from pool import CounterTimerController
+#from pool import CounterTimerController
 #from pool import PoolUtil
 import time
 from copy import copy
-
-hackish_IBAProcessSleep = 0.2
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import CounterTimerController
+   
+hackish_IBAProcessSleep = 0.5
 hackish_IBAInitSleep = 0.5
 
 class ImgBeamAnalyzerController(CounterTimerController):
@@ -56,6 +59,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
     MaxDevice = 1024 #only one device, the ctrl device means attributes of one IBA
 
     kls = 'ImgBeamAnalyzerController'
+    name = ''
     gender = 'ImgBeamAnalyzer Counter'
     model  = 'ImgBeamAnalyzer_CT'
     image = ''
@@ -63,8 +67,8 @@ class ImgBeamAnalyzerController(CounterTimerController):
     organization = 'CELLS - ALBA'
     logo = 'ALBA_logo.png'
 
-    def __init__(self,inst,props):
-        CounterTimerController.__init__(self,inst,props)
+    def __init__(self,inst,props,*args,**kwargs):
+        CounterTimerController.__init__(self,inst,props,*args,**kwargs)
         try:
             #IBA:
             self._ibaProxy = PyTango.DeviceProxy(self.devName)
@@ -236,11 +240,11 @@ class ImgBeamAnalyzerController(CounterTimerController):
         return False
     
     def _doBackup(self):
-        self._backup(self._ccdProxy, None, 'state')
-        #self._backup(self._ibaProxy, "Mode", 'prop', 'ONESHOT')
+        self._backup(self._ccdProxy, None, 'state', None)
+        self._backup(self._ibaProxy, "Mode", 'prop', 'EVENT')
         self._backup(self._ccdProxy, "TriggerMode", 'attr', 0)
 
-    def _backup(self,dev,vble,vbletype,value=None):
+    def _backup(self,dev,vble,vbletype,value):
         self._log.debug("backup the %s %s of the %s and set value %s"%(vbletype,vble,dev.name(),value))
         case = {'prop':self._backupProperty,
                 'attr':self._backupAttribute,
@@ -276,7 +280,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
     def _doRestore(self):
         self._restore(self._ccdProxy, "ExposureTime", "attr")
         self._restore(self._ccdProxy, "TriggerMode", "attr")
-        #self._restore(self._ibaProxy, "Mode", "prop")
+        self._restore(self._ibaProxy, "Mode", "prop")
         #self._restore(self._ccdProxy, None, "state")
         self.__flag_backup = False
         self._backupDict = {}
@@ -299,7 +303,6 @@ class ImgBeamAnalyzerController(CounterTimerController):
             dev.Init()
             if dev == self._ibaProxy:
                 dev.Process()#FIXME: HACKISH!!!
-                #time.sleep(hackish_IBAProcessSleep)
 
     def _restoreAttribute(self,dev,vble):
         dictKey = dev.name()+'_attr_'+vble
