@@ -1,3 +1,5 @@
+""" """
+
 from PyTango import DevState
 from PyTango import AttrQuality
 from PyTango import AttributeProxy
