@@ -38,15 +38,17 @@ class HasylabMotorController(MotorController):
 
         self.db = PyTango.Database()
         name_dev_ask =  self.RootDeviceName + "*"
-	self.devices = self.db.get_device_exported(name_dev_ask)
+        self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
         self.device_available = []
-	for name in self.devices.value_string:
+        self.haslimits = []
+        for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
+            self.haslimits.append(0)
             self.max_device =  self.max_device + 1
         self.dft_UnitLimitMax = 0
         self.UnitLimitMax = []
@@ -69,6 +71,9 @@ class HasylabMotorController(MotorController):
         self.UnitLimitMin.append(self.dft_UnitLimitMin)
         self.PositionSim.append(self.dft_PositionSim)
         self.ResultSim.append(self.dft_ResultSim)
+        for attr in self.proxy[ind-1].get_attribute_list():
+            if attr == "CcwLimit":
+                self.haslimits[ind - 1] = 1
         
     def DeleteDevice(self,ind):
         MotorController.DeleteDevice(self,ind)
@@ -80,8 +85,12 @@ class HasylabMotorController(MotorController):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
             switchstate = 0
-            lower = self.proxy[ind-1].read_attribute("CwLimit").value
-            upper = self.proxy[ind-1].read_attribute("CcwLimit").value
+            if self.haslimits[ind - 1]:
+                lower = self.proxy[ind-1].read_attribute("CwLimit").value
+                upper = self.proxy[ind-1].read_attribute("CcwLimit").value
+            else:
+                lower = 0
+                upper = 0
             if lower == 1 and upper == 1:
                 switchstate = 6
             elif lower == 1:
