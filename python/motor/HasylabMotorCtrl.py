@@ -22,7 +22,8 @@ class HasylabMotorController(MotorController):
                        'Calibrate':{Type:float,Access:ReadWrite}}
 
 			     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'}}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}}
 
 
     ctrl_attributes = {'ExtraParameterName':{Type:str,Access:ReadWrite}}
@@ -35,8 +36,10 @@ class HasylabMotorController(MotorController):
     
     def __init__(self,inst,props,*args, **kwargs):
         MotorController.__init__(self,inst,props,*args, **kwargs)
-
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+             self.db = PyTango.Database()
+        else:
+            self.db = PyTango.Database(self.TangoHost, 10000)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
@@ -65,7 +68,11 @@ class HasylabMotorController(MotorController):
         if ind > self.max_device:
             print "False index"
             return
-        self.proxy[ind-1] = PyTango.DeviceProxy(self.tango_device[ind-1])
+        if self.TangoHost == None:
+            proxy_name = self.tango_device[ind-1]
+        else:
+            proxy_name = str(self.TangoHost) + ":10000/" + str(self.tango_device[ind-1])
+        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
         self.UnitLimitMax.append(self.dft_UnitLimitMax)
         self.UnitLimitMin.append(self.dft_UnitLimitMin)
