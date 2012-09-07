@@ -161,13 +161,13 @@ class HasylabMotorController(MotorController):
         if self.device_available[ind-1]:
             name = name.lower()
             if name == "acceleration":
-                self.proxy[ind-1].write_attribute("Acceleration",value)
+                self.proxy[ind-1].write_attribute("Acceleration",long(value))
             elif name == "deceleration":
-                self.proxy[ind-1].write_attribute("Acceleration",value)
+                self.proxy[ind-1].write_attribute("Acceleration",long(value))
             elif name == "base_rate":
-                self.proxy[ind-1].write_attribute("BaseRate",value)
+                self.proxy[ind-1].write_attribute("BaseRate",long(value))
             elif name == "velocity":
-                self.proxy[ind-1].write_attribute("SlewRate",value)
+                self.proxy[ind-1].write_attribute("SlewRate",long(value))
             elif name == "step_per_unit":
                 self.proxy[ind-1].write_attribute("Conversion",value)
             
