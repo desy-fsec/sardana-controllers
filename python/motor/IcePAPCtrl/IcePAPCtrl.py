@@ -1,11 +1,42 @@
-import PyTango
+##############################################################################
+##
+## This file is part of Sardana
+##
+## http://www.tango-controls.org/static/sardana/latest/doc/html/index.html
+##
+## Copyright 2011 CELLS / ALBA Synchrotron, Bellaterra, Spain
+## 
+## Sardana is free software: you can redistribute it and/or modify
+## it under the terms of the GNU Lesser General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or
+## (at your option) any later version.
+## 
+## Sardana is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU Lesser General Public License for more details.
+## 
+## You should have received a copy of the GNU Lesser General Public License
+## along with Sardana.  If not, see <http://www.gnu.org/licenses/>.
+##
+##############################################################################
+
 import socket
 import errno
-from pool import MotorController
-from pool import PoolUtil
-from pyIcePAP import *
 import time
 import math
+
+from pyIcePAP import *
+
+from PyTango import AttributeProxy
+
+from sardana import State, DataAccess
+from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool import PoolUtil
+
+ReadOnly = DataAccess.ReadOnly
+ReadWrite = DataAccess.ReadWrite
 
 class IcepapController(MotorController):
     """This class is the Sardana motor controller for the ICEPAP motor controller.
@@ -14,77 +45,79 @@ class IcepapController(MotorController):
     """
 
     #ctrl_features = ['Encoder','Home_speed','Home_acceleration']
-
+    
     ## The properties used to connect to the ICEPAP motor controller
-    class_prop = {'Host':{'Type':'PyTango.DevString','Description':'The host name'},
-                  'Port':{'Type':'PyTango.DevLong','Description':'The port number','DefaultValue':5000},
-                  'Timeout':{'Type':'PyTango.DevLong','Description':'Connection timeout','DefaultValue':3}}
+    ctrl_properties = {
+        'Host':{Type:str,Description:'The host name'},
+        'Port':{Type:int, Description:'The port number',DefaultValue:5000},
+        'Timeout':{Type:int, Description:'Connection timeout',DefaultValue:3}
+    }
 
     ## The axis extra attributes that correspond to extra features from the Icepap drivers
-    ctrl_extra_attributes = {'Indexer':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-                             'PowerOn':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
-                             'InfoA':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-                             'InfoB':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-                             'InfoC':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-                             'EnableEncoder_5V':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
-                             ## Fulvio requires this closed loop boolean attribute
-                             'ClosedLoop':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
-                             ## Julio Lidon points out that this info is very useful:
-                             ## ?POS : AXIS INDEXER POSERR SHFTENC TGTENC ENCIN INPOS ABSENC
-                             ## ?ENC : AXIS INDEXER EXTERR SHFTENC TGTENC ENCIN INPOS ABSENC
-                             'PosAxis':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'PosIndexer':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             #'PosPosErr':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             'PosShftEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'PosTgtEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'PosEncIn':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'PosInPos':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'PosAbsEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'PosMotor':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'EncAxis':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'EncIndexer':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             #'EncExtErr':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             'EncShftEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'EncTgtEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'EncEncIn':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'EncInPos':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             'EncAbsEnc':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             ## 12/08/2009 REQUESTED FROM LOTHAR, A COMPLETE MESSAGE ABOUT WHAT IS HAPPENING
-                             'StatusDriverBoard':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             ## 12/08/2009 GOOD TO KNOW WHAT IS REALLY HAPPENING TO THE AXIS POWER STATE
-                             'PowerInfo':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             ## 19/03/2010 USAGE OF THE FSTATUS MULTICOMMAND FOR THE TRITON
-                             'MotorEnabled':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
-                             ## 30/03/2010 ADD ALL INFO FROM STATUS AS EXTRA ATTRIBUTES
-                             'Status5vpower':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusAlive':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusCode':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
-                             'StatusPowerOn':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusDisable':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             'StatusHome':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusIndexer':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             'StatusInfo':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ'},
-                             'StatusLim+':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusLim-':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             'StatusMoving':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusOutOfWin':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusPresent':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusReady':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusSettling':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusStopCode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             'StatusVersErr':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusWarning':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ'},
-                             'StatusDetails':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-                             ## 30/03/2010 ADD THE POSSIBILITY OF HAVING AN EXTERNAL ENCODER SOURCE WITH SPECIFIC FORMULA
-                             'UseEncoderSource':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
-                             'EncoderSource':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-                             'EncoderSourceFormula':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-                             'Encoder':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ'},
-                             ## 29/07/2010 ALLOW THE USER TO SPECIFY THE SPEED AS A 'FREQUENCY' OF THE MOTOR STEPS
-                             'Frequency':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-                            }
-
+    axis_attributes = {
+        'Indexer':{Type:str,Access:ReadWrite},
+        'PowerOn':{Type:bool,Access:ReadWrite},
+        'InfoA':{Type:str,Access:ReadWrite},
+        'InfoB':{Type:str,Access:ReadWrite},
+        'InfoC':{Type:str,Access:ReadWrite},
+        'EnableEncoder_5V':{Type:bool,Access:ReadWrite},
+        ## Fulvio requires this closed loop boolean attribute
+        'ClosedLoop':{Type:bool,Access:ReadWrite},
+        ## Julio Lidon points out that this info is very useful:
+        ## ?POS : AXIS INDEXER POSERR SHFTENC TGTENC ENCIN INPOS ABSENC
+        ## ?ENC : AXIS INDEXER EXTERR SHFTENC TGTENC ENCIN INPOS ABSENC
+        'PosAxis':{Type:float, Access:ReadOnly},
+        'PosIndexer':{Type:float, Access:ReadOnly},
+        #'PosPosErr':{Type:str,Access:ReadOnly},
+        'PosShftEnc':{Type:float, Access:ReadOnly},
+        'PosTgtEnc':{Type:float, Access:ReadOnly},
+        'PosEncIn':{Type:float, Access:ReadOnly},
+        'PosInPos':{Type:float, Access:ReadOnly},
+        'PosAbsEnc':{Type:float, Access:ReadOnly},
+        'PosMotor':{Type:float, Access:ReadOnly},
+        'EncAxis':{Type:float, Access:ReadOnly},
+        'EncIndexer':{Type:float, Access:ReadOnly},
+        #'EncExtErr':{Type:str,Access:ReadOnly},
+        'EncShftEnc':{Type:float, Access:ReadOnly},
+        'EncTgtEnc':{Type:float, Access:ReadOnly},
+        'EncEncIn':{Type:float, Access:ReadOnly},
+        'EncInPos':{Type:float, Access:ReadOnly},
+        'EncAbsEnc':{Type:float, Access:ReadOnly},
+        ## 12/08/2009 REQUESTED FROM LOTHAR, A COMPLETE MESSAGE ABOUT WHAT IS HAPPENING
+        'StatusDriverBoard':{Type:str,Access:ReadOnly},
+        ## 12/08/2009 GOOD TO KNOW WHAT IS REALLY HAPPENING TO THE AXIS POWER STATE
+        'PowerInfo':{Type:str,Access:ReadOnly},
+        ## 19/03/2010 USAGE OF THE FSTATUS MULTICOMMAND FOR THE TRITON
+        'MotorEnabled':{Type:bool,Access:ReadWrite},
+        ## 30/03/2010 ADD ALL INFO FROM STATUS AS EXTRA ATTRIBUTES
+        'Status5vpower':{Type:bool,Access:ReadOnly},
+        'StatusAlive':{Type:bool,Access:ReadOnly},
+        'StatusCode':{Type:int, Access:ReadOnly},
+        'StatusPowerOn':{Type:bool,Access:ReadOnly},
+        'StatusDisable':{Type:str,Access:ReadOnly},
+        'StatusHome':{Type:bool,Access:ReadOnly},
+        'StatusIndexer':{Type:str,Access:ReadOnly},
+        'StatusInfo':{Type:int, Access:ReadOnly},
+        'StatusLim+':{Type:bool,Access:ReadOnly},
+        'StatusLim-':{Type:bool,Access:ReadOnly},
+        'StatusMode':{Type:str,Access:ReadOnly},
+        'StatusMoving':{Type:bool,Access:ReadOnly},
+        'StatusOutOfWin':{Type:bool,Access:ReadOnly},
+        'StatusPresent':{Type:bool,Access:ReadOnly},
+        'StatusReady':{Type:bool,Access:ReadOnly},
+        'StatusSettling':{Type:bool,Access:ReadOnly},
+        'StatusStopCode':{Type:str,Access:ReadOnly},
+        'StatusVersErr':{Type:bool,Access:ReadOnly},
+        'StatusWarning':{Type:bool,Access:ReadOnly},
+        'StatusDetails':{Type:str,Access:ReadOnly},
+        ## 30/03/2010 ADD THE POSSIBILITY OF HAVING AN EXTERNAL ENCODER SOURCE WITH SPECIFIC FORMULA
+        'UseEncoderSource':{Type:bool,Access:ReadWrite},
+        'EncoderSource':{Type:str,Access:ReadWrite},
+        'EncoderSourceFormula':{Type:str,Access:ReadWrite},
+        'Encoder':{Type:float, Access:ReadOnly},
+        ## 29/07/2010 ALLOW THE USER TO SPECIFY THE SPEED AS A 'FREQUENCY' OF THE MOTOR STEPS
+        'Frequency':{Type:float, Access:ReadWrite},
+    }
 
     gender = "Motor"
     model = "Icepap"
@@ -97,13 +130,12 @@ class IcepapController(MotorController):
 
     MaxDevice = 128
 
-    def __init__(self,inst,props):
+    def __init__(self, inst, props, *args, **kwargs):
         """ Do the default init plus the icepap connection
         @param inst instance name of the controller
         @param properties of the controller
         """
-        MotorController.__init__(self,inst,props)
-
+        MotorController.__init__(self, inst, props, *args, **kwargs)
         self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
         # DO NOT CONNECT BY DEFAULT SINCE THIS CAN RAISE A TANGO TIMEOUT EXCEPTION IN THE POOL COMMAND CreateController.
         # self.iPAP.connect()
@@ -175,10 +207,12 @@ class IcepapController(MotorController):
         @param axis to read the state
         @return the state value: {ALARM|ON|MOVING}
         """
+        name = self.GetAxisName(axis)
         if axis not in self.stateMultiple:
-            self._log.warning('StateOne(%d) Not enabled. Check the Driver Board is present in %s.'%(axis,self.Host))
-            self.attributes[axis]["last_state_value"] = PyTango.DevState.ALARM
-            return (PyTango.DevState.ALARM, 'Motor Not Enabled or Not Present', 0)
+            self._log.warning('StateOne(%s(%s)) Not enabled. Check the Driver Board is present in %s.',
+                              name, axis, self.Host)
+            self.attributes[axis]["last_state_value"] = State.Alarm
+            return State.Alarm, 'Motor Not Enabled or Not Present', 0
 
         status_template = "STATE(%s) PWR(%s) RDY(%s) MOVING(%s) SETTLING(%s) STPCODE(%s) LIM+(%s) LIM-(%s)"
         status_state = '?'
@@ -189,6 +223,7 @@ class IcepapController(MotorController):
         status_stopcode = '?'
         status_limpos = '?'
         status_limneg = '?'
+        
         if self.iPAP.connected:
             try:
                 register = self.attributes[axis]['status_value']
@@ -197,17 +232,17 @@ class IcepapController(MotorController):
 
 
                 if status_dict is None:
-                    self.attributes[axis]["last_state_value"] = PyTango.DevState.ALARM
-                    return (PyTango.DevState.ALARM, 'Status Register not available', 0)
+                    self.attributes[axis]["last_state_value"] = State.Alarm
+                    return (State.Alarm, 'Status Register not available', 0)
 
                 # CHECK POWER LED
                 poweron = status_dict['poweron'][0]
                 disable, status_power = status_dict['disable']
                 if poweron == 1:
-                    state = PyTango.DevState.ON
+                    state = State.On
                     status_state = 'ON'
                 else:
-                    state = PyTango.DevState.ALARM
+                    state = State.Alarm
                     status_state = 'ALARM_AXIS_DISABLE'
 
                 # CHECK LIMIT SWITCHES
@@ -220,22 +255,22 @@ class IcepapController(MotorController):
                     switchstate = 4
                 elif upper == 1:
                     switchstate = 2
-                if switchstate != 0 and state == PyTango.DevState.ON:
-                    state = PyTango.DevState.ALARM
+                if switchstate != 0 and state == State.On:
+                    state = State.Alarm
                     status_state = 'ALARM_LIMIT_SWITCH'
                         
                 # CHECK READY
                 # Not used because slave axis are 'BUSY' (NOT READY) and should not be an alarm
                 ready, status_ready = status_dict['ready']
-                #if ready == 0 and state == PyTango.DevState.ON:
-                #    state = PyTango.DevState.ALARM
+                #if ready == 0 and state == State.On:
+                #    state = State.Alarm
                 #    status_state = 'ALARM_NOT_READY'
 
                 # CHECK MOTION
                 moving, status_moving = status_dict['moving']
                 settling, status_settling = status_dict['settling']
                 if moving == 1 or settling == 1:
-                    state = PyTango.DevState.MOVING
+                    state = State.Moving
                     status_state = 'MOVING'
 
                 # STOP CODE
@@ -245,24 +280,26 @@ class IcepapController(MotorController):
                 # TWO OPTIONS, PUT CONFIG MODE IN STATUS REGISTER
                 #              OR PROVIDE MULTI_AXIS COMMAND FOR MODE - SOMETHING LIKE ?FMODE
                 #if self.iPAP.getMode(axis) == IcepapMode.CONFIG:
-                #    state = PyTango.DevState.ALARM
+                #    state = State.Alarm
                 #    status_state = 'ALARM_CONFIG'
 
                 status_string = status_template % (status_state,status_power,status_ready,status_moving,status_settling,status_stopcode,upper,lower)
-                if previous_state != PyTango.DevState.ALARM and state == PyTango.DevState.ALARM:
+                if previous_state != State.Alarm and state == State.Alarm:
                     dump = self.iPAP.debug_internals(axis)
-                    self._log.warning('StateOne(%d).State change from %s to %s. Icepap internals dump:\n%s' % (axis, previous_state, state, dump))
+                    self._log.warning('StateOne(%s(%s)).State change from %s to %s. Icepap internals dump:\n%s',
+                                      name, axis, previous_state, State[state], dump)
                 self.attributes[axis]["last_state_value"] = state
+
                 return (state, status_string, switchstate)
-            except Exception,e:
-                self._log.error('StateOne(%d).\nException:\n%s' % (axis,str(e)))
+            except:
+                self._log.error('StateOne(%s(%d)) Exception:', name, axis, exc_info=1)
                 raise
 
         else:
             # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
             #self._log.error('StateOne(%d). No connection to %s.' % (axis,self.Host))
             pass
-        return (PyTango.DevState.ALARM, 'Icepap Not Connected', 0)
+        return (State.Alarm, 'Icepap Not Connected', 0)
 
     def PreReadAll(self):
         """ If there is no connection, to the Icepap system, return False"""
@@ -284,7 +321,8 @@ class IcepapController(MotorController):
         """ We connect to the Icepap system for each axis. """
         if self.iPAP.connected:
             try:
-                ans = self.iPAP.getMultiplePosition(self.positionMultiple)
+                ans = self.iPAP.getMultiplePositionFromBoard(self.positionMultiple)
+                #ans = self.iPAP.getMultiplePosition(self.positionMultiple)
                 for axis, position in ans:
                     self.attributes[axis]['position_value'] = long(position)
             except Exception,e:
@@ -297,23 +335,25 @@ class IcepapController(MotorController):
         @param axis to read the position
         @return the current axis position
         """
+        name = self.GetAxisName(axis)
+        log = self._log
         if axis not in self.positionMultiple:
             # IN CASE OF EXTERNAL SOURCE, JUST READ IT AND EVALUATE THE FORMULA
             if self.attributes[axis]['use_encoder_source']:
-                return self.GetExtraAttributePar(axis,'Encoder')
+                return self.GetAxisExtraPar(axis,'Encoder')
             else:
-                self._log.warning('ReadOne(%d) Not enabled. Check the Driver Board is present in %s.'%(axis,self.Host))
-                raise Exception(self.inst_name,'Axis %d is not enabled: No position value available'%axis)
-
+                log.warning('ReadOne(%s(%d)) Not enabled. Check the Driver Board is present in %s.', name, axis, self.Host)
+                raise Exception('ReadOne(%s(%d)) Not enabled: No position value available' % (name, axis))
+        
         if self.iPAP.connected:
             try:
                 pos = self.attributes[axis]['position_value']
                 return (1.0 * pos) / self.attributes[axis]["step_per_unit"]
-            except Exception,e:
-                self._log.error('ReadOne(%d).\nException:\n%s' % (axis,str(e)))
+            except:
+                log.error('ReadOne(%s(%d)) Exception:', name, axis, exc_info=1)
                 raise
         else:
-            self._log.error('ReadOne(%d). No connection to %s.' % (axis,self.Host))
+            log.error('ReadOne(%s(%d)). No connection to %s.', name, axis, self.Host)
         return None
 
     def PreStartAll(self):
@@ -331,10 +371,10 @@ class IcepapController(MotorController):
             desired_absolute_steps_pos = long(pos * self.attributes[axis]["step_per_unit"])
             # CHECK IF THE POSITION SOURCE IS SET, IN THAT CASE POS HAS TO BE RECALCULATED USING SOURCE + FORMULA
             if self.attributes[axis]['use_encoder_source']:
-                current_source_pos = self.GetExtraAttributePar(axis,'Encoder')
+                current_source_pos = self.GetAxisExtraPar(axis,'Encoder')
                 position_increment = pos - current_source_pos
                 steps_increment = long(position_increment * self.attributes[axis]["step_per_unit"])
-                current_steps_pos = long(self.iPAP.getPosition(axis))
+                current_steps_pos = long(self.iPAP.getPositionFromBoard(axis))
                 desired_absolute_steps_pos = current_steps_pos + steps_increment
             try:
                 self.moveMultipleValues.append((axis,desired_absolute_steps_pos))
@@ -352,7 +392,8 @@ class IcepapController(MotorController):
         """ Move all axis at all position with just one command to the Icepap Controller. """
         if self.iPAP.connected:
             try:
-                self.iPAP.moveMultiple(self.moveMultipleValues)
+                self.iPAP.moveMultipleGrouped(self.moveMultipleValues)
+                self._log.info('moveMultiple: '+str(self.moveMultipleValues))
                 self.moveMultipleValues = []
             except Exception,e:
                 self._log.error('StartAll(%s).\nException:\n%s' % (str(self.moveMultipleValues),str(e)))
@@ -370,7 +411,13 @@ class IcepapController(MotorController):
             try:
                 if name.lower() == "velocity":
                     value_steps = value * self.attributes[axis]["step_per_unit"]
+                    # setting the velocity changes the icepap acceleration time
+                    # for protection. We compensate this by restoring the
+                    # acceleration time back to the original value after setting
+                    # the new velocity
+                    accel_time = self.GetPar(axis, "acceleration")
                     self.iPAP.setSpeed(axis, value_steps)
+                    self.iPAP.setAcceleration(axis, accel_time)
                 elif name.lower() == "base_rate":
                     # ONLY ALLOWED WHEN CONFIGURING THE MOTOR (IcepapCMS)
                     self._log.error('SetPar(%d,%s,%s).\nThis is a configuration parameter set by an expert with IcepapCMS\n' % (axis,name,str(value)))
@@ -414,7 +461,7 @@ class IcepapController(MotorController):
 
         return None
 
-    def GetExtraAttributePar(self,axis,name):
+    def GetAxisExtraPar(self,axis,name):
         """ Get Icepap driver particular parameters.
         @param axis to get the parameter
         @param name of the parameter to retrive
@@ -541,17 +588,20 @@ class IcepapController(MotorController):
                 elif name == 'frequency':
                     return float(self.iPAP.getSpeed(axis))
                 else:
-                    PyTango.Except.throw_exception("IcepapController_GetExtraAttributePar()", "Error getting " + name + ", not implemented", "GetExtraAttributePar()")
+                    axis_name = self.GetAxisName(axis)
+                    raise Exception("GetAxisExtraPar(%s(%s), %s): "
+                                    "Error getting %s, not implemented"
+                                    %(axis_name, axis, name, name))
             except Exception,e:
                 if name == "encshftenc" or name == "enctgtenc" or name == "posshftenc" or name == "postgtenc":
                     #IN SOME CASES THIS VALUES ARE NOT ACCESSIBLE
                     return
-                self._log.error('GetExtraAttributePar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
+                self._log.error('GetAxisExtraPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
         else:
-            self._log.error('GetExtraAttributePar(%d,%s). No connection to %s.' % (axis,name,self.Host))
+            self._log.error('GetAxisExtraPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
 
-    def SetExtraAttributePar(self,axis,name,value):
+    def SetAxisExtraPar(self,axis,name,value):
         """ Set Icepap driver particular parameters.
         @param axis to set the parameter
         @param name of the parameter
@@ -565,7 +615,11 @@ class IcepapController(MotorController):
                         #self.iPAP.setIndexerSource(axis, value)
                         self.iPAP.setIndexer(axis, value)
                     else:
-                        PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()", "Error setting " + name + ", value not in "+str(IcepapRegisters.IndexerRegisters), "SetExtraAttributePar()")
+                        axis_name = self.GetAxisName(axis)
+                        raise Exception("SetAxisExtraPar(%s(%s), %s): "
+                            "Error setting %s, value not in %s"
+                            % (axis_name, axis, name, name,
+                               IcepapRegisters.IndexerRegisters))
                 elif name == "enableencoder_5v":
                     if value:
                         self.iPAP.setAuxPS(axis, IcepapAnswers.ON)
@@ -594,14 +648,18 @@ class IcepapController(MotorController):
                     value = value.split()
                     src = value[0].upper()
                     if not src in IcepapInfo.Sources:
-                        PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar(r", "Error setting " + name + ", [Source = ("+str(IcepapInfo.Sources) + "), Polarity= ("+str(IcepapInfo.Polarity)+")]", "SetExtraAttributePar()")
+                        raise Exception("SetAxisExtraPar(%s(%s), %s): "
+                            "Error setting %s. [Source = (%s), Polarity= (%s)]"
+                            % (axis_name, axis, name, name, IcepapInfo.Sources,
+                               IcepapInfo.Polarity))
                     polarity = "NORMAL"
                     if len(value) > 1:
                         polarity = value[1].upper()
                         if not polarity in IcepapInfo.Polarity:
-                            PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar(r", "Error setting " + name + ", [Source = ("+str(IcepapInfo.Sources) + "), Polarity= ("+str(IcepapInfo.Polarity)+")]", "SetExtraAttributePar()")
-
-
+                            raise Exception("SetAxisExtraPar(%s(%s), %s): "
+                                "Error setting %s. [Source = (%s), Polarity= (%s)]"
+                                % (axis_name, axis, name, name, IcepapInfo.Sources,
+                                   IcepapInfo.Polarity))
                     #self.iPAP.setInfoSource(axis, name, src, polarity)
                     self.iPAP.setInfo(axis, name, src, polarity)
                 elif name == 'useencodersource':
@@ -614,11 +672,20 @@ class IcepapController(MotorController):
                             try:
                                 # check if it is an internal attribute
                                 if value.lower().startswith('attr://'):
-                                    self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, value)
+                                    # 2012/03/27 Improve attr:// syntax to allow reading of other axis of the same system without
+                                    # having to access them via tango://
+                                    value_contents = value[7:]
+                                    if not ':' in value_contents:
+                                        self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, value)
+                                    else:
+                                        other_axis, other_value = value_contents.split(':')
+                                        other_axis = int(other_axis)
+                                        other_value = 'attr://'+other_value
+                                        self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, other_axis, other_value)
                                 else:
-                                    self.attributes[axis]['encoder_source_tango_attribute'] = PyTango.AttributeProxy(value)
+                                    self.attributes[axis]['encoder_source_tango_attribute'] = AttributeProxy(value)
                             except Exception,e:
-                                self._log.error('SetExtraAttributePar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
+                                self._log.error('SetAxisExtraPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                                 self.attributes[axis]['use_encoder_source'] = False
                     except Exception,e:
                         raise e
@@ -628,12 +695,14 @@ class IcepapController(MotorController):
                 elif name == 'frequency':
                     self.iPAP.setSpeed(axis, value)
                 else:
-                    PyTango.Except.throw_exception("IcepapController_SetExtraAttributePar()r", "Error setting " + name + ", not implemented", "SetExtraAttributePar()")
+                    raise Exception("SetAxisExtraPar(%s(%s), %s): "
+                        "Error setting %s, not implemented"
+                        % (axis_name, axis, name, name))
             except Exception,e:
-                self._log.error('SetExtraAttributePar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
+                self._log.error('SetAxisExtraPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
         else:
-            self._log.error('SetExtraAttributePar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
+            self._log.error('SetAxisExtraPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
 
 
     def AbortOne(self, axis):
@@ -698,6 +767,6 @@ class FakedAttributeProxy():
         self.axis = axis
         self.attribute = attribute.replace('attr://','')
     def read(self):
-        value = self.ctrl.GetExtraAttributePar(self.axis, self.attribute)
+        value = self.ctrl.GetAxisExtraPar(self.axis, self.attribute)
         return FakedAttribute(value)
-        
+
