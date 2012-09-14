@@ -2,7 +2,7 @@ import PyTango
 from sardana.pool.controller import ZeroDController
 import time
 
-class HasylabADCCtrl(ZeroDController):
+class HasyADCCtrl(ZeroDController):
     "This class is the Tango Sardana Zero D controller for a generic Hasylab ADC"
 			     
     class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the VFCADC Tango devices'}}
@@ -13,7 +13,7 @@ class HasylabADCCtrl(ZeroDController):
         ZeroDController.__init__(self,inst,props,*args, **kwargs)
 #        print "PYTHON -> ZeroDController ctor for instance",inst
 
-        self.ct_name = "HasylabADCCtrl/" + self.inst_name
+        self.ct_name = "HasyADCCtrl/" + self.inst_name
         self.db = PyTango.Database()
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
@@ -30,7 +30,7 @@ class HasylabADCCtrl(ZeroDController):
         
         
     def AddDevice(self,ind):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In AddDevice method for index",ind
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In AddDevice method for index",ind
         ZeroDController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
@@ -39,13 +39,13 @@ class HasylabADCCtrl(ZeroDController):
         self.device_available[ind-1] = 1
         
     def DeleteDevice(self,ind):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         ZeroDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
     def StateOne(self,ind):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -57,31 +57,31 @@ class HasylabADCCtrl(ZeroDController):
             return tup
 
     def PreReadAll(self):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In PreReadAll method"
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In PreReadAll method"
         pass
 
     def PreReadOne(self,ind):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In PreReadOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In PreReadOne method for index",ind
         pass
 
     def ReadAll(self):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In ReadAll method"
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In ReadAll method"
         pass
 
     def ReadOne(self,ind):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In ReadOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In ReadOne method for index",ind
         if self.device_available[ind-1] == 1:
             return self.proxy[ind-1].read_attribute("Value").value
 
     def PreStartAll(self):
-#        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In PreStartAll method"
+#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In PreStartAll method"
         self.wanted = []
 
     def PreStartOne(self,ind):
         pass
 		
     def StartOne(self,ind):
-        #print "PYTHON -> HasylabADCCtrl/",self.inst_name,": In StartOne method for index",ind
+        #print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StartOne method for index",ind
         self.wanted.append(ind)
         
     def SendToCtrl(self,in_data):
@@ -89,7 +89,7 @@ class HasylabADCCtrl(ZeroDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> HasylabADCCtrl/",self.inst_name,": being deleted"
+        print "PYTHON -> HasyADCCtrl/",self.inst_name,": being deleted"
 
         
 if __name__ == "__main__":
