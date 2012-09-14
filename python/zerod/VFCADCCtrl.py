@@ -2,7 +2,7 @@ import PyTango
 from sardana.pool.controller import ZeroDController
 import time
 
-class VFCADCController(ZeroDController):
+class VFCADCCtrl(ZeroDController):
     "This class is the Tango Sardana Zero D controller for the VFCADC"
 
     ctrl_extra_attributes = {'Gain':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
