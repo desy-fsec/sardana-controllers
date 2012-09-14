@@ -11,8 +11,8 @@ ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
     
-class HasylabDACController(MotorController):
-    "This class is the Tango Sardana Motor controller for standard Hasylab Motors"
+class HasyDACCtrl(MotorController):
+    "This class is the Tango Sardana DAC controller for standard Hasylab DACs"
 
 
     axis_attributes = {'VoltageMax':{Type:float,Access:ReadWrite},
@@ -131,4 +131,4 @@ class HasylabDACController(MotorController):
         pass
 
     def __del__(self):
-        print "PYTHON -> HasylabDACController/",self.inst_name,": dying"
+        print "PYTHON -> HasyDACCtrl/",self.inst_name,": dying"

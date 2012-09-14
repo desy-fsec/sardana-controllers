@@ -11,7 +11,7 @@ ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
     
-class HasylabMotorController(MotorController):
+class HasyMotorCtrl(MotorController):
     "This class is the Tango Sardana Motor controller for standard Hasylab Motors"
 
 
@@ -22,8 +22,7 @@ class HasylabMotorController(MotorController):
                        'Calibrate':{Type:float,Access:ReadWrite}}
 
 			     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'}}
 
 
     ctrl_attributes = {'ExtraParameterName':{Type:str,Access:ReadWrite}}
@@ -36,10 +35,7 @@ class HasylabMotorController(MotorController):
     
     def __init__(self,inst,props,*args, **kwargs):
         MotorController.__init__(self,inst,props,*args, **kwargs)
-        if self.TangoHost == None:
-             self.db = PyTango.Database()
-        else:
-            self.db = PyTango.Database(self.TangoHost, 10000)
+        self.db = PyTango.Database()
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
@@ -68,10 +64,7 @@ class HasylabMotorController(MotorController):
         if ind > self.max_device:
             print "False index"
             return
-        if self.TangoHost == None:
-            proxy_name = self.tango_device[ind-1]
-        else:
-            proxy_name = str(self.TangoHost) + ":10000/" + str(self.tango_device[ind-1])
+        proxy_name = self.tango_device[ind-1]
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
         self.UnitLimitMax.append(self.dft_UnitLimitMax)
@@ -209,4 +202,4 @@ class HasylabMotorController(MotorController):
         return self.extraparametername
        
     def __del__(self):
-        print "PYTHON -> HasylabMotorController/",self.inst_name,": dying"
+        print "PYTHON -> HasyMotorCtrl/",self.inst_name,": dying"
