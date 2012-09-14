@@ -12,7 +12,7 @@ ReadWrite = DataAccess.ReadWrite
 
     
 class HasyDACCtrl(MotorController):
-    "This class is the Tango Sardana DAC controller for standard Hasylab DACs"
+    "This class is the Tango Sardana Motor controller for standard Hasylab DACs"
 
 
     axis_attributes = {'VoltageMax':{Type:float,Access:ReadWrite},
