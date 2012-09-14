@@ -2,7 +2,7 @@ from sardana import pool
 import PyTango
 from sardana.pool.controller import MotorController
 
-class HKLMotorController(MotorController):
+class HKLMotorCtrl(MotorController):
     """This class is the Tango Sardana motor controller for the HKL axis of the diffractometer device.
     """
 
@@ -64,18 +64,18 @@ class HKLMotorController(MotorController):
         @param axis to read the state
         @return the state value: {ALARM|ON|MOVING}
         """
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In StateOne method for axis",axis
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In StateOne method for axis",axis
         sta = self.hkl_device[axis-1].command_inout("State")
         tup = (sta,0)
         return tup
 
     def PreReadAll(self):
         """ Nothing special to do"""
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In PreReadAll method"
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In PreReadAll method"
         pass
 
     def PreReadOne(self,axis):
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In PreReadOne method for axis",axis
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In PreReadOne method for axis",axis
         pass
 
     def ReadAll(self):
@@ -88,13 +88,13 @@ class HKLMotorController(MotorController):
         @param axis to read the position
         @return the current axis position
         """
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In ReadOne method for axis",axis
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In ReadOne method for axis",axis
 
         return self.hkl_device[axis-1].position
 
     def PreStartAll(self):
         """ Nothing special to do"""
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In PreStartAll method"
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In PreStartAll method"
         pass
 
     def PreStartOne(self,axis,pos):
@@ -102,12 +102,12 @@ class HKLMotorController(MotorController):
         @param axis to start
         @param pos to move to
         """
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In PreStartOne method for axis",axis," with pos",pos
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In PreStartOne method for axis",axis," with pos",pos
         return True
 
     def StartOne(self,axis,pos):
         """ Move the axis separtely, for multiple movements use the macro br """
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In StartOne method for axis",axis," with pos",pos
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In StartOne method for axis",axis," with pos",pos
         
         if axis == 1:
             self.hkl_simu_device.write_attribute("h",pos)
@@ -176,7 +176,7 @@ class HKLMotorController(MotorController):
         @param name of the parameter
         @param value to be set
         """
-        #print "[HKLMotorController]",self.inst_name,": In SetPar method for axis",axis," name=",name," value=",value
+        #print "[HKLMotorCtrl]",self.inst_name,": In SetPar method for axis",axis," name=",name," value=",value
         pass
         
 
@@ -186,7 +186,7 @@ class HKLMotorController(MotorController):
         @param name of the parameter to get the value
         @return the value of the parameter
         """
-        #print "[HKLMotorController]",self.inst_name,": In GetPar method for axis",axis," name=",name
+        #print "[HKLMotorCtrl]",self.inst_name,": In GetPar method for axis",axis," name=",name
         pass
 
     def GetExtraAttributePar(self,axis,name):
@@ -203,7 +203,7 @@ class HKLMotorController(MotorController):
         @param name of the parameter
         @param value to be set
         """
-        #print "PYTHON -> HKLMotorController/",self.inst_name,": In SetExtraAttributePar method for axis",axis," name=",name," value=",value
+        #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In SetExtraAttributePar method for axis",axis," name=",name," value=",value
         pass
 
     def AbortOne(self,axis):
@@ -223,11 +223,11 @@ class HKLMotorController(MotorController):
         pass
 
     def __del__(self):
-        #print "[HKLMotorController]",self.inst_name,": Exiting"
+        #print "[HKLMotorCtrl]",self.inst_name,": Exiting"
         pass
         
         
 if __name__ == "__main__":
-    obj = HKLMotorController('test')
+    obj = HKLMotorCtrl('test')
 #    obj.AddDevice(2)
 #    obj.DeleteDevice(2)
