@@ -6,7 +6,7 @@ import datetime
 import sys
 from HasyVirtualCounterLib import *
 
-class HasyVirtualCounter(CounterTimerController):
+class HasyVirtualCounterCtrl(CounterTimerController):
     "This class is a Tango Sardana CounterTimer controller for defined virtual counters"
               
     class_prop = {'LibId':{'Type':'PyTango.DevLong',
