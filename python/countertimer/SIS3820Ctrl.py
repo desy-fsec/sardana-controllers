@@ -12,7 +12,7 @@ ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 
-class SIS3820Controller(CounterTimerController):
+class SIS3820Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3820"
     axis_attributes = {'Offset':{Type:float,Access:ReadWrite}}
 			     

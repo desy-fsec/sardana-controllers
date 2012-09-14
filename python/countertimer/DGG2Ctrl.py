@@ -10,7 +10,7 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-class DGG2Controller(CounterTimerController):
+class DGG2Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the DGG2 timer"
 			     
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the DGG2 timer Tango devices'}}
@@ -118,5 +118,5 @@ class DGG2Controller(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> DGG2Controller/",self.inst_name,": dying"
+        print "PYTHON -> DGG2Ctrl/",self.inst_name,": dying"
 
