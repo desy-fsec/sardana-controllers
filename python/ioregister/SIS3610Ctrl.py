@@ -44,7 +44,7 @@ ReadWrite = DataAccess.ReadWrite
 
 import json
 
-class SIS3610Controller(IORegisterController):
+class SIS3610Ctrl(IORegisterController):
     """This class is the Tango Sardana Motor controller for the SIS3610 IORegister.
     """
 
