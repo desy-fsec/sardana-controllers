@@ -57,8 +57,8 @@ class EnergyCffFixed(PseudoMotorController):
 
         self.ior = PyTango.DeviceProxy(self.iorGrx)
 
-        #self.energy = 1.0 #in order to avoid zerodivisionerror
-        #self.wavelength = 1.0
+        ##self.energy = 1.0 #in order to avoid zerodivisionerror
+        ##self.wavelength = 1.0
 
         self.Cff = 0.0
         self.DiffrOrder = 1.0
