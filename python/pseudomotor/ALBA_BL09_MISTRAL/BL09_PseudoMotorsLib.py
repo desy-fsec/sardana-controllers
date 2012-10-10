@@ -5,11 +5,11 @@ from pool import PseudoMotorController
 class MZ_Pseudos(PseudoMotorController):
   """ The General PseudoMotor controller class for the MISTRAL's tables.
       This Class will be used for the pseudos that handle the mz motors.
-         ____________________________
-    D |                                                                 |
-    Y |                                            *mzr            |
-    M |   *mzc                                                    |   <-------- beam direction
-        |                                           *mzl             |
+       ____________________________
+    D |                            |
+    Y |                      *mzr  |
+    M |  *mzc                      |   <-------- beam direction
+      |                      *mzl  |
     X |____________________________|
                   DIM Y
   """
@@ -65,11 +65,11 @@ class M1_Z_Pitch_Roll(MZ_Pseudos):
       User units must be: mm for distances and mrad for angles.
       Pitch rotational axis is in the middle of Y dimension.
       Roll rotational axis is in the middle of X dimension.
-         ____________________________
-    D |                                                                 |
-    Y |                                            *mzr            |
-    M |   *mzc                                                    |   <-------- beam direction
-        |                                           *mzl             |
+       ____________________________
+    D |                            |
+    Y |                      *mzr  |
+    M |  *mzc                      |   <-------- beam direction
+      |                      *mzl  |
     X |____________________________|
                   DIM Y
 
@@ -98,11 +98,11 @@ class M2_Z_Yaw_Roll(MZ_Pseudos):
       User units must be: mm for distances and mrad for angles.
       Pitch rotational axis is in the middle of Y dimension.
       Roll rotational axis is in the middle of X dimension.
-         ____________________________
-    D |                                                                 |
-    Y |                                            *mzr            |
-    M |   *mzc                                                    |   <-------- beam direction
-        |                                           *mzl             |
+       ____________________________
+    D |                            |
+    Y |                      *mzr  |
+    M |  *mzc                      |   <-------- beam direction
+      |                      *mzl  |
     X |____________________________|
                   DIM Y
 
@@ -132,11 +132,11 @@ class M4_Z_Pitch_Roll(MZ_Pseudos):
       User units must be: mm for distances and mrad for angles.
       Pitch rotational axis is in the middle of Y dimension.
       Roll rotational axis is in the middle of X dimension.
-         ____________________________
-    D |                                                                 |
-    Y |                                            *mzr            |
-    M |   *mzc                                                    |   <-------- beam direction
-        |                                           *mzl             |
+       ____________________________
+    D |                            |
+    Y |                      *mzr  |
+    M |  *mzc                      |   <-------- beam direction
+      |                      *mzl  |
     X |____________________________|
                   DIM Y
 
@@ -164,10 +164,10 @@ class MX_Pseudos(PseudoMotorController):
       This Class will be used for the pseudos that handle the mx motors.
 
      ____________________________
-    |                                                                 |
-    |                                                                 |
-    |                                                                 |   <-------- beam direction
-    |                                                                 |
+    |                            |
+    |                            |
+    |                            |   <-------- beam direction
+    |                            |
     |____________________________|
       ^ mx1                  ^ mx2
       
@@ -218,10 +218,10 @@ class M1_X_and_Yaw(MX_Pseudos):
     Yaw rotational axis is in the middle of Y dimension.
     
      ____________________________
-    |                                                                 |
-    |                                                                 |
-    |                                                                 |   <-------- beam direction
-    |                                                                 |
+    |                            |
+    |                            |
+    |                            |   <-------- beam direction
+    |                            |
     |____________________________|
       ^ mx1                  ^ mx2
       
@@ -247,10 +247,10 @@ class M2_X_and_Pitch(MX_Pseudos):
     Pitch rotational axis is in the middle of Y dimension.
     
      ____________________________
-    |                                                                 |
-    |                                                                 |
-    |                                                                 |   <-------- beam direction
-    |                                                                 |
+    |                            |
+    |                            |
+    |                            |   <-------- beam direction
+    |                            |
     |____________________________|
       ^ mx1                  ^ mx2
       
@@ -277,10 +277,10 @@ class M4_X_and_Yaw(MX_Pseudos):
     Yaw rotational axis is in the middle of Y dimension.
     
      ____________________________
-    |                                                                 |
-    |                                                                 |
-    |                                                                 |   <-------- beam direction
-    |                                                                 |
+    |                            |
+    |                            |
+    |                            |   <-------- beam direction
+    |                            |
     |____________________________|
       ^ mx1                  ^ mx2
       
