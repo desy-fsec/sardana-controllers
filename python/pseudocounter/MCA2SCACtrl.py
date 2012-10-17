@@ -18,7 +18,9 @@ class MCA2SCACtrl(PseudoCounterController):
     """ A counter controller which receives an MCA Spectrum und return a single value"""
 
     # NO COUNTERS NEEDED
-    counter_roles = ()
+    counter_roles = 'mca',
+
+    pseudo_counter_roles = 'sca',
 
     # THE EXTRA ATTRIBUTES: RoIs definition
     
@@ -32,37 +34,25 @@ class MCA2SCACtrl(PseudoCounterController):
                              ,'R/W Type':'PyTango.READ_WRITE'}
                             }
 
-    
-    class_prop = { 'MCADevice' : { 'Description' : 'the MCA device name (or alias)','Type' : 'PyTango.DevString'} }
 
     def __init__(self,inst,props, *args, **kwargs):
         
         PseudoCounterController.__init__(self,inst,props, *args, **kwargs)
 
-# En caso de que el device no fuese del pool        
-#        self.device_proxy = PyTango.DeviceProxy(self.MCADevice)
-# Si el device es del pool
-        self.device_proxy = PoolUtil().get_device(self.inst_name,self.MCADevice)
         self.counterExtraAttributes = {}
         self.counterExtraAttributes[1] = {"RoI1":0,
                                           "RoI2":0}
     
     def GetExtraAttributePar(self,index,name):
-        # IMPLEMENTED THE EXTRA ATTRIBUTE 'Formula','ExternalAttribute'
-        print "GetExtraAttributePar " + str(index) + " name " + name
+ #       print "GetExtraAttributePar " + str(index) + " name " + name
         return self.counterExtraAttributes[1][name]
 
     def SetExtraAttributePar(self,counter,name,value):
-        # IMPLEMENTED THE EXTRA ATTRIBUTE 'Formula'
-        print "GetExtraAttributePar " + str(counter) + " name " + name + " value " + str(value)
+ #       print "GetExtraAttributePar " + str(counter) + " name " + name + " value " + str(value)
         self.counterExtraAttributes[1][name] = value
 
     def calc(self,index,counter_values):
         sum = 0
-        try:
-            data = self.device_proxy.read_attribute( "Value")
-        except:
-            data = self.device_proxy.read_attribute( "Data")
         for i in range(self.counterExtraAttributes[1]['RoI1'],self.counterExtraAttributes[1]['RoI2']):
-            sum = sum + data.value[i]
+            sum = sum + counter_values[0][0][i]
         return float(sum)
