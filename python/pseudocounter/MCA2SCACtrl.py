@@ -1,6 +1,8 @@
 """ The standard pseudo counter controller library for the device pool """ 
 
-from pool import PseudoCounterController, PoolUtil
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoCounterController
 
 from math import *
 
@@ -33,9 +35,9 @@ class MCA2SCACtrl(PseudoCounterController):
     
     class_prop = { 'MCADevice' : { 'Description' : 'the MCA device name (or alias)','Type' : 'PyTango.DevString'} }
 
-    def __init__(self,inst,props):
+    def __init__(self,inst,props, *args, **kwargs):
         
-        PseudoCounterController.__init__(self,inst,props)
+        PseudoCounterController.__init__(self,inst,props, *args, **kwargs)
 
 # En caso de que el device no fuese del pool        
 #        self.device_proxy = PyTango.DeviceProxy(self.MCADevice)
