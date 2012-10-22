@@ -33,7 +33,9 @@
 ###########################################################################
 
 import PyTango
-from pool import MotorController
+from sardana import pool
+from sardana.pool.controller import MotorController
+
 
 
 class PmacController(MotorController):
@@ -84,8 +86,8 @@ class PmacController(MotorController):
     ctrl_extra_attributes.update(motor_extra_attributes)
     ctrl_extra_attributes.update(cs_extra_attributes)
     
-    def __init__(self,inst,props):
-        MotorController.__init__(self,inst,props)
+    def __init__(self, inst, props, *args, **kwargs):
+        MotorController.__init__(self, inst, props,  *args, **kwargs)
         self.pmacEth = PyTango.DeviceProxy(self.PmacEthDevName)
         self.axesList = []
         self.startMultiple = {}
@@ -93,8 +95,10 @@ class PmacController(MotorController):
         self.attributes = {}  
 
     def AddDevice(self, axis):
+        self._log.error("AddDevice entering...")
         self.axesList.append(axis)
-        self.attributes[axis] = {}
+        self.attributes[axis] = {"step_per_unit" : 1.0, "base_rate" : float("nan")}
+        self._log.error("AddDevice leaving...")
 
     def DeleteDevice(self, axis):
         self.axesList.remove(axis)
@@ -218,14 +222,33 @@ class PmacController(MotorController):
         @param name of the parameter
         @param value to be set
         """
-        try:
-            if name.lower() == "velocity":
-                self.pmacEth.command_inout("SetIVariable",(float("%d22" % axis), float(value)))
-            if name.lower() == "step_per_unit":
-                self.attributes[axis]["step_per_unit"] = float(value)
-        except Exception,e:
-            self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
-            raise
+        if name.lower() == "velocity":
+            pmacVelocity =  (value * self.attributes[axis]["step_per_unit"]) / 1000
+            self._log.debug("setting velocity to: %f" % pmacVelocity)
+            ivar = int("%d22" % axis)
+            try:
+                self.pmacEth.command_inout("SetIVariable", (float(ivar), float(pmacVelocity)))
+            except PyTango.DevFailed, e:
+                #self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,value,ivar,pmacVelocity,e))
+                self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed.", axis, name, value, ivar, pmacVelocity)
+                raise
+
+        elif name.lower() == "acceleration" or name.lower() == "deceleration":
+            #here we convert acceleration time from sec(Sardana standard) to msec(TurboPmac expected unit)  
+            pmacAcceleration =  value * 1000
+            self._log.debug("setting acceleration to: %f" % pmacAcceleration)
+            ivar = int("%d20" % axis)
+            try:
+                self.pmacEth.command_inout("SetIVariable", (float(ivar), float(pmacAcceleration)))
+            except PyTango.DevFailed, e:
+                #self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,value,ivar,pmacAcceleration,e))
+                self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,%d) command called on PmacEth DeviceProxy failed.", axis, name, value, ivar, pmacAcceleration)
+                raise
+        elif name.lower() == "step_per_unit":
+            self.attributes[axis]["step_per_unit"] = float(value)
+        elif name.lower() == "base_rate":
+            self.attributes[axis]["base_rate"] = float(value)
+        #@todo implement base_rate
 
     def GetPar(self, axis, name):
         """ Get the standard pool motor parameters.
@@ -233,17 +256,38 @@ class PmacController(MotorController):
         @param name of the parameter to get the value
         @return the value of the parameter
         """
-        try:
-            if name.lower() == "velocity":
-                return float(self.pmacEth.command_inout("GetIVariable",(long("%d22" % axis))))
-            if name.lower() == "step_per_unit":
-                return self.attributes[axis]["step_per_unit"]
-            else:
-                return None
-        except Exception,e:
-            self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
-            raise
+        if name.lower() == "velocity":
+            ivar = long("%d22" % axis)
+            try:
+                pmacVelocity = self.pmacEth.command_inout("GetIVariable", ivar)
+            except PyTango.DevFailed, e:
+                #self._log.error("GetPar(%d,%s,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,ivar,e))
+                self._log.error("GetPar(%d,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed.", axis, name, ivar)
+                raise
+            #pmac velocity from xxx (returned by TurboPmac) to xxx(Sardana standard) conversion
+            sardanaVelocity = (float(pmacVelocity) * 1000) / self.attributes[axis]["step_per_unit"]
+            return sardanaVelocity
+    
+        elif name.lower() == "acceleration" or name.lower() == "deceleration":
+                #pmac acceleration time from msec(returned by TurboPmac) to sec(Sardana standard)
+            ivar = long("%d20" % axis)
+            try:
+                pmacAcceleration = self.pmacEth.command_inout("GetIVariable",ivar) 
+            except PyTango.DevFailed, e:
+                #self._log.error("GetPar(%d,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed. \nException: %s", (axis,name,ivar,e))
+                self._log.error("GetPar(%d,%s): GetIVariable(%d) command called on PmacEth DeviceProxy failed.", axis, name, ivar)
+                raise
+            sardanaAcceleration = float(pmacAcceleration) / 1000
+            return sardanaAcceleration
 
+        elif name.lower() == "step_per_unit":
+            return self.attributes[axis]["step_per_unit"]
+            #@todo implement base_rate
+        elif name.lower() == "base_rate":
+            return self.attributes[axis]["base_rate"]
+        else:
+            return None
+    
     def AbortOne(self, axis):
         if self.attributes[axis]["motionprogramrunning"]:
             self.pmacEth.command_inout("OnlineCmd", "&%da" % self.attributes[axis]["coordinatesystem"])
