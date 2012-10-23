@@ -95,6 +95,7 @@ class HasyOneDCtrl(OneDController):
 		
     def StartOne(self,ind, value):
 #        print "PYTHON -> HasyOneDCtrl/",self.inst_name,": In StartOne method for index",ind
+        self.proxy[ind-1].command_inout("Clear")
         self.proxy[ind-1].command_inout("Start")
 		
     def AbortOne(self,ind):
