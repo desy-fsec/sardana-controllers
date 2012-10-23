@@ -309,7 +309,7 @@ class BL29Energy(PseudoMotorController):
     ctrl_properties = {
         'tolerance' : {
             Type : float,
-            Description : 'The name of the DiscretePseudoMotor to read/select which SM to use',
+            Description : 'Tolerance to consider that both the insertion device and the monochromator are in the same energy',
             Access : DataAccess.ReadWrite,
             DefaultValue : 1.0
         }
