@@ -20,10 +20,12 @@
 ## along with Sardana.  If not, see <http://www.gnu.org/licenses/>.
 ##
 ##############################################################################
+import time
+import numpy
 import taurus
 
 from sardana import State
-from sardana.pool.controller import CounterTimerController
+from sardana.pool.controller import CounterTimerController, Memorized
 from sardana.pool import AcqTriggerType
 
         
@@ -145,6 +147,122 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self._log.debug("LoadOne(): entering...")
         self.acqTime = value
         self.amptekPX5.SetTextConfiguration(['PRET=%f'%value])
+
+    def AbortOne(self, ind):
+        self.amptekPX5.Disable()
+
+
+class AmptekPX5SoftCounterTimerController(CounterTimerController):
+    "This class is the AmptekPX5 Sardana CounterTimerController"
+
+    MaxDevice = 17
+
+    class_prop = {'deviceName':{'Type':str,'Description':'AmptekPX5 Tango device name','DefaultValue':None},}
+
+    axis_attributes = { "lowThreshold"   : { "Type" : long, "R/W Type": "READ_WRITE", "memorized":Memorized },
+                        "highThreshold" : { "Type" : long, "R/W Type": "READ_WRITE", "memorized":Memorized }
+                      }
+
+    def __init__(self, inst, props, *args, **kwargs):
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
+        self.amptekPX5 = taurus.Device(self.deviceName)
+        self.acqTime = 0
+        self.sta = State.On
+        self.acqStartTime = None
+        self.scas = {}
+
+    def GetAxisExtraPar(self, axis, name):
+        self._log.debug("SetAxisExtraPar() entering...")
+        if axis == 1:
+            raise Exception("Axis parameters are not allowed for axis 1.")
+        name = name.lower()
+        v = self.scas[axis][name]
+        return v
+
+    def SetAxisExtraPar(self, axis, name, value):
+        self._log.debug("SetAxisExtraPar() entering...")
+        if axis == 1:
+            raise Exception("Axis parameters are not allowed for axis 1.")
+        name = name.lower()
+        self.scas[axis][name] = value
+
+    def AddDevice(self,ind):
+        self.scas[ind] = {"lowthreshold":0, "highthreshold":0}
+
+    def DeleteDevice(self,ind):
+        self.scas.pop(ind)
+
+    def PreStateAll(self):
+        pass
+
+    def PreStateOne(self, ind):
+        pass
+
+    def StateAll(self):
+        self._log.debug("StateAll(): entering...")
+        if self.acqStartTime != None: #acquisition was started
+            now = time.time()
+            elapsedTime = now - self.acqStartTime
+            if elapsedTime < self.acqTime: #acquisition has probably not finished yet
+                self.sta = State.Moving
+                self.status = "Acqusition time has not elapsed yet."
+                return
+        self.sta = self.amptekPX5.State()
+        self.status = self.amptekPX5.Status()
+        self.acqStartTime = None
+
+    def StateOne(self, ind):
+        return self.sta, self.status
+
+    def PreReadAll(self):
+        self.spectrum = None
+
+    def PreReadOne(self,ind):
+        pass
+
+    def ReadAll(self):
+        self._log.debug("ReadAll(): entering...")
+        if self.sta != State.Moving: #only if we are not in the middle of acquisition
+            self.spectrum = self.amptekPX5.read_attribute("Spectrum").value
+        self._log.debug("ReadAll(): leaving...")
+
+    def ReadOne(self, ind):
+        self._log.debug("ReadOne(%d): entering..." % ind)
+        if self.spectrum == None: #acquisition has not finished yet
+            val = 0
+        elif ind == 1: #timer
+            val = self.acqTime
+        else: #calculating software ROIs
+            lowThreshold = self.scas[ind]['lowthreshold']
+            highThreshold = self.scas[ind]['highthreshold']
+            val = numpy.sum(self.spectrum[lowThreshold:highThreshold])
+        self._log.debug("ReadOne(%d): returning %d" % (ind,val))
+        return val
+
+    def PreStartAllCT(self):
+        self.amptekPX5.ClearSpectrum()
+
+    def PreStartOneCT(self, ind):
+        return True
+
+    def StartOneCT(self, ind):
+        pass
+
+    def StartAllCT(self):
+        self._log.debug("StartAllCT(): entering...")
+        self.amptekPX5.Enable()
+        self.acqStartTime = time.time()
+        self.sta = State.Moving
+        self.status = "Acquisition was started"
+        self._log.debug("StartAllCT(): leaving...")
+
+    def LoadOne(self, ind, value):
+        self._log.debug("LoadOne(): entering...")
+        if value < 0.1:
+            raise Exception("AmptekPX5 does not support acquisition times lower than 0.1 second")
+        self.acqTime = value
+        self.amptekPX5.SetTextConfiguration(['PRET=%f'%value])
+        self._log.debug("LoadOne(): leaving...")
 
     def AbortOne(self, ind):
         self.amptekPX5.Disable()
