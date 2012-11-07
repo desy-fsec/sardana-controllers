@@ -1,6 +1,6 @@
 import PyTango
 
-import time
+import time, os
 
 from sardana import State, DataAccess
 from sardana.pool.controller import MotorController
@@ -21,8 +21,10 @@ class HasyMotorCtrl(MotorController):
                        'ResultSim':{Type:str,Access:ReadWrite},
                        'Calibrate':{Type:float,Access:ReadWrite}}
 
-			     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'}}
+                             
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}
+                       }
 
 
     ctrl_attributes = {'ExtraParameterName':{Type:str,Access:ReadWrite}}
@@ -34,10 +36,21 @@ class HasyMotorCtrl(MotorController):
     status = ""
     
     def __init__(self,inst,props,*args, **kwargs):
+        # the next line is because of haso228k (64bit)
+        self.TangoHost = None
         MotorController.__init__(self,inst,props,*args, **kwargs)
         self.db = PyTango.Database()
+        self.debugFlag = False
+        if os.isatty(1): 
+            self.debugFlag = True
+        if self.TangoHost == None:
+             self.db = PyTango.Database()
+        else:
+            self.db = PyTango.Database(self.TangoHost, 10000)
+        if self.debugFlag: print "HasyMotorCtrl.__init__, inst", self.inst_name, "RootDeviceName", self.RootDeviceName
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
+        if self.debugFlag: print "HasyMotorCtrl.__init__, inst", self.inst_name, "devices", self.devices.value_string
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
@@ -65,6 +78,11 @@ class HasyMotorCtrl(MotorController):
             print "False index"
             return
         proxy_name = self.tango_device[ind-1]
+        if self.TangoHost == None:
+            proxy_name = self.tango_device[ind-1]
+        else:
+            proxy_name = str(self.TangoHost) + ":10000/" + str(self.tango_device[ind-1])
+        if self.debugFlag: print "HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind)
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
         self.UnitLimitMax.append(self.dft_UnitLimitMax)
@@ -119,11 +137,11 @@ class HasyMotorCtrl(MotorController):
 
     def PreStartOne(self,ind,pos):
         return True
-		
+                
     def StartOne(self,ind,pos):
         if self.device_available[ind-1] == 1:
                 self.proxy[ind-1].write_attribute("Position",pos)
-	
+        
     def GetExtraAttributePar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "UnitLimitMax":
