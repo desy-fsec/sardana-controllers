@@ -1,15 +1,253 @@
 import math
 import PyTango
-from pool import PseudoMotorController
-  
+ 
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
+
+from sardana.pool.controller import MemorizedNoInit, NotMemorized, Memorized
+
+
+class EnergyCff(PseudoMotorController):
+    """Energy pseudomotor controller. Used for scans with Cff fixed"""
+
+    pseudo_motor_roles = ('Energy','Cff')
+    motor_roles = ("m3", "gr")
+
+    class_prop = { 'hc':{'Type':'PyTango.DevDouble',
+                         'Description':'hc',
+                         'DefaultValue':12398.41856
+                        },
+                   'offsetG':{'Type':'PyTango.DevDouble',
+                              'Description':'Offset to apply in the calculation of beta',
+                              'DefaultValue':0.0
+                        },
+                   'offsetM':{'Type':'PyTango.DevDouble',
+                              'Description':'Offset to apply in the calculation of tetha',
+                              'DefaultValue':0.0
+                        },
+                   'gr_ior':{'Type':'PyTango.DevString',
+                              'Description':'Gr_x ioregister',
+                        },
+                   'm3_ior':{'Type':'PyTango.DevString',
+                              'Description':'M3_x ioregister',
+                        },
+                    }
+
+    ctrl_extra_attributes = {"DiffrOrder":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                   'DefaultValue':1.0
+                                  },
+                             "Alpha":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ',
+                                  },
+                             "Beta":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ',
+                                  },
+                             "Theta":
+                                  {'Type':'PyTango.DevDouble',
+                                   'R/W Type':'PyTango.READ',
+                                  },
+                             "offsetGrxLE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
+                             "offsetMxLE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
+                             "offsetGrxHE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
+                             "offsetMxHE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
+                            }
+
+    
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self,inst,props, *args, **kwargs)
+
+        self.Cff = 0.0
+        self.DiffrOrder = 1.0
+
+        self.iorDP = PyTango.DeviceProxy(self.gr_ior)
+        self.iorDP2 = PyTango.DeviceProxy(self.m3_ior)
+
+        self.offsetGrxLE = 0.0
+        self.offsetMxLE = 0.0
+        self.offsetGrxHE = 0.0
+        self.offsetMxHE = 0.0
+        
+    def calc_physical(self, index, pseudos):
+        return self.calc_all_physical(pseudos)[index - 1]
+
+    def calc_pseudo(self, index, physicals):
+        return self.calc_all_pseudo(physicals)[index - 1]
+    
+    def calc_all_physical(self, pseudo_pos, param=None):
+        """From a given energy, we calculate the physical
+         position for the real motors."""
+
+        self.energy = pseudo_pos[0]
+        self.Cff = pseudo_pos[1]
+
+        if self.energy == 0.0:
+            waveLen = 0.0
+        else:
+            waveLen = self.hc / self.energy
+        
+        f1 = self.Cff**2 + 1
+        f2 = 1 - self.Cff**2
+        K = self.DiffrOrder * waveLen * self.look_at_grx()
+        
+        CosAlpha = math.sqrt(-1*K**2 * f1 + 2*math.fabs(K) * math.sqrt(f2**2 + self.Cff**2 * K**2))/math.fabs(f2)
+
+        self.alpha = math.acos(CosAlpha)
+        CosBeta = self.Cff * CosAlpha
+        self.beta = -math.acos(CosBeta)
+        self.theta = (self.alpha - self.beta) * 0.5
+
+        offsetG,offsetM = self.checkOffset()
+        m = ((math.pi/2.0) - self.theta + offsetM)*1000 #angle*1000 to have it in mrad
+        g = (self.beta + (math.pi/2.0) + offsetG)*1000
+        return (m,g)
+ 
+    def calc_all_pseudo(self, physical_pos, param=None):
+        """From the real motor positions, we calculate the pseudomotors positions."""
+
+        offsetG,offsetM = self.checkOffset()
+        self.beta = (physical_pos[1]/1000) - (math.pi/2.0) - offsetG
+        self.theta = (math.pi/2.0) - (physical_pos[0]/1000) + offsetM
+        self.alpha = (2.0*self.theta) + self.beta
+        wavelength = (math.sin(self.alpha) + math.sin(self.beta)) / (self.DiffrOrder * self.look_at_grx())
+        
+        if wavelength == 0.0:
+            self.energy = 0.0
+        else:
+            self.energy = self.hc / wavelength
+        self.Cff = math.cos(self.beta)/math.cos(self.alpha)
+        if self.energy < 0 : self.energy = self.energy *(-1) #warning: wavelength se vuelve negativo ... ??????
+        return (self.energy,self.Cff)
+
+    def GetExtraAttributePar(self, axis, name):
+        
+        if name.lower() == "diffrorder":
+            return self.DiffrOrder
+        
+        if name.lower() == "alpha":
+            return self.alpha
+        if name.lower() == "beta":
+            return self.beta
+        if name.lower() == "theta":
+            return self.theta
+        if name.lower() == "offsetgrxle":
+            return self.offsetGrxLE
+        if name.lower() == "offsetmxle":
+            return self.offsetMxLE
+        if name.lower() == "offsetgrxhe":
+            return self.offsetGrxHE
+        if name.lower() == "offsetmxhe":
+            return self.offsetMxHE
+
+    def SetExtraAttributePar(self, axis, name, value):
+        if name.lower() == "diffrorder":
+            self.DiffrOrder = value
+        if name.lower() == "offsetgrxle":
+            self.offsetGrxLE = value
+        if name.lower() == "offsetmxle":
+            self.offsetMxLE = value
+        if name.lower() == "offsetgrxhe":
+            self.offsetGrxHE = value
+        if name.lower() == "offsetmxhe":
+            self.offsetMxHE = value
+
+    def look_at_grx(self):
+            
+        return 600.0 * 1E-7
+
+    def checkOffset(self):
+        offsetGrating,offsetMirror = 0.0,0.0
+        if self.iorDP['Value'].value == 0:
+            offsetGrating = self.offsetGrxLE/1000.0
+        elif self.iorDP['Value'].value == 2:
+            offsetGrating = self.offsetGrxHE/1000.0
+        
+        if self.iorDP2['Value'].value == 0:
+            offsetMirror = self.offsetMxLE/1000.0
+        elif self.iorDP2['Value'].value == 2:
+            offsetMirror = self.offsetMxHE/1000.0
+
+        return offsetGrating, offsetMirror
+
+
+
+
+class WBDSlit(PseudoMotorController):
+    """A Slit pseudo motor controller for handling gap and offset pseudo 
+        motors. The system uses to real motors sl2t (top slit) and sl2b (bottom
+        slit)"""
+
+    gender = "Slit"
+    model  = "Default Slit"
+    organization = "CELLS - ALBA"
+    image = "slit.png"
+    logo = "ALBA_logo.png"
+
+    pseudo_motor_roles = ("Gap", "Offset")
+    motor_roles = ("sl2t", "sl2b")
+
+    class_prop = {'sign':{'Type':'PyTango.DevDouble','Description':'Gap = sign * calculated gap\nOffset = sign * calculated offet'    ,'DefaultValue':1},}
+
+    def calc_physical(self,index,pseudo_pos):
+        #half_gap = pseudo_pos[0]/2.0
+        #if index == 1:
+        #    ret = self.sign * (pseudo_pos[1] - half_gap)
+        #else:
+        #    ret = self.sign * (half_gap + pseudo_pos[1]) #changed + per -
+        return self.calc_all_physical(pseudo_pos)[index - 1]
+
+    def calc_pseudo(self,index,physical_pos):
+        gap = physical_pos[0] - physical_pos[1]
+        if index == 1:
+            ret = self.sign * gap
+        else:
+            ret = self.sign * ( physical_pos[0] - gap/2.0)
+        return ret
+
+    def calc_all_pseudo(self, physical_pos):
+        """Calculates the positions of all pseudo motors that belong to the 
+            pseudo motor system from the positions of the physical motors."""
+        gap = physical_pos[0] - physical_pos[1]
+        return (self.sign * gap,
+                self.sign * (physical_pos[0] - gap/2.0))
+
+    def calc_all_physical(self, pseudo_pos):
+        """Calculates the positions of all motors that belong to the pseudo 
+            motor system from the positions of the pseudo motors.
+            We change the sign in the offset because the positive sense
+            for the blades is downwards"""
+        half_gap = pseudo_pos[0]/2.0
+        return (self.sign * (pseudo_pos[1] + half_gap),
+                self.sign * (pseudo_pos[1]- half_gap))
+
 class MZ_Pseudos(PseudoMotorController):
   """ The General PseudoMotor controller class for the MISTRAL's tables.
       This Class will be used for the pseudos that handle the mz motors.
        ____________________________
     D |                            |
-    Y |                      *mzr  |
-    M |  *mzc                      |   <-------- beam direction
-      |                      *mzl  |
+    Y |            *mzr            |
+    M |   *mzc                     |   <-------- beam direction
+      |           *mzl             |
     X |____________________________|
                   DIM Y
   """
@@ -67,9 +305,9 @@ class M1_Z_Pitch_Roll(MZ_Pseudos):
       Roll rotational axis is in the middle of X dimension.
        ____________________________
     D |                            |
-    Y |                      *mzr  |
-    M |  *mzc                      |   <-------- beam direction
-      |                      *mzl  |
+    Y |            *mzr            |
+    M |   *mzc                     |   <-------- beam direction
+      |           *mzl             |
     X |____________________________|
                   DIM Y
 
@@ -100,9 +338,9 @@ class M2_Z_Yaw_Roll(MZ_Pseudos):
       Roll rotational axis is in the middle of X dimension.
        ____________________________
     D |                            |
-    Y |                      *mzr  |
-    M |  *mzc                      |   <-------- beam direction
-      |                      *mzl  |
+    Y |            *mzr            |
+    M |   *mzc                     |   <-------- beam direction
+      |           *mzl             |
     X |____________________________|
                   DIM Y
 
@@ -134,9 +372,9 @@ class M4_Z_Pitch_Roll(MZ_Pseudos):
       Roll rotational axis is in the middle of X dimension.
        ____________________________
     D |                            |
-    Y |                      *mzr  |
-    M |  *mzc                      |   <-------- beam direction
-      |                      *mzl  |
+    Y |            *mzr            |
+    M |   *mzc                     |   <-------- beam direction
+      |           *mzl             |
     X |____________________________|
                   DIM Y
 
@@ -303,7 +541,7 @@ class M4_X_and_Yaw(MX_Pseudos):
 class EnergyCffFixed(PseudoMotorController):
     """Energy pseudomotor controller. Used for scans with Cff fixed"""
 
-    pseudo_motor_roles = ('EnergyCffFixed',)#,'EnergyIncludedAngle')
+    pseudo_motor_roles = ('EnergyCffFixed',)
     motor_roles = ("m3", "gr")
 
     class_prop = { 'hc':{'Type':'PyTango.DevDouble',
@@ -318,12 +556,20 @@ class EnergyCffFixed(PseudoMotorController):
                               'Description':'Offset to apply in the calculation of tetha',
                               'DefaultValue':0.0
                         },
+                   'gr_ior':{'Type':'PyTango.DevString',
+                              'Description':'Gr_x ioregister',
+                              'DefaultValue':0.0
+                        },
+                   'm3_ior':{'Type':'PyTango.DevString',
+                              'Description':'M3_x ioregister',
+                              'DefaultValue':0.0
+                        },
                     }
 
     ctrl_extra_attributes = {"Cff":
                                   {'Type':'PyTango.DevDouble', 
                                    'R/W Type':'PyTango.READ_WRITE', 
-                                   'DefaultValue':1.0
+                                   'DefaultValue':2.25 #It was set to 1
                                   },
                              "DiffrOrder":
                                   {'Type':'PyTango.DevDouble',
@@ -341,17 +587,45 @@ class EnergyCffFixed(PseudoMotorController):
                              "Theta":
                                   {'Type':'PyTango.DevDouble',
                                    'R/W Type':'PyTango.READ',
+                                  },
+                             "offsetGrxLE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
+                             "offsetMxLE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
+                             "offsetGrxHE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
+                             "offsetMxHE":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
                                   }
                             }
 
     
-    def __init__(self, inst, props):
-        PseudoMotorController.__init__(self,inst,props)
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self,inst,props, *args, **kwargs)
 
-        self.Cff = 1.0
+        self.Cff = 2.25 #It was set to 1
         self.DiffrOrder = 1.0
         self.IncludedAngle = 1.0
         self.lineDensity = 600.0* 1E-7
+        
+        self.iorDP = PyTango.DeviceProxy(self.gr_ior)
+        self.iorDP2 = PyTango.DeviceProxy(self.m3_ior)
+
+        self.offsetGrxLE = 0.0
+        self.offsetMxLE = 0.0
+        self.offsetGrxHE = 0.0
+        self.offsetMxHE = 0.0
 
     def calc_physical(self, index, pseudos):
         return self.calc_all_physical(pseudos)[index - 1]
@@ -377,34 +651,17 @@ class EnergyCffFixed(PseudoMotorController):
         self.beta = -math.acos(CosBeta)
         self.theta = (self.alpha - self.beta) * 0.5
 
-        m = ((math.pi/2.0) - self.theta + self.offsetM)*1000 #angle*1000 to have it in mrad
-        g = (self.beta + (math.pi/2.0) + self.offsetG)*1000
+        offsetG,offsetM = self.checkOffset()
+        m = ((math.pi/2.0) - self.theta + offsetM)*1000 #angle*1000 to have it in mrad
+        g = (self.beta + (math.pi/2.0) + offsetG)*1000
         return (m,g)
 
-#        if index == 2:
-#            energy = pseudo_pos[1]
-#            waveLen = self.hc / energy
-
-#            Theta = self.theta
-            
-#            mkl = self.DiffrOrder * self.lineDensity * waveLen
-#            A1 = mkl/2.0 * math.tan(Theta/2)
-#            A2 = math.sqrt((math.cos(Theta/2)**2) - (mkl/2.0)**2)
-
-#            beta = -math.acos(A2 - A1)
-#            alpha = Theta + beta
-
-#            self.Cff = math.cos(beta) / math.cos(alpha)
-            
-#            m = ((math.pi/2.0) - Theta/2.0 + self.offsetM)*1000 #angle*1000 to have it in mrad
-#            g = (beta + (math.pi/2.0) - self.offsetG)*1000
-#            return (m,g)
-            
     def calc_all_pseudo(self, physical_pos, param=None):
         """From the real motor positions, we calculate the pseudomotors positions."""
 
-        beta = (physical_pos[1]/1000) - (math.pi/2.0) - self.offsetG
-        theta = (math.pi/2.0) - (physical_pos[0]/1000) - self.offsetM
+        offsetG,offsetM = self.checkOffset()
+        beta = (physical_pos[1]/1000) - (math.pi/2.0) - offsetG
+        theta = (math.pi/2.0) - (physical_pos[0]/1000) + offsetM
         alpha = (2.0*theta) + beta
         wavelength = (math.sin(alpha) + math.sin(beta)) / (self.DiffrOrder * self.lineDensity)
         
@@ -428,6 +685,14 @@ class EnergyCffFixed(PseudoMotorController):
             return self.beta
         if name.lower() == "theta":
             return self.theta
+        if name.lower() == "offsetgrxle":
+            return self.offsetGrxLE
+        if name.lower() == "offsetmxle":
+            return self.offsetMxLE
+        if name.lower() == "offsetgrxhe":
+            return self.offsetGrxHE
+        if name.lower() == "offsetmxhe":
+            return self.offsetMxHE
 
     def SetExtraAttributePar(self, axis, name, value):
         if name.lower() == "cff":
@@ -435,4 +700,27 @@ class EnergyCffFixed(PseudoMotorController):
 
         if name.lower() == "diffrorder":
             self.DiffrOrder = value
+
+        if name.lower() == "offsetgrxle":
+            self.offsetGrxLE = value
+        if name.lower() == "offsetmxle":
+            self.offsetMxLE = value
+        if name.lower() == "offsetgrxhe":
+            self.offsetGrxHE = value
+        if name.lower() == "offsetmxhe":
+            self.offsetMxHE = value
+
+    def checkOffset(self):
+        offsetGrating,offsetMirror = 0.0,0.0
+        if self.iorDP['Value'].value == 0:
+            offsetGrating = self.offsetGrxLE/1000.0
+        elif self.iorDP['Value'].value == 2:
+            offsetGrating = self.offsetGrxHE/1000.0
+        
+        if self.iorDP2['Value'].value == 0:
+            offsetMirror = self.offsetMxLE/1000.0
+        elif self.iorDP2['Value'].value == 2:
+            offsetMirror = self.offsetMxHE/1000.0
+
+        return offsetGrating, offsetMirror
   

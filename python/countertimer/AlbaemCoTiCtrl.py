@@ -1,86 +1,93 @@
 import logging
-import numpy
 import PyTango
-from pool import CounterTimerController
-import time
-from AlbaEmLib import albaem
-import subprocess
+from albaemlib import AlbaEm
 
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import CounterTimerController
+from sardana.pool import AcqTriggerType
+from sardana.pool.controller import MemorizedNoInit, NotMemorized, Memorized
 
 class AlbaemCoTiCtrl(CounterTimerController):
-    """This class is the Sardana CounterTimer controller for the Adlink adc based counters.
+    """This class is the Sardana CounterTimer controller for the Alba Electrometer adc based counters.
     The only way to use this controller is to define up to 5 channels 
     and create a measurement group where the first channel is a master channel. 
     The Adlink card works in a way where acquisition for all channels is started only once 
     and in controller this is done when StartsAll() method was called for this controller, 
     only when PreStartOne() was called for master channel. 
     
-    Configuration of Adlink card is done in LoadOne() method where size of acquisition buffer 
+    Configuration of Albaem is done in LoadOne() method where size of acquisition buffer 
     is calculated from acquisition time and SampleRate property. 
     
-    Value returned by a channggel is an average of buffer values. If you need also 
-    standard deviation of these values you can read it from extra attribute SD right after reading 
-    value of the channel. 
-    If you need SD value in measurement group you have two options:
-        1- Add one tango attribute counter per each SD and place it in a measurement group after 
-            corresponding Adlink counter.
-        2- Add an ExtraColumn with the attribute SD."""
-    
+    Value returned by a channel is an average of buffer values. 
+    """
     MaxDevice = 5
-    #mode = 'SW' #@note: this will be better if it's an extraattribute.
     class_prop = {'Albaemname':{'Description' : 'Albaem DS name', 'Type' : 'PyTango.DevString'},
-                  'SampleRate':{'Description' : 'SampleRate set for AemDevice','Type' : 'PyTango.DevLong'}}
+                  }
     
     ctrl_extra_attributes ={ "Range": 
                                 {'Type':'PyTango.DevString',
                                  'Description':'Range for the channel',
+                                 'memorized': NotMemorized,
                                  'R/W Type':'PyTango.READ_WRITE'
                                 },
                              "Filter": 
                                 {'Type':'PyTango.DevString',
                                  'Description':'Filter for the channel',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                             "DInversion": 
+                                {'Type':'PyTango.DevString',
+                                 'Description':'Digital inversion for the channel',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                             "Offset": 
+                                {'Type':'PyTango.DevDouble',
+                                 'Description':'Offset in % for the channel',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                             "SampleRate": 
+                                {'Type':'PyTango.DevDouble',
+                                 'Description':'Albaem sample rate',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                            "AutoRange": 
+                                {'Type':'PyTango.DevBoolean',
+                                 'Description':'Enable/Disable electrometer autorange',
+                                 'memorized': NotMemorized,
                                  'R/W Type':'PyTango.READ_WRITE'
                                 }
                             }
 
-    def __init__(self, inst, props):
+    def __init__(self, inst, props, *args, **kwargs):
         #self._log.setLevel(logging.DEBUG)
-        CounterTimerController.__init__(self,inst,props)
+        CounterTimerController.__init__(self,inst,props, *args, **kwargs)
         #self._log.setLevel(logging.INFO)
         self._log.debug( "__init__(%s, %s): Entering...", repr(inst), repr(props))
-        #self.sd = {}
+        
         self.master = None
         self.integrationTime = 0.0
+        self.avSamplesMax = 1000
         self.channels = []
-        #self.measures = [['1',0.0],['2',0.0],['3',0.0],['4',0.0]]
-        #self.measures = ['1','1','1','1']
+        
         self.measures = ['0','0','0','0'] #@todo: this is not a good idea, better change it. Maybe avoid ReadAll?
-        self.status = ''
-        self.acqtimeini = 0
-        #self.acqstarted = False
+        
         self.lastvalues = []
         self.acqchannels = []
         self.state = None
         self.ranges = ['','','','']
-        self.filters = ['','','',''] 
+        self.filters = ['','','','']
+        self.dinversions = ['','','','']
+        self.offsets = ['','','',''] 
+        self.sampleRate = 0.0
         try:
             self.AemDevice = PyTango.DeviceProxy(self.Albaemname)
             self.state = self.AemDevice.getEmState()
-            #@warning: La misma chapuza que en el device server ... quien co...nes borra el buffer???
-            if self.state == 'IDLE': #PyTango.DevState.STANDBY:
-                self.AemDevice.StartAdc()
-                self.AemDevice['BufferSize'] = 1
-                self.AemDevice.Start()
-                #self.AemDevice.disableAll() #@todo: Check if is this needed??
-            elif self.state == 'ON': #PyTango.DevState.ON:
-                self.AemDevice['BufferSize'] = 1
-                self.AemDevice.Start()
-            
-            elif self.state == 'RUNNING': #PyTango.DevState.RUNNING:
-                self.AemDevice.Stop()
-                self.AemDevice['BufferSize'] = 1
-                self.AemDevice.Start()
-            
+        
         except Exception, e:
             self._log.error("__init__(): Could not create a device from following device name: %s.\nException: %s", 
                             self.Albaemname, e)
@@ -89,33 +96,17 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def AddDevice(self, axis):  
         self._log.debug("AddDevice(%d): Entering...", axis)
         self.channels.append(axis)
-#        if self.AemDevice.state() == PyTango.DevState.STANDBY:
-#            #self.AemDevice.StopAdc() #@warning: WTF!! Stooop!!!??? It's already stopped!!
-#            self.AemDevice.StartAdc()
-        
         #self.AemDevice.enableChannel(axis) #@todo: Maybe this is better to be done in DS
         
     def DeleteDevice(self, axis):
         self._log.debug("DeleteDevice(%d): Entering...", axis)
         self.channels.remove(axis)
-        #self.ranges.pop(axis)
-        #self.filters.pop(axis)
         
     def StateOne(self, axis):
         self._log.debug("StateOne(%d): Entering...", axis)
         return (self.state, 'Device present')
     def StateAll(self):
         self._log.debug("StateAll(): Entering...")
-#        if self.mode == 'SW':
-#            currentacqtime = time.time()-self.acqtimeini
-#            if (self.acqstarted and (currentacqtime < self.integrationTime)):
-#                self._log.debug('StateAll:%s s (%s)'%(currentacqtime, self.integrationTime))
-#                self.state = PyTango.DevState.MOVING
-#            else:
-#                self.acqstarted = False
-#                self.state = PyTango.DevState.ON
-#            return self.state
-#        elif self.mode == 'HW':
         self.state = self.evalState(self.AemDevice.getEmState())
         return self.state
         
@@ -128,16 +119,6 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self._log.debug("ReadOne(%d): Entering...", axis)
         if axis == 1:
             return self.integrationTime
-        
-#        state = self.AemDevice.state() 
-#        mean = 0
-        
-#        if state == PyTango.DevState.ON: 
-#            mean = self.AemDevice["BufferI%sMean" % (axis - 1)].value
-#
-#            self._log.debug("ReadOne(%d): mean=%f, sd=%f", 
-#                            axis, mean)
-#        return mean
         
         return float(self.measures[axis-2])
 
@@ -152,7 +133,6 @@ class AlbaemCoTiCtrl(CounterTimerController):
 
     def AbortOne(self, axis):
         self._log.debug("AbortOne(%d): Entering...", axis)
-        #self.acqstarted = False
 #        state = self.AemDevice['state']
 #        if state == PyTango.DevState.RUNNING:
 #            self.AemDevice.Stop()
@@ -161,9 +141,8 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def AbortAll(self):
         #self._log.debug("AbortAll(): Entering...", axis)
         state = self.AemDevice.getEmState()
-        if state == 'RUNNING': #PyTango.DevState.RUNNING:
+        if state == 'RUNNING':
             self.AemDevice.Stop()
-        #self.acqstarted = False
     
     def PreStartAllCT(self):
         self._log.debug("PreStartAllCT(): Entering...")
@@ -195,14 +174,6 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def StartAllCT(self):
         """Starting the acquisition is done only if before was called PreStartOneCT for master channel."""
         self._log.debug("StartAllCT(): Entering...")
-#        if self.acqstarted == False:
-#            try:
-#                self.acqtimeini = time.time()
-#                self.acqstarted = True
-#            except Exception, e:
-#                self._log.error("StartAllCT(): Could not start acquisition on the device: %s.\nException: %s", self.Albaemname, e)
-#                raise
-        #@todo: All the part above will be removed ... i think it's not needed anymore. (AM)
         try:
             #if self.state == PyTango.DevState.ON:
             self.AemDevice.Start()
@@ -222,24 +193,38 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def LoadOne(self, axis, value):
         self._log.debug("LoadOne(%d, %f): Entering...", axis, value)
         self.master = axis
-        #self.acqstarted = False
+        
         if self.integrationTime != value:
             self.integrationTime = value
         try:
             #@todo: This will be done too many times, only one is needed.
             if axis == 1:
-                self.AemDevice['Avsamples'] = value
-                self.AemDevice['TriggerPeriod'] = value
-                self.AemDevice['BufferSize'] = 1
-            else:
-                print axis
-#            state = self.AemDevice.state()
-#            if state == PyTango.DevState.RUNNING:
-#                self.AemDevice.Stop()
-#            
-#            if self.AemDevice.state() == PyTango.DevState.STANDBY:
-#                self.AemDevice.StartAdc() #@todo: check if it's really needed.
                 
+                #@todo: This part is still not fully tested###########
+                #self.sampleRate = self.AemDevice['SampleRate'].value
+                #avSamples = value/self.sampleRate
+                #
+                #if avSamples > self.avSamplesMax:
+                #    self.sampleRate = value/self.avSamplesMax
+                #    self.AemDevice['SampleRate'] = self.sampleRate
+                #    avSamples = value/self.sampleRate
+                ######################################################
+                avSamples = value #needed while tests are pending
+                self.AemDevice['Avsamples'] = avSamples
+                self.AemDevice['TriggerPeriod'] = value
+                
+                
+                #@warning: The next 1 + 1 is done like this to remember that it
+                #                         shoud be Points + 1 because the first
+                #                         trigger arrives at 0s
+                #                         at some point this will be changed in
+                #                         the albaem and we will remove the + 1
+                ###############################################################
+                self.AemDevice['BufferSize'] = 1 + 1
+                
+            else:
+                pass
+               
         except PyTango.DevFailed, e:
             self._log.error("LoadOne(%d, %f): Could not configure device: %s.\nException: %s", self.Albaemname, e)
             raise
@@ -247,19 +232,10 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def evalState(self, state):
         """This function converts PyAlbaEm device states into counters state."""
         #self._log.debug('evalState: #%s# len:%s'%(state, len(state)))
-        #@note: Thanks to the megaimportant requirement of changing the colors depending the ranges, I have to change completely this function ... again!
-#        if state == PyTango.DevState.RUNNING:
-#            return PyTango.DevState.MOVING
-#        elif state == PyTango.DevState.STANDBY:
-#            self.AemDevice.StartAdc()
-#            return PyTango.DevState.ON
-#        
-#        elif state == PyTango.DevState.ON:
-#            return PyTango.DevState.ON
-#        elif state == PyTango.DevState.UNKNOWN:
-#            print('Wrong state: %s'%state)
-            #return PyTango.DevState.ON
-            #raise Exception('Wrong state: %s'%state)
+        #@note: Thanks to the megaimportant requirement of changing the colors
+        #       depending the ranges, I have to change completely this function
+        #        ... again!
+
         if state == 'RUNNING':
             return PyTango.DevState.MOVING
         elif state == 'ON':
@@ -277,19 +253,62 @@ class AlbaemCoTiCtrl(CounterTimerController):
         if name.lower() == "filter":
             self.filters[axis-2] = self.AemDevice['Filters'].value[axis-2]
             return self.filters[axis-2]
+        if name.lower() == "dinversion":
+            attr = 'dInversion_ch'+str(axis-1)
+            self.dinversions[axis-2] = self.AemDevice[attr].value
+            return self.dinversions[axis-2] 
+        if name.lower() == "offset":
+            attr = 'offset_percentage_ch'+str(axis-1)
+            self.offsets[axis-2] = self.AemDevice[attr].value
+            return self.offsets[axis-2]
+        if name.lower() == "samplerate":
+            attr = 'SampleRate'
+            self.sampleRate = self.AemDevice[attr].value
+            return self.sampleRate
+        if name.lower() == "autorange":
+            attr = 'Autorange'
+            autoRange = self.AemDevice[attr].value
+            return autoRange
 
     def SetExtraAttributePar(self,axis, name, value):
         if name.lower() == "range":
             self.ranges[axis-2] = value
-            channel = 'range_ch'+ str(axis-1)
-            self.AemDevice[channel]=str(value)
+            attr = 'range_ch'+ str(axis-1)
+            self.AemDevice[attr]=str(value)
         if name.lower() == "filter":
             self.filters[axis-2] = value
-            channel = 'filter_ch'+ str(axis-1)
-            self.AemDevice[channel]=str(value)
-         
+            attr = 'filter_ch'+ str(axis-1)
+            self.AemDevice[attr]=str(value)
+        if name.lower() == "dinversion":
+            self.dinversions[axis-2] = value
+            attr = 'dInversion_ch'+ str(axis-1)
+            self.AemDevice[attr]=str(value)
+        if name.lower() == "offset":
+            self.offsets[axis-2] = value
+            attr = 'offset_ch'+ str(axis-1)
+            self.AemDevice[attr]=str(value)
+        if name.lower() == "samplerate":
+            self.sampleRate = value
+            attr = 'sampleRate'
+            self.AemDevice[attr]= value
+        if name.lower() == "autorange":
+            attr = 'AutoRange'
+            self.AemDevice[attr] = value
     
+    def SetCtrlPar(self, par, value):
+        self._log.debug("SetCtrlPar(%s, %s) entering..." % (repr(par), repr(value)))
+        if par == 'trigger_type':
+            if value == AcqTriggerType["Software"]:
+                self.AemDevice['TriggerMode'] = 'INT'
+            elif value == AcqTriggerType["Gate"]:
+                self.AemDevice['TriggerMode'] = 'EXT'
+            else:
+                raise Exception("Alba electrometer allows only Software or Gate triggering")
+        else:
+            super(AlbaemCoTiCtrl, self).SetCtrlPar(par, value)
+
 if __name__ == "__main__":
+    #import time
     #obj = AlbaemCoTiCtrl('test',{'Albaemname':'ELEM01R42-020-bl29.cells.es','SampleRate':1000})
     obj = AlbaemCoTiCtrl('test',{'Albaemname':'amilan/emet/01','SampleRate':1000})
     obj.AddDevice(1)

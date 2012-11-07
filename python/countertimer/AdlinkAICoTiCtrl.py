@@ -1,17 +1,19 @@
-import logging
-import numpy
-import PyTango
-from pool import CounterTimerController
+#!/usr/bin/env python
 
+import PyTango
+from sardana import State, DataAccess
+from sardana.pool.controller import CounterTimerController
+from sardana.pool.controller import Type, Access, Description
+from sardana.tango.core.util import from_tango_state_to_state
 
 def evalState(state):
     """This function converts Adlink device states into counters state."""
     if state == PyTango.DevState.RUNNING:
-        return PyTango.DevState.MOVING
+        return State.Moving
     elif state == PyTango.DevState.STANDBY:
-        return PyTango.DevState.ON
+        return State.On
     else:
-        return state
+        return from_tango_state_to_state(state)
 
 class AdlinkAICoTiCtrl(CounterTimerController):
     """This class is the Sardana CounterTimer controller for the Adlink adc based counters.
@@ -36,25 +38,27 @@ class AdlinkAICoTiCtrl(CounterTimerController):
     class_prop = {'AdlinkAIDeviceName':{'Description' : 'AdlinkAI Tango device', 'Type' : 'PyTango.DevString'},
                   'SampleRate':{'Description' : 'SampleRate set for AIDevice','Type' : 'PyTango.DevLong'}}
     
-    ctrl_extra_attributes ={ "SD": 
-                                {'Type':'PyTango.DevDouble',
-                                 'Description':'Standard deviation',
-                                 'R/W Type':'PyTango.READ'
-                                },
-                             "FORMULA": {'Type':'PyTango.DevString',
-                                         'Description':'The formula to get the real value.\ne.g. "(VALUE/10)*1e-06"',
-                                         'R/W Type':'PyTango.READ_WRITE'
-                                        },
-                             "SHAREDFORMULA": {'Type':'PyTango.DevBoolean',
-                                         'Description':'If you want to share the same formula for all the channels set it to true"',
-                                         'R/W Type':'PyTango.READ_WRITE'
-                                        }
-                            }
-    
-    
-    def __init__(self, inst, props):
+    axis_attributes ={"SD": 
+                        {Type : float,
+                         Description : 'Standard deviation',
+                         Access : DataAccess.ReadOnly
+                        },
+                      "FORMULA":
+                        {Type : str,
+                         Description : 'The formula to get the real value.\ne.g. "(VALUE/10)*1e-06"',
+                         Access : DataAccess.ReadWrite
+                        },
+                      "SHAREDFORMULA" :
+                        {Type : bool,
+                         Description : 'If you want to share the same formula for all the channels set it to true"',
+                         Access : DataAccess.ReadWrite
+                        }
+                      }
+
+
+    def __init__(self, inst, props, *args, **kwargs):
         #        self._log.setLevel(logging.DEBUG)
-        CounterTimerController.__init__(self,inst,props)
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         self._log.debug("__init__(%s, %s): Entering...", repr(inst), repr(props))
 
 
@@ -86,7 +90,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
     def StateOne(self, axis):
         self._log.debug("StateOne(%d): Entering...", axis)
         if self.AIDevice is None:
-            return PyTango.DevState.FAULT
+            return State.Fault
         try:
             self.state = self.AIDevice.state()
             if self.master is None:
@@ -98,7 +102,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         except Exception, e:
             self._log.error("StateOne(%d): Could not verify state of the device: %s.\nException: %s", 
                             axis, self.AdlinkAIDeviceName, e)
-            return (PyTango.DevState.UNKNOWN, "AI DeviceProxy is not responding.")
+            return (State.Unknown, "AI DeviceProxy is not responding.")
         
     def PreReadOne(self, axis):
         self._log.debug("PreReadOne(%d): Entering...", axis)
@@ -190,8 +194,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self._log.error("LoadOne(%d, %f): Could not configure device: %s.\nException: %s", self.AdlinkAIDeviceName, e)
             raise
         
-    def GetExtraAttributePar(self, axis, name):
-        self._log.debug("GetExtraAttributePar(%d, %s): Entering...", axis, name)
+    def GetAxisExtraPar(self, axis, name):
+        self._log.debug("GetAxisExtraPar(%d, %s): Entering...", axis, name)
         if name.lower() == "sd":
             return self.sd[axis]
         if name.lower() == "formula":
@@ -200,7 +204,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             return self.sharedFormula[axis]
 
 
-    def SetExtraAttributePar(self,axis, name, value):
+    def SetAxisExtraPar(self,axis, name, value):
         #self.set_extra_attribute_par(axis, name, value) #todo Ask to zibi what is this!!
         if name.lower() == "formula":
             self.formulas[axis] = value

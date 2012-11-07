@@ -4,15 +4,20 @@ import PyTango
 #from pool import CounterTimerController
 from AdlinkAICoTiCtrl import *
 
+#not needeeb because AdlinkAICoTiCtrl do it.
+#from sardana import pool
+#from sardana.pool import PoolUtil
+#from sardana.pool.controller import PseudoCounterController
 
 def evalState(state):
     """This function converts Adlink device states into counters state."""
     if state == PyTango.DevState.RUNNING:
-        return PyTango.DevState.MOVING
+        return State.Moving
     elif state == PyTango.DevState.STANDBY:
-        return PyTango.DevState.ON
+        return State.On
     else:
-        return state
+        return from_tango_state_to_state(state)
+    
 
 class LocumCoTiCtrl(AdlinkAICoTiCtrl):
     """This class is the Sardana CounterTimer controller for the LoCum4.
@@ -27,9 +32,9 @@ class LocumCoTiCtrl(AdlinkAICoTiCtrl):
     #ctrl_extra_attributes ={ "SD": {'Type':'PyTango.DevDouble','Description':'Standard deviation','R/W Type':'PyTango.READ'}}
                              #"SampleRate":{'Type':'PyTango.DevLong','Description':'SampleRate set for AIDevice','R/W Type':'PyTango.READ'}}
     
-    def __init__(self, inst, props):
+    def __init__(self, inst, props, *args, **kwargs):
 
-        AdlinkAICoTiCtrl.__init__(self,inst,props)
+        AdlinkAICoTiCtrl.__init__(self,inst,props, *args, **kwargs)
         #        self._log.setLevel(logging.DEBUG)
         self._log.debug("__init__(%s, %s): Entering...", repr(inst), repr(props))
 

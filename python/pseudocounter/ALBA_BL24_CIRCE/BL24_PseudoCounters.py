@@ -1,6 +1,7 @@
 from sardana import pool
 from sardana.pool import PoolUtil
 from sardana.pool.controller import PseudoCounterController
+from sardana.pool.controller import MemorizedNoInit, NotMemorized, Memorized
 
 import time
 import array
@@ -31,15 +32,36 @@ class EnergyFromIK220(PseudoCounterController):
                               'DefaultValue':1.0
                         },
                   }
-    ctrl_extra_attributes = { 'offsetGr':
+    ctrl_extra_attributes = { 
+                             "offsetGrLE":
                                         {'Type':'PyTango.DevDouble',
-                                         'Description':'Offset for Gr in mrad',
-                                         'R/W Type':'PyTango.READ_WRITE'
+                                         'memorized': Memorized,
+                                         'R/W Type':'PyTango.READ_WRITE',
                                         },
-                              'offsetM2':
+                             "offsetMLE":
                                         {'Type':'PyTango.DevDouble',
-                                         'Description':'Offset for M2 in mrad',
-                                         'R/W Type':'PyTango.READ_WRITE'
+                                         'memorized': Memorized,
+                                         'R/W Type':'PyTango.READ_WRITE',
+                                        },
+                             "offsetGrME":
+                                        {'Type':'PyTango.DevDouble',
+                                         'memorized': Memorized,
+                                         'R/W Type':'PyTango.READ_WRITE',
+                                        },
+                             "offsetMME":
+                                        {'Type':'PyTango.DevDouble',
+                                         'memorized': Memorized,
+                                         'R/W Type':'PyTango.READ_WRITE',
+                                        },
+                             "offsetGrHE":
+                                        {'Type':'PyTango.DevDouble',
+                                         'memorized': Memorized,
+                                         'R/W Type':'PyTango.READ_WRITE',
+                                        },
+                             "offsetMHE":
+                                        {'Type':'PyTango.DevDouble',
+                                         'memorized': Memorized,
+                                         'R/W Type':'PyTango.READ_WRITE',
                                         },
                             }
 
@@ -52,8 +74,15 @@ class EnergyFromIK220(PseudoCounterController):
         self.grPitch = PyTango.DeviceProxy(self.ik220_grPitch)
         self.mPitch = PyTango.DeviceProxy(self.ik220_mPitch)
         self.ior = PyTango.DeviceProxy(self.iorGrx)
-        self.offsetGr = 2.42#mrad
-        self.offsetM2 = 1.4406#mrad
+        #self.offsetGr = 2.42#mrad
+        #self.offsetM2 = 1.4406#mrad
+        
+        self.offsetGrLE = 0.0
+        self.offsetMLE = 0.0
+        self.offsetGrHE = 0.0
+        self.offsetMHE = 0.0
+        self.offsetGrME = 0.0
+        self.offsetMME = 0.0
         
     def calc(self,index,counter_values):
         """
@@ -62,8 +91,10 @@ class EnergyFromIK220(PseudoCounterController):
         gr = self.grPitch['Value'].value
         m = self.mPitch['Value'].value
         
-        beta = self.toRadians(gr) - (math.pi/2.0) - (self.offsetGr/1000)
-        theta = (math.pi/2.0) - (self.toRadians(m)) - (self.offsetM2/1000)
+        offsetG,offsetM = self.checkOffset()
+        
+        beta = self.toRadians(gr) - (math.pi/2.0) - offsetG
+        theta = (math.pi/2.0) - (self.toRadians(m)) + offsetM
         alpha = (2.0*theta) + beta
         wavelength = (math.sin(alpha) + math.sin(beta)) / (self.DiffrOrder * self.look_at_grx())
         
@@ -71,7 +102,7 @@ class EnergyFromIK220(PseudoCounterController):
             energy = 0.0
         else:
             energy = self.hc / wavelength
-        #if self.FixedM2Pit: 
+        
         Cff = math.cos(beta)/math.cos(alpha)
         if energy < 0 : energy = energy *(-1) #warning: wavelength se vuelve negativo ... ??????
         
@@ -102,17 +133,62 @@ class EnergyFromIK220(PseudoCounterController):
 
     def GetExtraAttributePar(self,axis,name):
         #self._log.debug("GetExtraAttributePar(%d,%s): Entering ...", axis, name)
-        if name.lower() == "offsetgr":
-            return self.offsetGr
-        if name.lower() == "offsetm2":
-            return self.offsetM2
+            
+        if name.lower() == "offsetgrle":
+            return self.offsetGrLE 
+        
+        if name.lower() == "offsetmle":
+            return self.offsetMLE 
+
+        if name.lower() == "offsetgrme":
+            return self.offsetGrME 
+        
+        if name.lower() == "offsetmme":
+            return self.offsetMME
+        
+        if name.lower() == "offsetgrhe":
+            return self.offsetGrHE 
+        
+        if name.lower() == "offsetmhe":
+            return self.offsetMHE
 
     def SetExtraAttributePar(self,axis,name,value):
         #self._log.debug("SetExtraAttributePar(%d,%s,%f): Entering ...", axis, name, value)
-        if name.lower() == "offsetgr":
-            self.offsetGr = value
-        if name.lower() == "offsetm2":
-            self.offsetM2 = value
+            
+        if name.lower() == "offsetgrle":
+            self.offsetGrLE = value
+        
+        if name.lower() == "offsetmle":
+            self.offsetMLE = value
+
+        if name.lower() == "offsetgrme":
+            self.offsetGrME = value
+        
+        if name.lower() == "offsetmme":
+            self.offsetMME = value
+             
+        if name.lower() == "offsetgrhe":
+            self.offsetGrHE = value
+        
+        if name.lower() == "offsetmhe":
+            self.offsetMHE = value
+            
+    def checkOffset(self):
+        offsetGrating,offsetMirror = 0.0, 0.0
+        
+        if self.ior['Value'].value == 4:
+            offsetGrating = self.offsetGrLE/1000.0
+            offsetMirror = self.offsetMLE/1000.0
+        
+        elif self.ior['Value'].value == 3:
+            offsetGrating = self.offsetGrME/1000.0
+            offsetMirror = self.offsetMME/1000.0
+        
+        if self.ior['Value'].value == 2:
+            offsetGrating = self.offsetGrHE/1000.0
+            offsetMirror = self.offsetMHE/1000.0
+        
+        return offsetGrating, offsetMirror
 
 
 class IK220_channels(PseudoCounterController):
@@ -136,9 +212,9 @@ class IK220_channels(PseudoCounterController):
         try:
             angles = self.ik220_dev.read_attribute('Angles').value
             if index == 9:
-                return sum(angles[:4])/4
+                return sum(angles[:4])/4.0
             elif index == 10:
-                return sum(angles[4:8])/4
+                return sum(angles[4:8])/4.0
             else:
                 return angles[index - 1]
         except:
@@ -182,7 +258,7 @@ class ND287_channels(PseudoCounterController):
             chans = [float(splitted[0]), float(splitted[1]) ]
             
             if index == 3 :
-                return sum(chans)/2
+                return sum(chans)/2.0
             else:
                 return chans[index - 1]
         except Exception,e:

@@ -1,13 +1,17 @@
-from pool import PseudoCounterController
+#from pool import PseudoCounterController
 import taurus
+
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoCounterController
 
 class BL09MachinePCController(PseudoCounterController):
 
     counter_roles = ()
     pseudo_counter_roles = ('machine_current', 'fex', 'fez', 'ife1', 'ife2', 'ife3', 'ife4', 'ife')
 
-    def __init__(self, inst, props):
-        PseudoCounterController.__init__(self, inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoCounterController.__init__(self, inst, props, *args, **kwargs)
         self.machine_attrs = {}
         self.MACH_CURRENT = 1
         self.machine_attrs[self.MACH_CURRENT] = 'tango://alba03:10000/expchan/srbl09_machine_attributes/1/Value'
