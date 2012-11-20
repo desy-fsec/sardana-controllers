@@ -19,11 +19,12 @@ class HasyMotorCtrl(MotorController):
                        'UnitLimitMin':{Type:float,Access:ReadWrite},
                        'PositionSim':{Type:float,Access:ReadWrite},
                        'ResultSim':{Type:str,Access:ReadWrite},
-                       'Calibrate':{Type:float,Access:ReadWrite}}
+                       'TangoDevice':{Type:str,Access:ReadOnly}, # used for handling limits between TanoServer and PoolDevice
+                        'Calibrate':{Type:float,Access:ReadWrite}}
 
                              
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
                        }
 
 
@@ -50,7 +51,6 @@ class HasyMotorCtrl(MotorController):
         if self.debugFlag: print "HasyMotorCtrl.__init__, inst", self.inst_name, "RootDeviceName", self.RootDeviceName
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
-        if self.debugFlag: print "HasyMotorCtrl.__init__, inst", self.inst_name, "devices", self.devices.value_string
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
@@ -152,6 +152,8 @@ class HasyMotorCtrl(MotorController):
                 return float(self.proxy[ind-1].read_attribute("PositionSim").value)
             elif name == "ResultSim":
                 return str(self.proxy[ind-1].read_attribute("ResultSim").value)
+            elif name == "TangoDevice":
+                return str(self.proxy[ind-1].name())
             elif name == "Calibrate":
                 return -1
 
