@@ -579,8 +579,9 @@ class IcepapController(MotorController):
                     try:
                         if self.attributes[axis]['encoder_source_tango_attribute'] != None:
                             VALUE = self.attributes[axis]['encoder_source_tango_attribute'].read().value
-                            value = VALUE
-                            current_source_pos = eval(self.attributes[axis]['encoder_source_formula'])
+                            eval_globals = numpy.__dict__
+                            eval_locals = {'VALUE':VALUE, 'value':VALUE}
+                            current_source_pos = eval(self.attributes[axis]['encoder_source_formula'], eval_globals, eval_locals)
                             return float(current_source_pos)
                         else:
                             return float('NaN')
