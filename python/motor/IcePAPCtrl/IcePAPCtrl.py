@@ -557,6 +557,8 @@ class IcepapController(MotorController):
                 elif name.startswith('status'):
                     #register = self.iPAP.getStatusFromBoard(axis)
                     register = self.attributes[axis]["status_value"]
+                    if register == None:
+                        register = self.iPAP.getStatusFromBoard(axis)
                     status_dict = self.iPAP.decodeStatus(register)
                     status_key = name.replace('status','')
                     if status_key in ['disable','indexer','mode','stopcode']:
