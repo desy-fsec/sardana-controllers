@@ -71,6 +71,16 @@ class EnergyCff(PseudoMotorController):
                                    'memorized':Memorized,
                                    'R/W Type':'PyTango.READ_WRITE',
                                   },
+                             "Limit_switches":
+                                  {'Type':(bool,),
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ',
+                                  },
+                             "Velocity":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  }
                             }
 
     
@@ -87,6 +97,8 @@ class EnergyCff(PseudoMotorController):
         self.offsetMxLE = 0.0
         self.offsetGrxHE = 0.0
         self.offsetMxHE = 0.0
+        
+        self.velocity = 1.0
         
     def calc_physical(self, index, pseudos):
         return self.calc_all_physical(pseudos)[index - 1]
@@ -159,6 +171,12 @@ class EnergyCff(PseudoMotorController):
         if name.lower() == "offsetmxhe":
             return self.offsetMxHE
 
+        if name.lower() == 'limit_switches':
+            return self.getLimitSwitches()
+        
+        if name.lower() == 'velocity':
+            return self.velocity
+
     def SetExtraAttributePar(self, axis, name, value):
         if name.lower() == "diffrorder":
             self.DiffrOrder = value
@@ -170,6 +188,23 @@ class EnergyCff(PseudoMotorController):
             self.offsetGrxHE = value
         if name.lower() == "offsetmxhe":
             self.offsetMxHE = value
+
+        if name.lower() == 'velocity':
+            self.velocity = value
+
+    def getLimitSwitches(self):
+        #m3 = self.GetMotor('m3')
+        #gr = self.GetMotor('gr')
+
+        #m3Limits = m3.limit_switches.value
+        #grLimits = gr.limit_switches.value
+        
+        limit_switches = [False, False, False]
+
+        #for index,value in enumerate(m3Limits):
+        #    limit_switches.append( value or grLimits[index] )
+
+        return limit_switches
 
     def look_at_grx(self):
             
