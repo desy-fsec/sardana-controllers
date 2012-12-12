@@ -47,8 +47,18 @@ class HasyMotorCtrl(MotorController):
         if self.TangoHost == None:
              self.db = PyTango.Database()
         else:
-            self.db = PyTango.Database(self.TangoHost, 10000)
-        if self.debugFlag: print "HasyMotorCtrl.__init__, inst", self.inst_name, "RootDeviceName", self.RootDeviceName
+            #
+            # TangoHost can be hasgksspp07eh3:10000
+            #
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
+        if self.debugFlag:
+            print "HasyMotorCtrl.__init__, inst", self.inst_name, "RootDeviceName", self.RootDeviceName
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
@@ -81,7 +91,7 @@ class HasyMotorCtrl(MotorController):
         if self.TangoHost == None:
             proxy_name = self.tango_device[ind-1]
         else:
-            proxy_name = str(self.TangoHost) + ":10000/" + str(self.tango_device[ind-1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         if self.debugFlag: print "HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind)
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
