@@ -1,5 +1,6 @@
-from pool import PseudoCounterController
-from pool import PoolUtil
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoCounterController
 
 class MOPIFilterThicknessPCCtrl(PseudoCounterController):
     """ The MOPI Filter Thickness Pseudo Counter Controller.""" 
@@ -25,12 +26,11 @@ class MOPIFilterThicknessPCCtrl(PseudoCounterController):
         self.mopi_lon_motor = None
         self.mopi_filt_motor = None
 
-    def calc(self, index, counter_values):
+    def Calc(self, index, counter_values):
         if self.mopi_lon_motor == None or self.mopi_filt_motor == None:
-            util = PoolUtil()
             try:
-                self.mopi_lon_motor = util.get_device(self.inst_name, self.mopi_lon_dev)
-                self.mopi_filt_motor = util.get_device(self.inst_name, self.mopi_filt_dev)
+                self.mopi_lon_motor = PoolUtil.get_device(self.inst_name, self.mopi_lon_dev)
+                self.mopi_filt_motor = PoolUtil.get_device(self.inst_name, self.mopi_filt_dev)
             except Exception,e:
                 self._log.error('Could not connect to devices %s and %s' %(self.mopi_lon_dev, self.mopi_filt_dev))
 
