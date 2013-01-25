@@ -157,7 +157,10 @@ class AmptekPX5CounterTimerController(CounterTimerController):
 class AmptekPX5SoftCounterTimerController(CounterTimerController):
     """"This class is the AmptekPX5 Sardana CounterTimerController.
      Its first channel is an acquisition timer. It is used to preset the acquisition time.
-     Its second channel is a Fast Counter. It counts all the incoming events.
+     Its second channel is a Fast Counter (Incoming Count Rate ICR). 
+     It counts all the incoming events.
+     Its third channel is a Slow Counter (Total Count Rate TCR). 
+     Any event that is counted in the spectrum is also counter here.
      Rest of the channels are software ROI of the spectrum - so called SCAs."""
 
     MaxDevice = 17
@@ -176,12 +179,13 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
         self.sta = State.On
         self.acqStartTime = None
         self.spectrum = None
+        self.icr = None
         self.tcr = None
         self.scas = {}
 
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("GetAxisExtraPar() entering...")
-        if axis in [1,2]:
+        if axis in [1,2,3]:
             raise Exception("Axis parameters are not allowed for axes 1 and 2.")
         name = name.lower()
         v = self.scas[axis][name]
@@ -189,14 +193,14 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
 
     def SetAxisExtraPar(self, axis, name, value):
         self._log.debug("SetAxisExtraPar() entering...")
-        if axis in [1,2]:
+        if axis in [1,2,3]:
             raise Exception("Axis parameters are not allowed for axes 1 and 2.")
         name = name.lower()
         self.scas[axis][name] = value
 
     def AddDevice(self,ind):
         self._log.debug("AddDevice() entering...")
-        if not (ind in [1,2]):
+        if not (ind in [1,2,3]):
             self.scas[ind] = {"lowthreshold":0, "highthreshold":0}
         self._log.debug("AddDevice() leaving...")
 
@@ -245,9 +249,13 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
         else:
             if ind == 1: #timer
                 val = self.acqTime
-            elif ind == 2: #tcr
+            elif ind == 2: #icr
+                if self.icr == None:
+                    self.icr = self.amptekPX5.read_attribute("FastCount").value
+                val = self.icr
+            elif ind == 3: #tcr
                 if self.tcr == None:
-                    self.tcr = self.amptekPX5.read_attribute("FastCount").value
+                    self.tcr = self.amptekPX5.read_attribute("SlowCount").value
                 val = self.tcr
             else: #calculating software ROIs
                 lowThreshold = self.scas[ind]['lowthreshold']
@@ -268,6 +276,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
     def StartAllCT(self):
         self._log.debug("StartAllCT(): entering...")
         self.spectrum = None
+        self.icr = None
         self.tcr = None
         self.amptekPX5.Enable()
         self.acqStartTime = time.time()
