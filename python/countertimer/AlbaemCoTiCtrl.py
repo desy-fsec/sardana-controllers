@@ -60,6 +60,37 @@ class AlbaemCoTiCtrl(CounterTimerController):
                                  'Description':'Enable/Disable electrometer autorange',
                                  'memorized': NotMemorized,
                                  'R/W Type':'PyTango.READ_WRITE'
+                                },
+                            #attributes added for continuous acqusition mode
+                            "NrOfTriggers": 
+                                {'Type':'PyTango.DevLong',
+                                 'Description':'Nr of triggers',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                            "SamplingFrequency": 
+                                {'Type':'PyTango.DevDouble',
+                                 'Description':'Sampling frequency',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                            "AcquisitionTime": 
+                                {'Type':'PyTango.DevDouble',
+                                 'Description':'Acquisition time per trigger',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                            "TriggerMode": 
+                                {'Type':'PyTango.DevString',
+                                 'Description':'Trigger mode: soft or gate',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ_WRITE'
+                                },
+                            "Data": 
+                                {'Type':[float],
+                                 'Description':'Trigger mode: soft or gate',
+                                 'memorized': NotMemorized,
+                                 'R/W Type':'PyTango.READ'
                                 }
                             }
 
@@ -269,6 +300,25 @@ class AlbaemCoTiCtrl(CounterTimerController):
             attr = 'Autorange'
             autoRange = self.AemDevice[attr].value
             return autoRange
+        #attributes used for continuous acquisition
+        if name.lower() == "samplingfrequency":
+            freq = 1 / self.AemDevice["samplerate"].value
+            return freq
+        if name.lower() == "triggermode":
+            mode = self.AemDevice["TriggerMode"].value 
+            if mode == "INT":
+                return "soft"
+            if mode == "EXT":
+                return "gate"
+        if name.lower() == "nroftriggers":
+            nrOfTriggers = self.AemDevice["BufferSize"].value
+            return nrOfTriggers
+        if name.lower() == "acquisitiontime":
+            acqTime = self.AemDevice["TriggerDelay"].value
+            return acqTime
+        if name.lower() == "data":
+            data = self.AemDevice["BufferI%d" % (axis - 1)].value
+            return data
 
     def SetExtraAttributePar(self,axis, name, value):
         if name.lower() == "range":
@@ -294,7 +344,25 @@ class AlbaemCoTiCtrl(CounterTimerController):
         if name.lower() == "autorange":
             attr = 'AutoRange'
             self.AemDevice[attr] = value
-    
+        #attributes used for continuous acquisition
+        if name.lower() == "samplingfrequency":
+            maxFrequency = 1000
+            if value == -1 or value > maxFrequency: 
+                value = maxFrequency#-1 configures maximum frequency            
+            rate = 1 / value
+            self.AemDevice["samplerate"] = rate
+        if name.lower() == "triggermode":
+            if value == "soft":
+                mode = "INT"
+            if value == "gate":
+                mode = "EXT"
+            self.AemDevice["TriggerMode"] = mode
+        if name.lower() == "nroftriggers":
+            self._log.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Setting nr of triggers to: %d" , value)
+            self.AemDevice["BufferSize"] = value
+        if name.lower() == "acquisitiontime":
+            self.AemDevice["TriggerDelay"] = value
+
     def SetCtrlPar(self, par, value):
         self._log.debug("SetCtrlPar(%s, %s) entering..." % (repr(par), repr(value)))
         if par == 'trigger_type':
