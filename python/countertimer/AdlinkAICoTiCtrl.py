@@ -3,7 +3,7 @@
 import PyTango
 from sardana import State, DataAccess
 from sardana.pool.controller import CounterTimerController
-from sardana.pool.controller import Type, Access, Description
+from sardana.pool.controller import Type, Access, Description, Memorize, NotMemorized
 from sardana.tango.core.util import from_tango_state_to_state
 
 def evalState(state):
@@ -41,18 +41,48 @@ class AdlinkAICoTiCtrl(CounterTimerController):
     axis_attributes ={"SD": 
                         {Type : float,
                          Description : 'Standard deviation',
-                         Access : DataAccess.ReadOnly
+                         Access : DataAccess.ReadWrite
                         },
                       "FORMULA":
                         {Type : str,
                          Description : 'The formula to get the real value.\ne.g. "(VALUE/10)*1e-06"',
                          Access : DataAccess.ReadWrite
                         },
-                      "SHAREDFORMULA" :
+                      "SHAREDFORMULA":
                         {Type : bool,
                          Description : 'If you want to share the same formula for all the channels set it to true"',
                          Access : DataAccess.ReadWrite
-                        }
+                        },
+                       #attributes added for continuous acqusition mode
+                      "NrOfTriggers":
+                        {Type : long,
+                         Description : 'Nr of triggers',
+                         Access : DataAccess.ReadWrite,
+                         Memorize : NotMemorized
+                        },
+                      "SamplingFrequency":
+                       {Type : float,
+                        Description : 'Sampling frequency',
+                        Access : DataAccess.ReadWrite,
+                        Memorize : NotMemorized
+                       },
+                      "AcquisitionTime":
+                       {Type : float,
+                        Description : 'Acquisition time per trigger',
+                        Access : DataAccess.ReadWrite,
+                        Memorize : NotMemorized
+                       },
+                      "TriggerMode":
+                       {Type : str,
+                        Description : 'Trigger mode: soft or gate',
+                        Access : DataAccess.ReadWrite,
+                        Memorize : NotMemorized
+                       },
+                       "Data":
+                       {Type : [float],
+                        Description : 'Data buffer',
+                        Access : DataAccess.ReadOnly
+                       }
                       }
 
 
@@ -193,7 +223,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         except PyTango.DevFailed, e:
             self._log.error("LoadOne(%d, %f): Could not configure device: %s.\nException: %s", self.AdlinkAIDeviceName, e)
             raise
-        
+
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("GetAxisExtraPar(%d, %s): Entering...", axis, name)
         if name.lower() == "sd":
@@ -202,6 +232,36 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             return self.formulas[axis]
         if name.lower() == "sharedformula":
             return self.sharedFormula[axis]
+        #attributes used for continuous acquisition
+        if name.lower() == "samplingfrequency":
+            freq = self.AIDevice["SampleRate"].value
+            return float(freq)
+        if name.lower() == "triggermode":
+            mode = self.AIDevice["TriggerSources"].value 
+            if mode == "SOFT":
+                return "soft"
+            if mode == "ExtD:+":
+                return "gate"
+        if name.lower() == "nroftriggers":
+            nrOfTriggers = self.AIDevice["NumOfTriggers"].value
+            return long(nrOfTriggers)
+        if name.lower() == "acquisitiontime":
+            acqTime = self.AIDevice["BufferPeriod"].value
+            return acqTime
+        if name.lower() == "data":
+            values = self.AIDevice["C0%d_MeanValues" % (axis - 2)].value
+            return values
+        #if name.lower() == "data":
+            #data = []
+            #values = self.AIDevice["C0%d_ChannelValues" % (axis -2)].value
+            #samplesPerTrigger = self.AIDevice["ChannelSamplesPerTrigger"].value
+            #nrOfTriggers = self.AIDevice["NumOfTriggers"].value
+            #for triggerNr in range(nrOfTriggers):
+                #start = triggerNr * samplesPerTrigger
+                #end = start + samplesPerTrigger
+                #data.append(values[start:end])
+            #return data
+
 
 
     def SetAxisExtraPar(self,axis, name, value):
@@ -215,3 +275,20 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 for i in self.formulas:
                     self.formulas[i] = self.formulas[axis]
 
+        #attributes used for continuous acquisition
+        if name.lower() == "samplingfrequency":
+            maxFrequency = 500000
+            if value == -1 or value > maxFrequency: 
+                value = maxFrequency#-1 configures maximum frequency
+            rate = long(value)
+            self.AIDevice["samplerate"] = rate
+        if name.lower() == "triggermode":
+            if value == "soft":
+                mode = "SOFT"
+            if value == "gate":
+                mode = "ExtD:+"
+            self.AIDevice["TriggerSources"] = mode
+        if name.lower() == "nroftriggers":
+            self.AIDevice["NumOfTriggers"] = value
+        if name.lower() == "acquisitiontime":
+            self.AIDevice["BufferPeriod"] = value
