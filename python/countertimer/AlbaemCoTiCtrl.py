@@ -374,6 +374,23 @@ class AlbaemCoTiCtrl(CounterTimerController):
                 raise Exception("Alba electrometer allows only Software or Gate triggering")
         else:
             super(AlbaemCoTiCtrl, self).SetCtrlPar(par, value)
+            
+    def SendToCtrl(self, cmd):
+        cmd = cmd.lower()
+        words = cmd.split(" ")
+        if len(words) == 2:
+            action = words[0]
+            axis = int(words[1])
+            if action == "start":
+                self._log.debug("SendToCtrl(%s): starting channel %d", cmd, axis)
+                self.AemDevice.Start()
+                return "Channel %d started" % axis
+            elif action == "stop":
+                self._log.debug("SendToCtrl(%s): stopping channel %d", cmd, axis)
+                self.AemDevice.Stop()
+                return "Channel %d stopped" % axis
+            else: 
+                return "Unknown command"
 
 if __name__ == "__main__":
     #import time
