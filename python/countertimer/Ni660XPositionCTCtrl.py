@@ -29,7 +29,9 @@ class Ni660XPositionCTCtrl(CounterTimerController):
     axis_attributes = {     "channelDevName" : { Type : str,      Access : ReadWrite },
                          "sampleClockSource" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized },
                      "dataTransferMechanism" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized },
-                              "stepsPerUnit" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, 
+                       "pulsesPerRevolution" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, 
+                           "initialPosition" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, 
+                                      "sign" : { Type : int,      Access : ReadWrite, Memorize : NotMemorized }, 
                               "nrOfTriggers" : { Type : long,     Access : ReadWrite, Memorize : NotMemorized },
                                "triggerMode" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized }, #to be replaced by mnt grp conf
                          "samplingFrequency" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, #to be removed, not generic
@@ -53,10 +55,21 @@ class Ni660XPositionCTCtrl(CounterTimerController):
             v = self.channels[axis]["DataTransferMechanism"].value
         elif name == "units":
             v = self.channels[axis]["Units"].value
-        elif name == "stepsperunit":
+        elif name == "pulsesperrevolution":
             v = self.channels[axis]["PulsesPerRevolution"].value
+        #temporarily using internal algorithn
+        #elif name == "initialposition":
+        #    v = self.channels[axis]["InitialPos"].value
         elif name == "data":
-            v = self.channels[axis]["PositionBuffer"].value
+            self._log.error("!!!!!!!!!!!!!!!!!!!Reading data")
+            rawData = self.channels[axis]["PositionBuffer"].value
+            if self.attributes[axis]["sign"] == -1:
+                self._log.error("!!!!!!!!!!!!!!!!!!!Applying sign")
+                rawDataNumpy = numpy.array(rawData)
+                v = rawDataNumpy * -1
+            else:
+                v = rawData
+            v = v + self.attributes[axis]["initialposition"]
         elif name == "nroftriggers":
             v = self.channels[axis]["SampPerChan"].value
         elif name == "triggermode":
@@ -69,6 +82,8 @@ class Ni660XPositionCTCtrl(CounterTimerController):
             v = float("nan")
         elif name == "acquisitiontime":
             v = float("nan")
+        else:
+            v = self.attributes[axis][name]
             
         return v
 
@@ -81,8 +96,11 @@ class Ni660XPositionCTCtrl(CounterTimerController):
             self.channels[axis]["DataTransferMechanism"] = value
         elif name == "units":
             self.channels[axis]["Units"] = value
-        elif name == "stepsperunit":
+        elif name == "pulsesperrevolution":
             self.channels[axis]["PulsesPerRevolution"] = value
+        #temporarily using internal algorithm
+        #elif name == "initialposition":
+        #    self.channels[axis]["InitialPos"] = value
         elif name == "nroftriggers":
             #self.channels[idx]["SampPerChan"] = value # due to bug in taurus remporarily using PyTango
             self.channels[axis].getHWObj().write_attribute("SampPerChan", long(value))
@@ -95,10 +113,12 @@ class Ni660XPositionCTCtrl(CounterTimerController):
             pass
         elif name == "acquisitiontime":
             pass
+        else:
+            self.attributes[axis][name] = value
 
     def AddDevice(self, axis):
         self.channels[axis] = taurus.Device(self.channelDevNamesList[axis-1])        
-        self.attributes[axis] = {}
+        self.attributes[axis] = {"sign":1, "initialposition":0}
 
     def DeleteDevice(self, axis):
         self.channels.pop(axis)
