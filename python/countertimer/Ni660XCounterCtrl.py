@@ -63,18 +63,7 @@ class Ni660XCoTiCtrl(CounterTimerController):
         self._log.debug("ReadOne(%d): Entering...", axis)
         channel = self.channels[axis]
         if axis == 1:
-            source = channel.getAttribute("SourceTerminal").read().value
-            self._log.debug("ReadOne(%d): source: %s", axis, source)
-            highTicks = channel.getAttribute("HighTicks").read().value
-            self._log.debug("ReadOne(%d): highTicks: %d", axis, highTicks)
-            if source.endswith("80MHzTimebase"):
-                value = highTicks / float(80000000)
-            elif source.endswith("20MHzTimebase"):
-                value = highTicks / float(20000000)
-            elif source.endswith("100kHzTimebase"):
-                value = highTicks / float(100000)
-            else: 
-                raise Exception("Unknown source terminal for master channel.")
+            value = channel.getAttribute("HighTime").read().value
         else:
             value = self.values.get(axis, 0)
         self._log.debug("ReadOne(%d): Returning %s...", axis, repr(value))
@@ -126,15 +115,6 @@ class Ni660XCoTiCtrl(CounterTimerController):
             raise Exception("Counter of axis %d does not have channelDevName set." % axis)
         #channel has to be stopped before applying new configuration
         channel.stop() 
-        source = channel.getAttribute("SourceTerminal").read().value
-        if source.endswith("80MHzTimebase"):
-            self.highTicks = value * 80000000
-        elif source.endswith("20MHzTimebase"):
-            self.highTicks = value * 20000000
-        elif source.endswith("100kHzTimebase"):
-            self.highTicks = value * 100000
-        else: 
-            raise Exception("Unknown source terminal for master channel.")
         self._log.debug("PreLoadOne(%d, %f): Leaving...", axis, value)
         return True
         
@@ -143,7 +123,7 @@ class Ni660XCoTiCtrl(CounterTimerController):
         channel = self.channels[axis]
         if channel is None:
             raise Exception("Counter of axis %d does not have channelDevName set." % axis)
-        channel.getAttribute("HighTicks").write(self.highTicks)
+        channel.getAttribute("HighTime").write(value)
         self._log.debug("LoadOne(%d, %f): Leaving...", axis, value)
 
     def GetExtraAttributePar(self, axis, name):
