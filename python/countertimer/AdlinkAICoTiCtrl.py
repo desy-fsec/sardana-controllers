@@ -95,6 +95,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         self.sd = {}
         self.formulas = {}
         self.sharedFormula = {}
+        self.contAcqChannels = {}
         self.master = None
         self.integrationTime = 0
         
@@ -123,10 +124,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             return State.Fault
         try:
             self.state = self.AIDevice.state()
-            if self.master is None:
-                self.state = PyTango.DevState.ON
-            else:
-                if self.state == PyTango.DevState.ON:
+            if self.master is not None: #step scan point in progress
+                if self.state == PyTango.DevState.ON: #acquisition finished, resetting master
                     self.master = None
             return (evalState(self.state), "AI DeviceProxy present.") 
         except Exception, e:
@@ -292,3 +291,39 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self.AIDevice["NumOfTriggers"] = value
         if name.lower() == "acquisitiontime":
             self.AIDevice["BufferPeriod"] = value
+    
+    
+    def SendToCtrl(self, cmd):
+        cmd = cmd.lower()
+        words = cmd.split(" ")
+        ret = "Unknown command"
+        if len(words) == 2:
+            action = words[0]
+            axis = int(words[1])
+            if action == "pre-start":
+                self._log.debug("SendToCtrl(%s): pre-starting channel %d", cmd, axis)
+                self.contAcqChannels[axis] = None
+                ret = "Channel %d appended to contAcqChannels" % axis
+            elif action == "start":
+                self._log.debug("SendToCtrl(%s): starting channel %d", cmd, axis)
+                self.contAcqChannels.pop(axis)
+                if len(self.contAcqChannels.keys()) == 0:
+                    self.AIDevice.Start()
+                    self._log.debug("SendToCtrl(%s): acquisition started", cmd)
+                    ret = "Acquisition started"
+                else:
+                    ret = "Channel %d popped from contAcqChannels" % axis
+            elif action == "pre-stop":
+                self._log.debug("SendToCtrl(%s): pre-stopping channel %d", cmd, axis)
+                self.contAcqChannels[axis] = None
+                ret = "Channel %d appended to contAcqChannels" % axis
+            elif action == "stop":
+                self._log.debug("SendToCtrl(%s): stopping channel %d", cmd, axis)
+                self.contAcqChannels.pop(axis)
+                if len(self.contAcqChannels.keys()) == 0:
+                    self.AIDevice.Stop()
+                    self._log.debug("SendToCtrl(%s): acquisition stopped", cmd)
+                    ret = "Acquisition stopped"
+                else:
+                    ret = "Channel %d popped from contAcqChannels" % axis
+        return ret
