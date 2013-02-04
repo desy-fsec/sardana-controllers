@@ -108,6 +108,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self.measures = ['0','0','0','0'] #@todo: this is not a good idea, better change it. Maybe avoid ReadAll?
         
         self.lastvalues = []
+        self.contAcqChannels = {}
         self.acqchannels = []
         self.state = None
         self.ranges = ['','','','']
@@ -378,19 +379,35 @@ class AlbaemCoTiCtrl(CounterTimerController):
     def SendToCtrl(self, cmd):
         cmd = cmd.lower()
         words = cmd.split(" ")
+        ret = "Unknown command"
         if len(words) == 2:
             action = words[0]
             axis = int(words[1])
-            if action == "start":
+            if action == "pre-start":
+                self._log.debug("SendToCtrl(%s): pre-starting channel %d", cmd, axis)
+                self.contAcqChannels[axis] = None
+                ret = "Channel %d appended to contAcqChannels" % axis
+            elif action == "start":
                 self._log.debug("SendToCtrl(%s): starting channel %d", cmd, axis)
-                self.AemDevice.Start()
-                return "Channel %d started" % axis
+                self.contAcqChannels.pop(axis)
+                if len(self.contAcqChannels.keys()) == 0:
+                    self.AemDevice.Start()
+                    ret = "Acquisition started"
+                else:
+                    ret = "Channel %d popped from contAcqChannels" % axis
+            elif action == "pre-stop":
+                self._log.debug("SendToCtrl(%s): pre-stopping channel %d", cmd, axis)
+                self.contAcqChannels[axis] = None
+                ret = "Channel %d appended to contAcqChannels" % axis
             elif action == "stop":
                 self._log.debug("SendToCtrl(%s): stopping channel %d", cmd, axis)
-                self.AemDevice.Stop()
-                return "Channel %d stopped" % axis
-            else: 
-                return "Unknown command"
+                self.contAcqChannels.pop(axis)
+                if len(self.contAcqChannels.keys()) == 0:
+                    self.AemDevice.Stop()
+                    ret = "Acquisition stopped"
+                else:
+                    ret = "Channel %d popped from contAcqChannels" % axis
+        return ret
 
 if __name__ == "__main__":
     #import time
