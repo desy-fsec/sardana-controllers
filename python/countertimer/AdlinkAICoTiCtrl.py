@@ -321,7 +321,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self._log.debug("SendToCtrl(%s): stopping channel %d", cmd, axis)
                 self.contAcqChannels.pop(axis)
                 if len(self.contAcqChannels.keys()) == 0:
-                    self.AIDevice.Stop()
+                    if self.AIDevice.State() != PyTango.DevState.STANDBY:
+                        self.AIDevice.Stop()
                     self._log.debug("SendToCtrl(%s): acquisition stopped", cmd)
                     ret = "Acquisition stopped"
                 else:
