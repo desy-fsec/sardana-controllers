@@ -162,6 +162,27 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         if name.lower() == "acquisitiontime":
             pass
 
+    def SendToCtrl(self, cmd):
+        cmd = cmd.lower()
+        words = cmd.split(" ")
+        ret = "Unknown command"
+        if len(words) == 2:
+            action = words[0]
+            axis = int(words[1])
+            if action == "pre-start":
+                ret = "Nothing to do in pre-start"
+            elif action == "start":
+                self._log.debug("SendToCtrl(%s): starting channel %d", cmd, axis)
+                self.pmac.EnablePLC(0)
+                ret = "PLC0 enabled"
+            elif action == "pre-stop":
+                ret = "Nothing to do in pre-stop"
+            elif action == "stop":
+                self._log.debug("SendToCtrl(%s): stopping channel %d", cmd, axis)
+                self.pmac.DisablePLC(0)
+                ret = "PLC0 disabled"
+        return ret
+
     def __getPositions(self):
         ranges = []
         start = self.START_INDEX
