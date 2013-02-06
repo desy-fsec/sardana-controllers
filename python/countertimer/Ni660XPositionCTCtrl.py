@@ -26,7 +26,7 @@ class Ni660XPositionCTCtrl(CounterTimerController):
     
     ctrl_properties = { "channelDevNames" : { Type : str, Description : "Comma separated Ni660xCounter device names"} }
     
-    axis_attributes = {     "channelDevName" : { Type : str,      Access : ReadWrite },
+    axis_attributes = {     "channelDevName" : { Type : str,      Access : ReadOnly },
                          "sampleClockSource" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized },
                      "dataTransferMechanism" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized },
                        "pulsesPerRevolution" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, 
@@ -48,8 +48,9 @@ class Ni660XPositionCTCtrl(CounterTimerController):
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("SetAxisExtraPar() entering...")
         name = name.lower()
-        
-        if name == "sampleclocksource":
+        if name == "channeldevname":
+            v = self.channelDevNamesList[axis-1]
+        elif name == "sampleclocksource":
             v = self.channels[axis]["SampleClockSource"].value
         elif name == "datatransfermechanism":
             v = self.channels[axis]["DataTransferMechanism"].value
@@ -57,14 +58,12 @@ class Ni660XPositionCTCtrl(CounterTimerController):
             v = self.channels[axis]["Units"].value
         elif name == "pulsesperrevolution":
             v = self.channels[axis]["PulsesPerRevolution"].value
-        #temporarily using internal algorithn
+        #temporarily using internal algorithm
         #elif name == "initialposition":
         #    v = self.channels[axis]["InitialPos"].value
         elif name == "data":
-            self._log.error("!!!!!!!!!!!!!!!!!!!Reading data")
             rawData = self.channels[axis]["PositionBuffer"].value
             if self.attributes[axis]["sign"] == -1:
-                self._log.error("!!!!!!!!!!!!!!!!!!!Applying sign")
                 rawDataNumpy = numpy.array(rawData)
                 v = rawDataNumpy * -1
             else:
