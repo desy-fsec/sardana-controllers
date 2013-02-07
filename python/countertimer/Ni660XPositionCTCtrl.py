@@ -31,6 +31,7 @@ class Ni660XPositionCTCtrl(CounterTimerController):
                      "dataTransferMechanism" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized },
                        "pulsesPerRevolution" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, 
                            "initialPosition" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, 
+                             "zIndexEnabled" : { Type : bool,     Access : ReadWrite, Memorize : NotMemorized }, 
                                       "sign" : { Type : int,      Access : ReadWrite, Memorize : NotMemorized }, 
                               "nrOfTriggers" : { Type : long,     Access : ReadWrite, Memorize : NotMemorized },
                                "triggerMode" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized }, #to be replaced by mnt grp conf
@@ -61,6 +62,8 @@ class Ni660XPositionCTCtrl(CounterTimerController):
         #temporarily using internal algorithm
         #elif name == "initialposition":
         #    v = self.channels[axis]["InitialPos"].value
+        elif name == "zindexenabled":
+            v = self.channels[axis]["ZIndexEnabled"].value
         elif name == "data":
             rawData = self.channels[axis]["PositionBuffer"].value
             if self.attributes[axis]["sign"] == -1:
@@ -100,6 +103,8 @@ class Ni660XPositionCTCtrl(CounterTimerController):
         #temporarily using internal algorithm
         #elif name == "initialposition":
         #    self.channels[axis]["InitialPos"] = value
+        elif name == "zindexenabled":
+            self.channels[axis]["ZIndexEnabled"] = value
         elif name == "nroftriggers":
             #self.channels[idx]["SampPerChan"] = value # due to bug in taurus remporarily using PyTango
             self.channels[axis].getHWObj().write_attribute("SampPerChan", long(value))
