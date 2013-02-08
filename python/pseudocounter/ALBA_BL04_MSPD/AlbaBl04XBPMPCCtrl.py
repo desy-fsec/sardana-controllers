@@ -1,4 +1,5 @@
-from pool import PseudoCounterController
+from sardana import pool
+from sardana.pool.controller import PseudoCounterController
 
 class AlbaBl04XBPMPCController(PseudoCounterController):
     
@@ -6,9 +7,9 @@ class AlbaBl04XBPMPCController(PseudoCounterController):
     
     counter_roles = ('ixbt', 'ixbb', 'ixbr', 'ixbl')
     pseudo_counter_roles = ('ixbz', 'ixbx', 'ixbtot')
-
-    def __init__(self, inst, props):
-        PseudoCounterController.__init__(self, inst, props)
+   
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoCounterController.__init__(self, inst, props, *args, **kwargs)
         self.extra_attributes = {1:{'offset':1.0},2:{'offset':1.0},3:{'offset':float('nan')}}
 
     def pseudo_current(self, first, second):
