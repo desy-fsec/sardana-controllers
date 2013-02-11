@@ -182,23 +182,24 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
                 self.pmac.DisablePLC(0)
                 ret = "PLC0 disabled"
         return ret
-
+            
     def __getPositions(self):
         ranges = []
         start = self.START_INDEX
-        endOfRanges = start + self.nrOfTriggers
+        end = endOfRange = start + self.nrOfTriggers
         
         maxLen = 100
-        #checking if we have to do a multiple query
-        if (endOfRanges - start) > maxLen:
-            while (start < endOfRanges):
-                end = start + (maxLen - 1)
-                ranges.append([start,end])
-                start = end + 1
-        if start != endOfRanges:
-            ranges.append([start, endOfRanges - 1])        
+        #composing ranges in case of multiple queries
+        while (end - start) > maxLen:
+            endOfRange = start + (maxLen - 1)
+            ranges.append([start,endOfRange])
+            start = endOfRange + 1
+        else:
+            ranges.append([start, end - 1])        
+            
         rawCounts = numpy.array([])
         for r in ranges:
+            self._log.error("Range: %s" % repr(r))
             rawCounts = numpy.append(rawCounts, self.pmac.GetPVariableRange(r))
         #translations from raw counts to degrees
         #getting an offset between position and encoder register (offset = 2683367)
@@ -210,5 +211,4 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         degrees = [translate(count) for count in rawCounts]
         #degrees = rawCounts
         return degrees
-
     
