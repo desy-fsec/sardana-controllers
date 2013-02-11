@@ -315,7 +315,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
             nrOfTriggers = self.AemDevice["BufferSize"].value
             return nrOfTriggers
         if name.lower() == "acquisitiontime":
-            acqTime = self.AemDevice["TriggerDelay"].value
+            acqTime = self.AemDevice["AvSamples"].value
             return acqTime
         if name.lower() == "data":
             data = self.AemDevice["BufferI%d" % (axis - 1)].value
@@ -359,10 +359,10 @@ class AlbaemCoTiCtrl(CounterTimerController):
                 mode = "EXT"
             self.AemDevice["TriggerMode"] = mode
         if name.lower() == "nroftriggers":
-            self._log.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Setting nr of triggers to: %d" , value)
             self.AemDevice["BufferSize"] = value
         if name.lower() == "acquisitiontime":
             self.AemDevice["TriggerDelay"] = value
+            self.AemDevice["AvSamples"] = value
 
     def SetCtrlPar(self, par, value):
         self._log.debug("SetCtrlPar(%s, %s) entering..." % (repr(par), repr(value)))
