@@ -248,7 +248,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             acqTime = self.AIDevice["BufferPeriod"].value
             return acqTime
         if name.lower() == "data":
-            values = self.AIDevice["C0%d_MeanValues" % (axis - 2)].value
+            rawValues = self.AIDevice["C0%d_MeanValues" % (axis - 2)].value
+            values = [eval(self.formulas[axis]) for value in rawValues]
             return values
         #if name.lower() == "data":
             #data = []
