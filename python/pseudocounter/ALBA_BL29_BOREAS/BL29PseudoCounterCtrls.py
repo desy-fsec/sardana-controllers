@@ -93,13 +93,13 @@ class BL29EnergyPCCtrl(PseudoCounterController):
             #get currently selected grating, selected spherical mirror and grating pitch encoder counts
             sm_selected = self.sm_selected.position
             gr_selected = self.gr_selected.position
-            gr_pitch = self.gr_pitch.encencin
+            gr_pitch = self.gr_pitch.value
         except:
             msg = 'Unable to determine SM and/or GR selected and/or GR pitch'
             self._log.error(msg)
             raise Exception(msg)
 
-        if not (sm_selected in Energy.SM_VALID) or not (gr_selected in Energy.GR_VALID) or (gr_pitch is None):
+        if not (sm_selected in Energy.SM_VALID) or not (gr_selected in Energy.GR_VALID) or (gr_pitch == None):
             msg = 'Spherical mirrors and/or grating mirror and/or grating pitch are not correctly set in CalcPseudo()'
             self._log.error(msg)
             raise Exception(msg)
