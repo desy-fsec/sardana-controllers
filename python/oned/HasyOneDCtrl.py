@@ -140,7 +140,7 @@ class HasyOneDCtrl(OneDController):
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.debugFlag: print "HasyOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
-        if par_name == "DataLength":
+        if name == "DataLength":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("DataLength",value)
         pass
