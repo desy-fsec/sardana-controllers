@@ -125,14 +125,9 @@ class HasyOneDCtrl(OneDController):
        
     def GetPar(self, ind, par_name):
         if self.debugFlag: print "HasyOneDCtrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
-        if par_name == "DataLength": 
-            if self.device_available[ind-1]:
-                return int(self.proxy[ind-1].read_attribute("DataLength").value)
 
     def SetPar(self,ind,par_name,value):
-        if par_name == "datalength":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("DataLength",value)
+        pass
     
     def GetExtraAttributePar(self,ind,name):
         if self.debugFlag: print "HasyOneDCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
@@ -145,6 +140,9 @@ class HasyOneDCtrl(OneDController):
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.debugFlag: print "HasyOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
+        if par_name == "DataLength":
+            if self.device_available[ind-1]:
+                self.proxy[ind-1].write_attribute("DataLength",value)
         pass
 
     def SendToCtrl(self,in_data):
