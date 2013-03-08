@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import datetime
 import numpy
 import PyTango, taurus
 from sardana import State, DataAccess
@@ -65,6 +66,8 @@ class Ni660XPositionCTCtrl(CounterTimerController):
         elif name == "zindexenabled":
             v = self.channels[axis]["ZIndexEnabled"].value
         elif name == "data":
+            s = datetime.datetime.now()
+            self._log.debug("GetAxisExtraPar() data: start time = %s" % s.isoformat())
             rawData = self.channels[axis]["PositionBuffer"].value
             if self.attributes[axis]["sign"] == -1:
                 rawDataNumpy = numpy.array(rawData)
@@ -72,6 +75,10 @@ class Ni660XPositionCTCtrl(CounterTimerController):
             else:
                 v = rawData
             v = v + self.attributes[axis]["initialposition"]
+            e = datetime.datetime.now()
+            self._log.debug("GetAxisExtraPar() data: end time = %s" % e.isoformat())
+            t = e - s
+            self._log.debug("GetAxisExtraPar() data: total = %d" % t.seconds)
         elif name == "nroftriggers":
             v = self.channels[axis]["SampPerChan"].value
         elif name == "triggermode":
@@ -122,6 +129,7 @@ class Ni660XPositionCTCtrl(CounterTimerController):
 
     def AddDevice(self, axis):
         self.channels[axis] = taurus.Device(self.channelDevNamesList[axis-1])        
+        self.channels[axis].set_timeout_millis(120000) #readount ot 60000 buffer takes aprox 10 seconds
         self.attributes[axis] = {"sign":1, "initialposition":0}
 
     def DeleteDevice(self, axis):
