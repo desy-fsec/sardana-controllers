@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+import datetime
 import numpy
 import PyTango, taurus
 from sardana import State, DataAccess
@@ -52,6 +54,7 @@ class Ni660XCounterCTCtrl(CounterTimerController):
         
     def AddDevice(self, axis):
         self.channels[axis] = taurus.Device(self.channelDevNamesList[axis-1])
+        #self.channels[axis].set_timeout_millis(20000) #readout of 60000 buffer takes aprox 20ms, default timeout value should be enough
         self.attributes[axis] = {}
 
     def DeleteDevice(self, axis):
@@ -71,10 +74,16 @@ class Ni660XCounterCTCtrl(CounterTimerController):
         elif name == "stepsperunit":
             v = self.channels[axis].getAttribute("PulsesPerRevolution").read().value
         elif name == "data":
+            s = datetime.datetime.now()
+            self._log.debug("GetAxisExtraPar() data: start time = %s" % s.isoformat())
             raw = self.channels[axis].getAttribute("CountBuffer").read().value
             numRaw = numpy.array(raw)
             v = list(numRaw[1:] - numRaw[:-1])
             v.insert(0,raw[0])
+            e = datetime.datetime.now()
+            self._log.debug("GetAxisExtraPar() data: end time = %s" % e.isoformat())
+            t = e - s
+            self._log.debug("GetAxisExtraPar() data: total = %d" % t.seconds)
         elif name == "nroftriggers":
             v = self.channels[axis].getAttribute("SampPerChan").read().value
         elif name == "triggermode":
