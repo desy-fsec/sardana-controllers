@@ -244,6 +244,8 @@ class AlbaemCoTiCtrl(CounterTimerController):
                 avSamples = value #needed while tests are pending
                 self.AemDevice['Avsamples'] = avSamples
                 self.AemDevice['TriggerPeriod'] = value
+                #added by zreszela 12.02.2013, trigger delay is set by conitnuous scan, in step scan it must be always 0
+                self.AemDevice['TriggerDelay'] = 0
                 
                 
                 #@warning: The next 1 + 1 is done like this to remember that it
