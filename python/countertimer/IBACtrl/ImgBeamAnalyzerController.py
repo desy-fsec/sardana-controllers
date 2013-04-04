@@ -37,7 +37,7 @@ import PyTango
 #from pool import PoolUtil
 import time
 from copy import copy
-from sardana import pool
+from sardana import pool, State
 from sardana.pool import PoolUtil
 from sardana.pool.controller import CounterTimerController
    
@@ -86,7 +86,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             self.__flag_ibaImgCt = None
             self.__flag_backup = False
             #basic state
-            self.ctrlState = [PyTango.DevState.ON,""]
+            self.ctrlState = (State.On,"")
             #manipulate the attrList to accept string arrays, and space separated string
             if (type(self.attrList) in [list,tuple] and len(self.attrList) == 1) or\
                (type(self.attrList) == str):
@@ -112,11 +112,11 @@ class ImgBeamAnalyzerController(CounterTimerController):
     #check state area:
     def StateAll(self):
         try:
-            if self.ctrlState[0] == PyTango.DevState.MOVING:
+            if self.ctrlState[0] == State.Moving:
                 if not self._checkCCDacq(): return
                 self._checkIBAprocess()
         except Exception,e:
-            self.ctrlState = [PyTango.DevState.ALARM,str(e)]
+            self.ctrlState = (State.Alarm,str(e))
 
     def StateOne(self,ind):
         if ind > len(self.attrList)+1:
@@ -157,13 +157,13 @@ class ImgBeamAnalyzerController(CounterTimerController):
                                                       self._ccdProxy.read_attribute('ExposureTime').value))
         #self._log.warn("ccd imgCounter %d"%self.__flag_ccdImgCt)
         self._ccdProxy.Snap()
-        self.ctrlState = [PyTango.DevState.MOVING,""]
+        self.ctrlState = (State.Moving,"")
 
     def AbortOne(self,ind):
         if ind == 1 :#and self._ccdProxy.State() == PyTango.DevState.RUNNING:
             self._ccdProxy.Stop()
         if self.__flag_backup: self._doRestore()
-        self.ctrlState = [PyTango.DevState.ON,"Aborted acquisition"]
+        self.ctrlState = (State.On,"Aborted acquisition")
     # end data acquisition area
     ####
 
@@ -235,7 +235,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
             time.sleep(hackish_IBAProcessSleep)
             self.attrValues = self._ibaProxy.read_attributes(self.attrList)
             if self.__flag_backup: self._doRestore()
-            self.ctrlState[0] = PyTango.DevState.ON
+            self.ctrlState[0] = State.On
             return True
         return False
     
