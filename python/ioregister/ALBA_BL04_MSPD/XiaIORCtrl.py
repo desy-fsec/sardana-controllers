@@ -43,11 +43,12 @@ class XiaIORController(IORegisterController):
         self._log.debug("ReadOne() entering...")
         if axis == 1:
             dev_response = self.device.read_attribute("PF2S2_Shutter_Status").value
-            if dev_response.count("Open") == 1: 
+            if dev_response.count("Open") >= 1: 
                 value = 1
-            elif dev_response.count("Closed") == 1:
+            elif dev_response.count("Closed") >= 1:
                 value = 0
             else:
+                self._log.debug("!!!!!!!!!!!!!!!!!!!!!!dev_response: %s" % dev_response)
                 self.state = State.Alarm
                 self.status = "It was not possible to interpret shutter position returned by Xia device server. Going into ALARM state..."
                 raise Exception(self.status)
