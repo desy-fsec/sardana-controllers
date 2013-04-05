@@ -31,9 +31,9 @@
 ###########################################################################
 
 import PyTango
-from pool import CounterTimerController
-#from PyTango import DevState,DeviceProxy
-from pool import PoolUtil
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import CounterTimerController
 
 class ElcomatCTCtrl(CounterTimerController):
     """CouterTimer Controller for the elcomat device server.
@@ -57,19 +57,19 @@ class ElcomatCTCtrl(CounterTimerController):
     
     MaxDevice = 1024#@todo: check
     
-    class_prop = {'devName':{'Description':'Elcomat Tango device',
-                           'Type':'PyTango.DevString'},
-                  'attrList':{'Description':'List of attributes to read after the master channel',
-                            'Type':'PyTango.DevVarStringArray'},
-                            #for example any one of: '{Av,Stdv}_{x,y}_ts'
-                  'acqTimer':{'Description':'Name of the attribute who sets the seconds to acquire',
-                            'Type':'PyTango.DevString'},
-                  }
+    ctrl_properties = {'devName':{'Description':'Elcomat Tango device',
+                                  'Type':str},
+                       'attrList':{'Description':'List of attributes to read after the master channel',
+                                   'Type':(str,)},
+                                   #for example any one of: '{Av,Stdv}_{x,y}_ts'
+                       'acqTimer':{'Description':'Name of the attribute who sets the seconds to acquire',
+                                   'Type':str},
+                      }
     
-    #ctrl_extra_attributes = {}
+    #axis_attributes = {}
 
-    def __init__(self, inst, props):
-        CounterTimerController.__init__(self, inst, props)
+    def __init__(self, inst, props,*args,**kwargs):
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         try:
             self._devProxy = PyTango.DeviceProxy(self.devName)
             self.attr2read = []
@@ -78,7 +78,7 @@ class ElcomatCTCtrl(CounterTimerController):
         except:
             self._log.error("%s::__init__() Exception"%(self.kls))
         import logging
-        self._log.setLevel(logging.DEBUG)
+        self._log.setLogLevel(logging.DEBUG)
 
     def AddDevice(self,axis):
         """ add each counter involved"""
@@ -147,12 +147,8 @@ class ElcomatCTCtrl(CounterTimerController):
             self.__loadOne = True
             self._devProxy.write_attribute(self.acqTimer,float(value))
 
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         pass
 
-    def SetExtraAttributePar(self, axis, name, value):
+    def SetAxisExtraPar(self, axis, name, value):
         pass
-
-if __name__ == "__main__":
-    obj = ElcomatCTCtrl('test')
-

@@ -6,9 +6,9 @@
 ##
 ## description : 
 ##
-## project :    miscellaneous/PoolControllers/MotorControllers
+## project :    Sardana-Controllers/IORegisterController
 ##
-## developers history: zreszela
+## developers history: zreszela, sblanch
 ##
 ## copyleft :    Cells / Alba Synchrotron
 ##               Bellaterra
@@ -34,8 +34,9 @@
 import copy, logging
 
 import PyTango
-from pool import IORegisterController
-from pool import PoolUtil
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import IORegisterController
 
 def _to_binary(number, bits):
     str_binary_number = ''
@@ -67,14 +68,16 @@ class PmacLTPIOController(IORegisterController):
     logo = "ALBA_logo.png"
 
     # The PMAC Device Server to get the info
-    class_prop = {'PmacDevName':{'Description' : 'The Pmac Tango DS','Type' : 'PyTango.DevString'}}
+    ctrl_properties = {'PmacDevName':{'Description':'The Pmac Tango DS',
+                                      'Type':str}
+                      }
     
     MaxDevice = 3
 
-    ctrl_extra_attributes = {"Labels":{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},}
+    axis_attributes = {"Labels":{'Type':str,'Access':'ReadWrite'}}
     
-    def __init__(self, inst, props):
-        IORegisterController.__init__(self, inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
+        IORegisterController.__init__(self, inst, props, *args, **kwargs)
         self.pmacEth = PoolUtil().get_device(self.inst_name, self.PmacDevName)
 
     def AddDevice(self, axis):
@@ -142,7 +145,7 @@ class PmacLTPIOController(IORegisterController):
             write_value = (value << 6) + current_2axis
         self.pmacEth.command_inout("setmvariable", [101, write_value])
 
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         if name.lower() == 'labels':
             if axis == 1: return "closed:0 opened:1"
             elif axis == 2: return "lifted:0 landed:63"
@@ -151,7 +154,7 @@ class PmacLTPIOController(IORegisterController):
                                            "%d is not allowed axis nr" % axis,
                                            "PmacLTPIOCtrl.GetExtraAttributePar()")
 
-    def SetExtraAttributePar(self,axis, name, value):
+    def SetAxisExtraPar(self,axis, name, value):
         pass
         
     def SendToCtrl(self,in_data):
@@ -177,11 +180,11 @@ class SimuPmacLTPIOController(IORegisterController):
     
     MaxDevice = 3
 
-    ctrl_extra_attributes = {"Labels":{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},}
+    axis_attributes = {"Labels":{'Type':str,'Access':'ReadWrite'},}
                                       
-    def __init__(self, inst, props):
-        IORegisterController.__init__(self, inst, props)
-        self._log.setLevel(logging.DEBUG)
+    def __init__(self, inst, props, *args, **kwargs):
+        IORegisterController.__init__(self, inst, props, *args, **kwargs)
+        self._log.setLogLevel(logging.DEBUG)
         self._log.debug('In SimuPmacLTPIOController.__init__()')
         self.array = 1
         
@@ -249,7 +252,7 @@ class SimuPmacLTPIOController(IORegisterController):
             write_value = (value << 14) + (current_2axis << 8) + 1
         self.array = copy.copy(write_value)
 
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         if name.lower() == 'labels':
             if axis == 1: return "closed:0 opened:1"
             elif axis == 2: return "lifted:0 landed:63"
@@ -258,7 +261,7 @@ class SimuPmacLTPIOController(IORegisterController):
                                            "%d is not allowed axis nr" % axis,
                                            "PmacLTPIOCtrl.GetExtraAttributePar()")            
 
-    def SetExtraAttributePar(self, axis, name, value):
+    def SetAxisExtraPar(self, axis, name, value):
         pass
 #        if name.lower() == 'labels':
 #            PyTango.Except.throw_exception("PmacLTPIOCtrl SerExtraAttributePar() exception",

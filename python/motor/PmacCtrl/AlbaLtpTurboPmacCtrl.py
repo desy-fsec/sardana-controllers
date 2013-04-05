@@ -34,21 +34,24 @@
 
 import PyTango
 from TurboPmacCtrl import TurboPmacController
-from pool import MotorController
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import MotorController
 
 class LtpTurboPmacController(TurboPmacController):
     """This class is the Tango Sardana motor controller for the Turbo Pmac motor controller device in LTP."""
     
     MaxDevice = 2
 
-    ctrl_extra_attributes = dict(TurboPmacController.ctrl_extra_attributes)
-    ctrl_extra_attributes['FeedbackMode'] = {'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}
+    axis_attributes = dict(TurboPmacController.axis_attributes)
+    axis_attributes['FeedbackMode'] = {'Type':int,
+                                       'Access':'ReadOnly'}
 
-    def __init__(self,inst,props):
-        TurboPmacController.__init__(self, inst, props)
-	self.superklass = TurboPmacController    
+    def __init__(self,inst,props,*args,**kwargs):
+        TurboPmacController.__init__(self, inst, props, *args, **kwargs)
+        self.superklass = TurboPmacController
 
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         """ Get Pmac axis particular parameters.
         @param axis to get the parameter
         @param name of the parameter to retrive
@@ -57,24 +60,24 @@ class LtpTurboPmacController(TurboPmacController):
         if name == "FeedbackMode":
             if axis == 1:
                 mode = self.pmacEth.command_inout("OnlineCmd", "I103")
-		if mode == "$3501":
-		    return 1
-		elif mode == "$3503":
-		    return 2
-		else:
-		    self._log.error("While getting feedback mode TurboPmac returned some inconsistent value, please report it to controls division.")
-		    PyTango.Except.throw_exception("Value error",
-					"TurboPmac returned some inconsistent value, please report it to controls division.",
-					"LtpTurboPmacController.GetExtraAttribute()")
+                if mode == "$3501":
+                    return 1
+                elif mode == "$3503":
+                    return 2
+                else:
+                    self._log.error("While getting feedback mode TurboPmac returned some inconsistent value, please report it to controls division.")
+                    PyTango.Except.throw_exception("Value error",
+                                                   "TurboPmac returned some inconsistent value, please report it to controls division.",
+                                                   "LtpTurboPmacController.GetExtraAttribute()")
             if axis == 2:
                 self._log.warning("Various feedback mode feature is reserved only for top axis.")
-		PyTango.Except.throw_exception("Value error",
+                PyTango.Except.throw_exception("Value error",
                                            "Axis nr 2 does not support various feedback mode.",
                                            "LtpTurboPmacController.GetExtraAttribute()")
         else:
             return self.superklass.GetExtraAttributePar(self, axis, name)
 
-    def SetExtraAttributePar(self, axis, name, value):
+    def SetAxisExtraPar(self, axis, name, value):
         """ Set Pmac axis particular parameters.
         @param axis to set the parameter
         @param name of the parameter
