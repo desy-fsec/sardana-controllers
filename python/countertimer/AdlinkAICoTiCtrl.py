@@ -288,10 +288,12 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             if value == "gate":
                 mode = "ExtD:+"
             self.AIDevice["TriggerSources"] = mode
+            self.AIDevice["TriggerInfinite"] = 0
         if name.lower() == "nroftriggers":
             self.AIDevice["NumOfTriggers"] = value
         if name.lower() == "acquisitiontime":
-            self.AIDevice["BufferPeriod"] = value
+            #self.AIDevice["BufferPeriod"] = value # it changes SampleRate, better use ChannelSamplesPerTrigger
+            self.AIDevice["ChannelSamplesPerTrigger"]=long(self.SampleRate*value)
     
     
     def SendToCtrl(self, cmd):
