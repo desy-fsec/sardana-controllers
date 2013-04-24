@@ -281,7 +281,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             if value == -1 or value > maxFrequency: 
                 value = maxFrequency#-1 configures maximum frequency
             rate = long(value)
-            self.AIDevice["samplerate"] = rate
+            #self.AIDevice["samplerate"] = rate #zreszela: uncomment me when it will be possible to change sampling frequency... memory available in the buffer etc..
         if name.lower() == "triggermode":
             if value == "soft":
                 mode = "SOFT"
