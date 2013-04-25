@@ -3,7 +3,7 @@
 import PyTango
 from sardana import State, DataAccess
 from sardana.pool.controller import CounterTimerController
-from sardana.pool.controller import Type, Access, Description, Memorize, NotMemorized
+from sardana.pool.controller import Type, Access, Description, Memorize, NotMemorized, MaxDimSize
 from sardana.tango.core.util import from_tango_state_to_state
 
 def evalState(state):
