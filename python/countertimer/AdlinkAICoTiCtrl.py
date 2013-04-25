@@ -81,7 +81,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                        "Data":
                        {Type : [float],
                         Description : 'Data buffer',
-                        Access : DataAccess.ReadOnly
+                        Access : DataAccess.ReadOnly,
+                        MaxDimSize : (1000000,)
                        }
                       }
 

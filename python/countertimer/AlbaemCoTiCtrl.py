@@ -90,7 +90,8 @@ class AlbaemCoTiCtrl(CounterTimerController):
                                 {'Type':[float],
                                  'Description':'Trigger mode: soft or gate',
                                  'memorized': NotMemorized,
-                                 'R/W Type':'PyTango.READ'
+                                 'R/W Type':'PyTango.READ',
+                                 MaxDimSize : (1000000,)
                                 }
                             }
 
