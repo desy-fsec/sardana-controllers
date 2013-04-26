@@ -1,6 +1,6 @@
 import logging
 import PyTango
-from albaemlib import AlbaEm
+
 
 from sardana import pool
 from sardana.pool import PoolUtil
