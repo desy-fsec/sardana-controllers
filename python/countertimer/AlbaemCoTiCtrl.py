@@ -6,7 +6,7 @@ from sardana import pool
 from sardana.pool import PoolUtil
 from sardana.pool.controller import CounterTimerController
 from sardana.pool import AcqTriggerType
-from sardana.pool.controller import MemorizedNoInit, NotMemorized, Memorized
+from sardana.pool.controller import MemorizedNoInit, NotMemorized, Memorized, MaxDimSize
 
 class AlbaemCoTiCtrl(CounterTimerController):
     """This class is the Sardana CounterTimer controller for the Alba Electrometer adc based counters.
