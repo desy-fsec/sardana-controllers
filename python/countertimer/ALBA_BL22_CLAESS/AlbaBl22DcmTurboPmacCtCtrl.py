@@ -18,7 +18,8 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     START_INDEX = 6000
 
     class_prop = {'TurboPmacDeviceName':{'Description' : 'TurboPmac controller Tango device', 'Type' : 'PyTango.DevString'},
-                  'EnergyDeviceName':{'Description' : 'Energy pseudomotor Tango device', 'Type' : 'PyTango.DevString'}}
+                  'EnergyDeviceName':{'Description' : 'Energy pseudomotor Tango device', 'Type' : 'PyTango.DevString'},
+                  'BraggDeviceName':{'Description' : 'Bragg motor Tango device', 'Type' : 'PyTango.DevString'}}
     
     axis_attributes ={#attributes added for continuous acqusition mode
                       "NrOfTriggers":
@@ -66,6 +67,11 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         except PyTango.DevFailed, e:
             msg += "\n__init__(): Could not create a device proxy from following device name: %s.\nException: %s" % \
                   (self.TurboPmacDeviceName, e)
+        try:
+            self.bragg = PyTango.DeviceProxy(self.BraggDeviceName)
+        except PyTango.DevFailed, e:
+            msg += "\n__init__(): Could not create a device proxy from following device name: %s.\nException: %s" % \
+                  (self.BraggDeviceName, e)
 
         if msg != None:
             self._log.error(msg)
@@ -203,10 +209,12 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             rawCounts = numpy.append(rawCounts, self.pmac.GetPVariableRange(r))
         #translations from raw counts to degrees
         #getting an offset between position and encoder register (offset = 2683367)
+        stepPerUnit = self.bragg.read_attribute('step_per_unit').value
+        braggMotorOffset = self.bragg.read_attribute('offset').value
+        braggMotorOffsetEncCounts = braggMotorOffset*stepPerUnit
         braggPosCounts = float(self.pmac.SendCtrlChar("P").split()[0])
         encRegCounts = float(self.pmac.GetMVariable(101))
-        offset = braggPosCounts - encRegCounts
-        stepPerUnit = 200000
+        offset = braggPosCounts - encRegCounts + braggMotorOffsetEncCounts
         translate = lambda count: (count + offset) / stepPerUnit 
         degrees = [translate(count) for count in rawCounts]
         #degrees = rawCounts
