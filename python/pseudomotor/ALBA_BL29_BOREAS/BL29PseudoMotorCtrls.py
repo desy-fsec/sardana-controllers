@@ -44,35 +44,43 @@ class BL29EnergyMono(PseudoMotorController):
         'lock_mirrors' : {
             Type : bool,
             Description : 'Whether or not allow me to change spherical mirror and/or gratings when asked to go to a given energy',
-            Access : DataAccess.ReadWrite},
+            Access : DataAccess.ReadWrite
+        },
         'heg_sm2_offset' : {
             Type : float,
             Description : 'Offset to apply to the computed energy when HEG grating and SM2 are selected',
-            Access : DataAccess.ReadWrite},
+            Access : DataAccess.ReadWrite
+        },
         'heg_sm1_offset' : {
             Type : float,
             Description : 'Offset to apply to the computed energy when HEG grating and SM1 are selected',
-            Access : DataAccess.ReadWrite},
+            Access : DataAccess.ReadWrite
+        },
         'meg_sm2_offset' : {
             Type : float,
             Description : 'Offset to apply to the computed energy when MEG grating and SM2 are selected',
-            Access : DataAccess.ReadWrite},
+            Access : DataAccess.ReadWrite
+        },
         'meg_sm1_offset' : {
             Type : float,
             Description : 'Offset to apply to the computed energy when MEG grating and SM1 are selected',
-            Access : DataAccess.ReadWrite},
+            Access : DataAccess.ReadWrite
+        },
         'leg_sm2_offset' : {
             Type : float,
             Description : 'Offset to apply to the computed energy when LEG grating and SM2 are selected',
-            Access : DataAccess.ReadWrite},
+            Access : DataAccess.ReadWrite
+        },
         'leg_sm1_offset' : {
             Type : float,
             Description : 'Offset to apply to the computed energy when LEG grating and SM1 are selected',
-            Access : DataAccess.ReadWrite},
+            Access : DataAccess.ReadWrite
+        },
         'ranges' : {
             Type : str,
             Description : 'Energy ranges for each combination of SM and GR',
-            Access : DataAccess.ReadOnly}
+            Access : DataAccess.ReadOnly
+        }
     }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -107,37 +115,11 @@ class BL29EnergyMono(PseudoMotorController):
             self._log.error(msg)
             raise Exception(msg)
 
-        #check that target energy is possible with current mirrors combination
-        range_found = False
-        if (sm_current in Energy.SM_VALID) and (gr_current in Energy.GR_VALID):
-            current_min_energy = Energy.energy_ranges[gr_current][sm_current][0]
-            current_max_energy = Energy.energy_ranges[gr_current][sm_current][1]
-            if (target_energy >= current_min_energy) and (target_energy <= current_max_energy):
-                range_found = True
-                sm_target = sm_current
-                gr_target = gr_current
+        target_reachable, sm_target, gr_target = Energy.check_mirrors(target_energy, sm_current, gr_current)
 
-        #If target energy not possible with current combination, find which
-        #grating and spherical mirrors can give me that energy. If not possible,
-        #then raise exception
-        if not range_found:
-            for i in range(len(Energy.line_spacing)):
-                for j in range(len(Energy.include_angles)):
-                    if (target_energy >= Energy.energy_ranges[i][j][0] and target_energy <= Energy.energy_ranges[i][j][1]):
-                        sm_target = j
-                        gr_target = i
-                        range_found = True
-                        break
-                if range_found:
-                    break
-            else:
-                msg = 'Energy %s out of range in CalcPhysical()' % str(target_energy)
-                self._log.error(msg)
-                raise Exception(msg)
-
-        #if we need to change mirrors then do it if possible
-        if sm_current != sm_target or gr_current != gr_target:
-            #if I'm allowed to change mirrors, then simply move them (but only if if estrictly necessary) 
+        #We need to change mirrors
+        if not target_reachable:
+            #if I'm allowed to change mirrors, then move them 
             if not self.lock_mirrors:
                 try:
                     if sm_current != sm_target:
@@ -160,8 +142,9 @@ class BL29EnergyMono(PseudoMotorController):
                 raise Exception(msg)
             else:
                 msg = \
-                    'Energy %s not possible without changing current mirrors combination. Valid range with '\
-                    'current combination is %s..%s. Unlock mirrors if you want to automatically change them' %\
+                    'Energy %s not possible without changing current mirrors combination.\n'\
+                    'Valid range with current combination is %s..%s.\n' \
+                    'Unlock mirrors if you want to automatically change them' %\
                     (str(target_energy), str(Energy.energy_ranges[gr_current][sm_current][0]), str(Energy.energy_ranges[gr_current][sm_current][1]))
                 self._log.error(msg)
                 raise Exception(msg)
@@ -283,7 +266,8 @@ class BL29EnergyMono(PseudoMotorController):
             Energy.mirrors_offsets[Energy.LEG][Energy.SM2] = value
         elif name == 'leg_sm1_offset':
             Energy.mirrors_offsets[Energy.LEG][Energy.SM1] = value
-
+        elif name == 'ranges':
+            pass
 
 class BL29Energy(PseudoMotorController):
     """
@@ -307,6 +291,18 @@ class BL29Energy(PseudoMotorController):
 
     #controller properties
     ctrl_properties = {
+        'sm_pseudo' : {
+            Type : str,
+            Description : 'The name of the DiscretePseudoMotor to read/select which SM to use'
+        },
+        'gr_pseudo' : {
+            Type : str,
+            Description : 'The name of the DiscretePseudoMotor to read/select which grating to use'
+        }
+    }
+
+    #axis attributes
+    axis_attributes = {
         'tolerance' : {
             Type : float,
             Description : 'Tolerance to consider that both the insertion device and the monochromator are in the same energy',
@@ -324,6 +320,38 @@ class BL29Energy(PseudoMotorController):
         @param **kwargs keyword arguments
         """
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
+        self.sm_selected = PoolUtil.get_device(inst, self.sm_pseudo)
+        self.gr_selected = PoolUtil.get_device(inst, self.gr_pseudo)
+        self.tolerance = 1.0 #default value (will be overwritten if specified)
+
+
+    def check_target(self, target_energy):
+        """
+        Given a target energy, it will check that it is reachable with current
+        mirrors combination. If it isn't it will throw an exception
+        it returns the correct motor position for that motor and energy.
+        @param[in] target_energy - energy to check
+        @throws exception
+        """
+        try:
+            sm_current = self.sm_selected.position
+            gr_current = self.gr_selected.position
+        except:
+            msg = 'Unable to determine SM and/or GR selected'
+            self._log.error(msg)
+            raise Exception(msg)
+
+        #check if target energy is reachable with current mirrors combination
+        target_reachable, sm_target, gr_target = Energy.check_mirrors(target_energy, sm_current, gr_current)
+        if not target_reachable:
+            msg = \
+                'Energy %s not possible for the monochromator without changing current mirrors combination.\n'\
+                'Valid range with current combination is %s..%s.\n' \
+                'Unlock monochromator mirrors if you want to automatically change them' %\
+                (str(target_energy), str(Energy.energy_ranges[gr_current][sm_current][0]), str(Energy.energy_ranges[gr_current][sm_current][1]))
+            self._log.error(msg)
+            raise Exception(msg)
+
 
     def CalcPhysical(self, axis, pseudo_pos, current_physical):
         """
@@ -335,12 +363,24 @@ class BL29Energy(PseudoMotorController):
         @return the correct motor position
         @throws exception
         """
+        #get target energy and check if it is reachable with current mirrors
         target_energy = pseudo_pos[0]
+        self.check_target(target_energy)
 
-        if axis in len(self.motor_roles):
+        if axis in range(1,len(self.motor_roles)+1):
             return target_energy
         else:
             raise Exception('Invalid axis %s to compute energy %s CalcPhysical()' % (str(axis), str(target_energy)))
+
+
+    def CalcAllPhysical(self, pseudo_pos, current_physical):
+        """
+        """
+        #get target energy and check if it is reachable with current mirrors
+        target_energy = pseudo_pos[0]
+        self.check_target(target_energy)
+        return [target_energy, target_energy]
+
 
     def CalcPseudo(self, axis, physical_pos, current_pseudo):
         """
@@ -370,4 +410,31 @@ class BL29Energy(PseudoMotorController):
             self._log.error(msg)
             raise Exception(msg)
 
-        return (energy_id + energy_mono) / 2.0
+        self._log.debug('returning %f' % energy_mono)
+        return energy_mono
+
+    def GetAxisExtraPar(self, axis, name):
+        """
+        Get extra controller parameters. These parameters should actually be
+        controller parameters, but users asked to use them as axis parameters
+        in order to directly use the motor name instead of the controller name
+        to set/get these parameters
+        @param axis to get (always one)
+        @param name of the parameter to retrieve
+        @return the value of the parameter
+        """
+        if name == 'tolerance':
+            return self.tolerance
+
+    def SetAxisExtraPar(self, axis, name, value):
+        """
+        Set extra axis parameters. These parameters should actually be
+        controller parameters, but users asked to use them as axis parameters
+        in order to directly use the motor name instead of the controller name
+        to set/get these parameters
+        @param axis to set (always one)
+        @param name of the parameter to set
+        @param value to be set
+        """
+        if name == 'tolerance':
+            self.tolerance = value
