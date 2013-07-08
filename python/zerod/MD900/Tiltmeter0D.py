@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 
 import PyTango
-from pool import ZeroDController
+
+from sardana import State, DataAccess
+from sardana.pool.controller import ZeroDController
+from sardana.pool.controller import Type, Access, Description
 
 class TiltZeroDController(ZeroDController):
 
     ## The serial port device to connect to
-    class_prop = {'SerialDevice':{'Type':'PyTango.DevString','Description':'The serial port device to connect to'}}
+    ctrl_prop = {'SerialDevice':
+                    {Type : str,
+                     Description : 'The serial port device to connect to',
+                     Access : DataAccess.ReadWrite
+                    }
+                }
     MaxDevice = 3
 
     gender = "0D controller"
@@ -16,8 +24,8 @@ class TiltZeroDController(ZeroDController):
     icon = ""
     logo = "ALBA_logo.png"
 
-    def __init__(self,inst,props):
-        ZeroDController.__init__(self,inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
+        ZeroDController.__init__(self, inst, props, *args, **kwargs)
 
         #Initialize values
         self.values = [0, 0, 0]
@@ -55,7 +63,6 @@ class TiltZeroDController(ZeroDController):
         answer = self.dev.DevSerReadLine()
         while not answer[0] == "$":
             answer = self.dev.DevSerReadLine()
-        print "answer", answer
         self.values = answer.strip("$ \r\n").split(",")
         for i in range(self.MaxDevice):
             self.values[i] = float(self.values[i])
