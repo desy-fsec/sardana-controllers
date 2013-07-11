@@ -329,7 +329,9 @@ class IcepapController(MotorController):
             except Exception,e:
                 self._log.error('ReadAll(%s) Hint: some driver board not present?.\nException:\n%s' % (str(self.positionMultiple),str(e)))
         else:
-            self._log.error('ReadAll(). No connection to %s.' % (self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('ReadAll(). No connection to %s.' % (self.Host))
+            pass
 
     def ReadOne(self,axis):
         """ Read the position of the axis.
@@ -354,7 +356,9 @@ class IcepapController(MotorController):
                 log.error('ReadOne(%s(%d)) Exception:', name, axis, exc_info=1)
                 raise
         else:
-            log.error('ReadOne(%s(%d)). No connection to %s.', name, axis, self.Host)
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #log.error('ReadOne(%s(%d)). No connection to %s.', name, axis, self.Host)
+            pass
         return None
 
     def PreStartAll(self):
@@ -384,7 +388,9 @@ class IcepapController(MotorController):
                 self._log.error('PreStartOne(%d,%f).\nException:\n%s' % (axis,pos,str(e)))
                 raise
         else:
-            self._log.error('PreStartOne(%d,%f). No connection to %s.' % (axis,pos,self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('PreStartOne(%d,%f). No connection to %s.' % (axis,pos,self.Host))
+            pass
         
     def StartOne(self,axis,pos):
         pass
@@ -400,7 +406,9 @@ class IcepapController(MotorController):
                 self._log.error('StartAll(%s).\nException:\n%s' % (str(self.moveMultipleValues),str(e)))
                 raise
         else:
-            self._log.error('StartAll(). No connection to %s.' % (self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('StartAll(). No connection to %s.' % (self.Host))
+            pass
 
     def SetPar(self,axis,name,value):
         """ Set the standard pool motor parameters.
@@ -431,7 +439,9 @@ class IcepapController(MotorController):
                 self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
         else:
-            self._log.error('SetPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('SetPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
+            pass
 
 
     def GetPar(self,axis,name):
@@ -458,7 +468,9 @@ class IcepapController(MotorController):
                 self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
         else:
-            self._log.error('GetPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('GetPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
+            pass
 
         return None
 
@@ -603,7 +615,9 @@ class IcepapController(MotorController):
                 self._log.error('GetAxisExtraPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
         else:
-            self._log.error('GetAxisExtraPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('GetAxisExtraPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
+            pass
 
     def SetAxisExtraPar(self,axis,name,value):
         """ Set Icepap driver particular parameters.
@@ -706,7 +720,9 @@ class IcepapController(MotorController):
                 self._log.error('SetAxisExtraPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
         else:
-            self._log.error('SetAxisExtraPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('SetAxisExtraPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
+            pass
 
 
     def AbortOne(self, axis):
@@ -715,14 +731,18 @@ class IcepapController(MotorController):
             self.iPAP.abort(axis)
             time.sleep(0.050)
         else:
-            self._log.error('AbortOne(%d). No connection to %s.' % (axis,self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('AbortOne(%d). No connection to %s.' % (axis,self.Host))
+            pass
 
     def DefinePosition(self, axis, position):
         if self.iPAP.connected:
             position = long(position * self.attributes[axis]["step_per_unit"])
             self.iPAP.setPosition(axis, position)
         else:
-            self._log.error('DefinePosition(%d,%f). No connection to %s.' % (axis,position,self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('DefinePosition(%d,%f). No connection to %s.' % (axis,position,self.Host))
+            pass
 
 
     #def GOAbsolute(self, axis, finalpos):
@@ -748,7 +768,8 @@ class IcepapController(MotorController):
             if res is not None:
                 return res
         else:
-            self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd, self.Host))
+            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
+            #self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd, self.Host))
             return 'SendToCtrl(%s). No connection to %s.' % (cmd, self.Host)
 
 
