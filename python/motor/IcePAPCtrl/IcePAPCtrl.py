@@ -25,6 +25,7 @@ import socket
 import errno
 import time
 import math
+import numpy
 
 from pyIcePAP import *
 
