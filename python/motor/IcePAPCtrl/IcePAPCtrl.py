@@ -767,6 +767,9 @@ class IcepapController(MotorController):
                 self.iPAP.sendWriteCommand(cmd)
             if res is not None:
                 return res
+            #added by zreszela on 8.02.2013
+            else:
+                return ""
         else:
             # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
             #self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd, self.Host))
