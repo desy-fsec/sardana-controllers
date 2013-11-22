@@ -190,7 +190,11 @@ class HasyMotorCtrl(MotorController):
             elif name == "base_rate":
                 self.proxy[ind-1].write_attribute("BaseRate",long(value))
             elif name == "velocity":
-                self.proxy[ind-1].write_attribute("SlewRate",long(value))
+                try:
+                    self.proxy[ind-1].write_attribute("SlewRate",long(value))
+                    self.proxy[ind-1].write_attribute("SlewDouble",float(value))
+                except:
+                    self.proxy[ind-1].write_attribute("SlewRate",long(value))
             elif name == "step_per_unit":
                 self.proxy[ind-1].write_attribute("Conversion",value)
             
@@ -204,7 +208,10 @@ class HasyMotorCtrl(MotorController):
             elif name == "base_rate":
                 v = self.proxy[ind-1].read_attribute("BaseRate").value
             elif name == "velocity":
-                v = self.proxy[ind-1].read_attribute("SlewRate").value
+                try:
+                    v = self.proxy[ind-1].read_attribute("SlewDouble").value
+                except:
+                    v = self.proxy[ind-1].read_attribute("SlewRate").value
             elif name == "step_per_unit":
                 v = self.proxy[ind-1].read_attribute("Conversion").value
         return v
