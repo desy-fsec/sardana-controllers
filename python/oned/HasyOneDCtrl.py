@@ -114,8 +114,8 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.StartOne",self.inst_name,"index",ind
         if self.flagIsMCA8715[ind-1]:
             self.proxy[ind-1].BankId = 0
-        if self.proxy[ind-1].state() != PyTango.DevState.ON:
-            self.proxy[ind-1].command_inout("Stop")
+        # the state may be ON but one bank can be active
+        self.proxy[ind-1].command_inout("Stop")
         self.proxy[ind-1].command_inout("Clear")
         self.proxy[ind-1].command_inout("Start")
         
