@@ -725,9 +725,37 @@ class IcepapController(MotorController):
             pass
 
 
+    def StopOne(self, axis):
+        if self.iPAP.connected: 
+            self.iPAP.stop(axis)
+            time.sleep(0.050) # not sure about that, 
+                              # it comes from AbortOne implementation
+            # due to the IcePAP firmware bug: 
+            # axes with velocity to acceleration time factor less that 18
+            # are not stoppable
+            try:
+                vel = float(self.iPAP.getSpeed(axis))
+                acc = float(self.iPAP.getAcceleration(axis))
+                factor = vel / acc
+            except Exception, e:
+                msg = 'Problems while trying to determine velocity to ' + \
+                      'acceleration factor'
+                self._log.error('StopOne(%d): %s. Trying to abort...' % \
+                                                                    (axis,msg))
+                self._log.debug(e)
+                self.AbortOne(axis)
+                raise Exception(msg)
+            if factor < 18:
+                self.AbortOne(axis)
+        else:
+            # To provent huge logs, do not log this error until log levels can 
+            # be changed in per-controller basis
+            # self._log.error('StopOne(%d). No connection to %s.' % \
+            #                                                 (axis,self.Host))
+            pass
+
     def AbortOne(self, axis):
         if self.iPAP.connected:
-            #self.iPAP.abortMotor(axis)
             self.iPAP.abort(axis)
             time.sleep(0.050)
         else:

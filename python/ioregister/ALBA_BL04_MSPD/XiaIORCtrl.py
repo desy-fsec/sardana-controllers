@@ -84,11 +84,18 @@ class XiaIORController(IORegisterController):
             if axis != 1:
                 raise Exception("enabled attribute is not allowed for axis %d." % axis)
             else:
-                dev_response = self.device.read_attribute("PF2S2_Shutter_Status").value
-                if dev_response.find("Disabled") == -1:
+                value = False
+                try:
+                    dev_response = self.device.read_attribute("PF2S2_Shutter_Status").value
+                except PyTango.DevFailed, e:
+                    self._log.warning(e)
+                #possible responses:
+                #+) indicates remote control enabled
+                #   '%PFCU15 OK Shutter is Closed DONE;\r\n' 
+                #+) indicates remote control disabled
+                #   '%PFCU15 ERROR: Shutter Mode Disabled;\r\n'
+                if dev_response.find("OK") != -1:
                     value = True
-                else:
-                    value = False
         return value
 
 
