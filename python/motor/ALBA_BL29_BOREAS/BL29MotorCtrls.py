@@ -124,7 +124,7 @@ class BL29XMCDVectorMagnet(MotorController):
         """
         self.state = from_tango_state_to_state(self.dev.state())
         self.status = str(self.state)
-        self.last_update = now
+        self.last_update = time.time()
 
     def StateOne(self, axis):
         """ Get state from hardware for a single axis

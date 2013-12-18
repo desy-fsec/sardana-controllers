@@ -8,15 +8,6 @@ from sardana.pool.controller import Type, Access, Description
 
 class TiltZeroDController(ZeroDController):
 
-    ## The serial port device to connect to
-    ctrl_prop = {'SerialDevice':
-                    {Type : str,
-                     Description : 'The serial port device to connect to',
-                     Access : DataAccess.ReadWrite
-                    }
-                }
-    MaxDevice = 3
-
     gender = "0D controller"
     model  = "MD900 Tiltmeter"
     organization = "CELLS - ALBA"
@@ -24,11 +15,42 @@ class TiltZeroDController(ZeroDController):
     icon = ""
     logo = "ALBA_logo.png"
 
+    MaxDevice = 3
+
+    # The serial port device to connect to
+    ctrl_properties = {
+        'SerialDevice': {
+            Type : str,
+            Description : 'The serial port device to connect to',
+            Access : DataAccess.ReadOnly
+        }
+    }
+
+    axis_attributes = {
+        'step_per_unit' : {
+                Type         : float,
+                Description  : 'Factor to convert to user units',
+                Access : DataAccess.ReadWrite,
+        },
+        'offset' : {
+                Type         : float,
+                Description  : 'Offset in user units',
+                Access : DataAccess.ReadWrite,
+        },
+        'current_raw_value' : {
+                Type         : float,
+                Description  : 'Current raw value from the hardware',
+                Access : DataAccess.ReadOnly,
+        }
+    }
+
     def __init__(self, inst, props, *args, **kwargs):
         ZeroDController.__init__(self, inst, props, *args, **kwargs)
 
         #Initialize values
-        self.values = [0, 0, 0]
+        self.values = [0.0, 0.0, 0.0]
+        self.steps_per_unit = [1.0, 1.0, 1.0]
+        self.offsets = [0.0, 0.0, 0.0]
 
         #connect to serial device
         self.dev = PyTango.DeviceProxy(self.SerialDevice)
@@ -67,5 +89,20 @@ class TiltZeroDController(ZeroDController):
         for i in range(self.MaxDevice):
             self.values[i] = float(self.values[i])
 
-    def ReadOne(self,ind):
-        return self.values[ind-1]
+    def ReadOne(self,axis):
+        return self.values[axis-1]/self.steps_per_unit[axis-1] + self.offsets[axis-1]
+
+    def GetAxisExtraPar(self, axis, parameter):
+        if parameter == 'step_per_unit':
+            return self.steps_per_unit[axis-1]
+        elif parameter == 'offset':
+            return self.offsets[axis-1]
+        elif parameter == 'current_raw_value':
+            self.ReadAll()
+            return self.values[axis-1]
+
+    def SetAxisExtraPar(self, axis, parameter, value):
+        if parameter == 'step_per_unit':
+            self.steps_per_unit[axis-1] = value
+        elif parameter == 'offset':
+            self.offsets[axis-1] = value
