@@ -75,8 +75,8 @@ class ElcomatCTCtrl(CounterTimerController):
             self.attr2read = []
             self.attrValues = []
             self.__loadOne = False
-        except:
-            self._log.error("%s::__init__() Exception"%(self.kls))
+        except Exception, e:
+            self._log.error("%s::__init__() Exception: %s" % (self.kls, str(e)))
         import logging
         self._log.setLogLevel(logging.DEBUG)
 
@@ -90,15 +90,15 @@ class ElcomatCTCtrl(CounterTimerController):
 
     def StateAll(self):
         try:
-            self.ctrlState = [self._devProxy.State(),""]
+            self.ctrlState = (self._devProxy.State(),"")
             if self.ctrlState[0] == PyTango.DevState.RUNNING:
-                self.ctrlState[0] = PyTango.DevState.MOVING
+                self.ctrlState = (PyTango.DevState.MOVING, self.ctrlState[1])
         except Exception,e:
-            self.ctrlState = [PyTango.DevState.DISABLE,str(e)]
+            self.ctrlState = (PyTango.DevState.DISABLE,str(e))
 
     def StateOne(self,axis):
         if axis > len(self.attrList)+1:
-            return PyTango.DevState.DISABLE,"Out of range, review attrList"
+            return (PyTango.DevState.DISABLE,"Out of range, review attrList")
         else:
             return self.ctrlState
 
