@@ -16,7 +16,9 @@ class HasyDACCtrl(MotorController):
 
 
     axis_attributes = {'VoltageMax':{Type:float,Access:ReadWrite},
-                       'VoltageMin':{Type:float,Access:ReadWrite}}
+                       'VoltageMin':{Type:float,Access:ReadWrite},
+                       'TangoDevice':{Type:str,Access:ReadOnly}, # used for handling limits between TanoServer and PoolDevice
+                       }
 
 			     
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'}}
@@ -104,6 +106,8 @@ class HasyDACCtrl(MotorController):
                 return float(self.proxy[ind-1].read_attribute("VoltageMax").value)
             elif name == "VoltageMin":
                 return float(self.proxy[ind-1].read_attribute("VoltageMin").value)
+            elif name == "TangoDevice":
+                return str(self.proxy[ind-1].name())
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.device_available[ind-1]:
