@@ -345,10 +345,8 @@ class bragg(PseudoMotorController):
         print("Pseudo is at {0}".format(pseudo_current_pos))
         print("\n")
         
-        # We define +-2 as a given tolerance for small movements. 
+        # We define a given tolerance for small movements. 
         # Bigger movements will be rejected with an Exception.
-        # TODO: This should be done with a property of the controller.
-        # (...or an attribute of the motor...)
         if (increment_pseudo_position) <= self.bragg_tolerance: 
             pass
         else:
