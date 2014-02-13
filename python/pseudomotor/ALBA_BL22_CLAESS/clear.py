@@ -260,6 +260,15 @@ class bragg(PseudoMotorController):
     pseudo_motor_roles = ["theta"]
     motor_roles = ["rota", "rots", "rotd", "ya", "yd", "zd", "b1", "b2"]
     
+    # Introduce controller properties here.
+    ctrl_properties = { 'bragg_tolerance' : {'Type':'PyTango.DevFloat', 
+                                    'Description':'Tolerance given to ' + 
+                                    'Bragg angle taken into account in the' + 
+                                    'small movement validation, to approach ' +
+                                    'as much as possible the trajectory ' +
+                                    'given by the pseudomotor equations'
+                                    }, } 
+                                                                            
     # Introduce attributes in here.
     axis_attributes = { 'offset_sample_clear' : { Type : float,
                                      Access : DataAccess.ReadWrite,
@@ -267,24 +276,28 @@ class bragg(PseudoMotorController):
                                      'external wall of Clear in Y direction' },
 
                         'my' : { Type : float,
-                                 Access : DataAccess.ReadWrite,
+                                 Access : DataAccess.ReadWrite,  
                                  Description : 'y slope coefficient for ' +
-                                                    'detector correction' }, 
+                                                    'detector correction' 
+                                 }, 
 
                         'oy' : { Type : float,
                                  Access : DataAccess.ReadWrite,
                                  Description : 'z slope coefficient for ' +
-                                                    'detector correction'},
+                                                    'detector correction'
+                                 },
 
                         'mz' : { Type : float,
                                  Access : DataAccess.ReadWrite,
                                  Description : 'x offset coefficient ' +
-                                                    'for detector correction'},
+                                                    'for detector correction'
+                                 },
 
                         'oz' : { Type : float,
                                  Access : DataAccess.ReadWrite,
                                  Description : 'z offset coefficient ' +
-                                                  'for detector correction'},}
+                                                  'for detector correction'
+                                 },}
 
     """ Konstantin said: Limit angles: from 35 to 80 degrees. 
         From papers: the most interesting is from 55 and 80 degrees because for
@@ -302,19 +315,47 @@ class bragg(PseudoMotorController):
 
         # R is the radius of the Rowland circle in meters.        
         self.R = 500
- 
+         
         """ Initialize attributes here.
-         Correction coefficients introduced by Laura for the 
-         detector: my, mz, oy, oz. Used as attributes. """
-        self.my = 0.0
-        self.mz = 0.0
-        self.oy = 0.0
-        self.oz = 0.0
-        self.offset_sample_clear = 350.0
+         Correction coefficients introduced by scientist for the detector
+         position correction : my, mz, oy, oz. Used as attributes. """
+        
+        if not hasattr(self, 'my'):
+            self.my = 0.0
+        if not hasattr(self, 'oy'):
+            self.oy = 0.0
+        if not hasattr(self, 'mz'):
+            self.mz = 0.0 
+        if not hasattr(self, 'oz'):
+            self.oz = 0.0 
+        if not hasattr(self, 'offset_sample_clear'):
+            self.offset_sample_clear = 350.0
 
     # Calculation of input motors values.
     def CalcPhysical(self, index, pseudo_pos, curr_physical_pos):	
         """Bragg angle"""
+                    
+        """ STEP 2: Validation of small movements in order to approach the
+        trajectory defined by the equations:"""
+        pseudo_current_pos = self.GetPseudoMotor("theta").get_position().value
+        inc = pseudo_pos[0] - pseudo_current_pos
+        increment_pseudo_position = abs(inc)
+        print("\n")
+        print("Sending the pseudo to {0} position".format(pseudo_pos[0]))
+        print("Pseudo is at {0}".format(pseudo_current_pos))
+        print("\n")
+        
+        # We define +-2 as a given tolerance for small movements. 
+        # Bigger movements will be rejected with an Exception.
+        # TODO: This should be done with a property of the controller.
+        # (...or an attribute of the motor...)
+        if (increment_pseudo_position) <= self.bragg_tolerance: 
+            pass
+        else:
+            raise Exception('Bigger movements than {0} degrees for Bragg angle pseudomotor will be rejected.'.format(self.bragg_tolerance))     
+        """ End of STEP 2 Validation """
+        
+            
         theta = pseudo_pos[0] 
         theta_rad = theta*3.141592/180.0
 
@@ -329,6 +370,7 @@ class bragg(PseudoMotorController):
         analyzer (set to 0 for this pseudo)."""
 
         ya= 2*self.R*math.sin(theta_rad)
+
 
         # rota: Rotation Analyzer
         if index==1:
