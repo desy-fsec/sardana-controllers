@@ -297,6 +297,10 @@ class bragg(PseudoMotorController):
                                  Access : DataAccess.ReadWrite,
                                  Description : 'z offset coefficient ' +
                                                   'for detector correction'
+                                 },
+                        'lastPos' : { Type : float,
+                                 Access : DataAccess.ReadWrite,
+                                 Description : 'last position set ' 
                                  },}
 
     """ Konstantin said: Limit angles: from 35 to 80 degrees. 
@@ -330,32 +334,74 @@ class bragg(PseudoMotorController):
             self.oz = 0.0 
         if not hasattr(self, 'offset_sample_clear'):
             self.offset_sample_clear = 350.0
+        if not hasattr(self, 'lastPos'):
+            self.lastPos = 82.
 
+    def CalcAllPhysical(self, pseudo_pos, curr_physical_pos):
+        print self.lastPos
+        print pseudo_pos
+        print("\n")
+        print("Calculating if the motors are in correct position")
+        print("\n")
+        position_tolerance = 0.01
+        print self.motor_roles
+        print curr_physical_pos
+        msg = ''
+        revise = []
+        
+        for i in range(len(self.motor_roles)):
+ 
+            virtualPos = self.CalcPhysical(i+1, self.lastPos, curr_physical_pos, True)
+            #revise.append(pos)
+            name= self.motor_roles[i]
+            current = curr_physical_pos[i]
+            print "%s, current %f, should be %f, last position of bragg pseudo %f" %(name,current,virtualPos,self.lastPos)
+            if (abs(virtualPos - current) > position_tolerance):
+                msg +='The physical motor for the role %s is in a wrong position, current : %f, should be: %f\n' %(name, current, virtualPos)
+        if msg != '':          
+            print msg
+            raise Exception(msg)   
+        
+        self.lastPos =  pseudo_pos[0]
+        
+
+        ret = []
+        for i in range(len(self.motor_roles)):
+            pos = self.CalcPhysical(i+1, pseudo_pos, curr_physical_pos)
+            ret.append(pos)
+        return ret
+
+       
+        
     # Calculation of input motors values.
-    def CalcPhysical(self, index, pseudo_pos, curr_physical_pos):	
+    def CalcPhysical(self, index, pseudo_pos, curr_physical_pos, comprove = False):	
         """Bragg angle"""
                     
         """ STEP 2: Validation of small movements in order to approach the
         trajectory defined by the equations:"""
-        pseudo_current_pos = self.GetPseudoMotor("theta").get_position().value
-        inc = pseudo_pos[0] - pseudo_current_pos
-        increment_pseudo_position = abs(inc)
-        print("\n")
-        print("Sending the pseudo to {0} position".format(pseudo_pos[0]))
-        print("Pseudo is at {0}".format(pseudo_current_pos))
-        print("\n")
+        theta = pseudo_pos
+        if comprove == False:
+          pseudo_current_pos = self.GetPseudoMotor("theta").get_position().value
+          inc = pseudo_pos[0] - pseudo_current_pos
+          increment_pseudo_position = abs(inc)
+          print("\n")
+          print("Sending the pseudo to {0} position".format(pseudo_pos[0]))
+          print("Pseudo is at {0}".format(pseudo_current_pos))
+          print("\n")
         
-        # We define a given tolerance for small movements. 
-        # Bigger movements will be rejected with an Exception.
-        if (increment_pseudo_position) <= self.bragg_tolerance: 
-            pass
-        else:
-            raise Exception('Bigger movements than {0} degrees for Bragg angle pseudomotor will be rejected.'.format(self.bragg_tolerance))     
-        """ End of STEP 2 Validation """
+          # We define +-2 as a given tolerance for small movements. 
+          # Bigger movements will be rejected with an Exception.
+          # TODO: This should be done with a property of the controller.
+          # (...or an attribute of the motor...)
+          if (increment_pseudo_position) <= self.bragg_tolerance: 
+              pass
+          else:
+              pass
+              #raise Exception('Bigger movements than {0} degrees for Bragg angle pseudomotor will be rejected.'.format(self.bragg_tolerance))     
+          """ End of STEP 2 Validation """ 
+          theta = pseudo_pos[0] 
         
-            
-        theta = pseudo_pos[0] 
-        theta_rad = theta*3.141592/180.0
+        theta_rad = theta*math.pi/180.0
 
         alpha_rad = math.pi/2.0 - theta_rad
         alpha = alpha_rad*180.0/math.pi
@@ -368,7 +414,6 @@ class bragg(PseudoMotorController):
         analyzer (set to 0 for this pseudo)."""
 
         ya= 2*self.R*math.sin(theta_rad)
-
 
         # rota: Rotation Analyzer
         if index==1:
