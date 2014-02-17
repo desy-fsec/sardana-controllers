@@ -39,7 +39,7 @@ import math
    
 
 
-class EnergyOut(PseudoMotorController):
+class EnergyOutController(PseudoMotorController):
     """An EnergyOut pseudomotorController (taking as physical motor the 
        bragg pseudoMotor) for handling Clear Eout pseudomotor."""
 
@@ -248,7 +248,7 @@ class LinearRotController(PseudoMotorController):
 
 
     
-class bragg(PseudoMotorController):
+class BraggController(PseudoMotorController):
     """A bragg pseudo motor controller for handling Clear theta pseudomotor."""
     """bragg=theta """
 
@@ -389,15 +389,10 @@ class bragg(PseudoMotorController):
           print("Pseudo is at {0}".format(pseudo_current_pos))
           print("\n")
         
-          # We define +-2 as a given tolerance for small movements. 
-          # Bigger movements will be rejected with an Exception.
-          # TODO: This should be done with a property of the controller.
-          # (...or an attribute of the motor...)
           if (increment_pseudo_position) <= self.bragg_tolerance: 
               pass
           else:
-              pass
-              #raise Exception('Bigger movements than {0} degrees for Bragg angle pseudomotor will be rejected.'.format(self.bragg_tolerance))     
+              raise Exception('Bigger movements than {0} degrees for Bragg angle pseudomotor will be rejected.'.format(self.bragg_tolerance))     
           """ End of STEP 2 Validation """ 
           theta = pseudo_pos[0] 
         
