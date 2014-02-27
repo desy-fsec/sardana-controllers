@@ -26,7 +26,7 @@ class LimaCCDCtrl(TwoDController):
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
-        TwoDController.__init__(self,inst,props *args, **kwargs)
+        TwoDController.__init__(self,inst,props, *args, **kwargs)
         print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "LimaCCDCtrl/" + self.inst_name
