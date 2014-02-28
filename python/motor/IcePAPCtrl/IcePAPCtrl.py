@@ -568,8 +568,13 @@ class IcepapController(MotorController):
                     ans = self.iPAP.getVStatus(axis)
                     return str(ans)
                 elif name.startswith('status'):
+                    
+                    #We apply getStatusFromBoard to update all status
+                    self.attributes[axis]['status_value'] = self.iPAP.getStatusFromBoard(axis)                    
+                    
                     #register = self.iPAP.getStatusFromBoard(axis)
-                    register = self.attributes[axis]["status_value"]
+                    register = self.attributes[axis]['status_value']
+                    
                     if register == None:
                         register = self.iPAP.getStatusFromBoard(axis)
                     status_dict = self.iPAP.decodeStatus(register)
