@@ -91,22 +91,22 @@ class EnergyOutController(PseudoMotorController):
             the position of the IORegister managing the change of crystal. 
             0.5430710nm is specific for the Silicon and 0.56579nm is specific
             for the Germanium."""
-        if self.crystal.value == 0: #Silicon crystal
+        if self.crystal.Position == 0: #Silicon crystal
             self.a = 0.0000005430710 
             self.h = 1
             self.k = 1
             self.l = 1
-        elif self.crystal.value == 1: #Silicon crystal
+        elif self.crystal.Position == 1: #Silicon crystal
             self.a = 0.0000005430710 
             self.h = 2
             self.k = 2
             self.l = 0
-        elif self.crystal.value == 2: #Silicon crystal
+        elif self.crystal.Position == 2: #Silicon crystal
             self.a = 0.0000005430710 
             self.h = 4
             self.k = 0
             self.l = 0 
-        elif self.crystal.value == 3: #Germanium crystal
+        elif self.crystal.Position == 3: #Germanium crystal
             self.a = 0.000000565791 
             self.h = 1
             self.k = 1
@@ -136,22 +136,22 @@ class EnergyOutController(PseudoMotorController):
            'd' is the distance between planes of crystalline structure."""
 
 
-        if self.crystal.value == 0: #Silicon crystal
+        if self.crystal.Position == 0: #Silicon crystal
             self.a = 0.0000005430710 
             self.h = 1
             self.k = 1
             self.l = 1
-        elif self.crystal.value == 1: #Silicon crystal
+        elif self.crystal.Position == 1: #Silicon crystal
             self.a = 0.0000005430710 
             self.h = 2
             self.k = 2
             self.l = 0
-        elif self.crystal.value == 2: #Silicon crystal
+        elif self.crystal.Position == 2: #Silicon crystal
             self.a = 0.0000005430710 
             self.h = 4
             self.k = 0
             self.l = 0 
-        elif self.crystal.value == 3: #Germanium crystal
+        elif self.crystal.Position == 3: #Germanium crystal
             self.a = 0.000000565791 
             self.h = 1
             self.k = 1
@@ -298,7 +298,8 @@ class BraggController(PseudoMotorController):
                                  Description : 'z offset coefficient ' +
                                                   'for detector correction'
                                  },
-                        'lastPos' : { Type : float,
+
+                        'lastPos' : {Type : float, 
                                  Access : DataAccess.ReadWrite,
                                  Description : 'last position set ' 
                                  },}
@@ -337,23 +338,46 @@ class BraggController(PseudoMotorController):
         if not hasattr(self, 'lastPos'):
             self.lastPos = 82.
 
+
     def CalcAllPhysical(self, pseudo_pos, curr_physical_pos):
+            
+        """ STEP 1: Validation of small movements in order to approach the
+        trajectory defined by the equations:"""
+        motor =self.GetPseudoMotor("theta")
+        pseudo_current_pos = motor.get_position().value
+        motor_proxy = PyTango.DeviceProxy(motor.full_name)
+        inc = pseudo_pos[0] - pseudo_current_pos
+        increment_pseudo_position = abs(inc)
+        
+
+        print("\n")
+        print("Sending the pseudo to {0} position".format(pseudo_pos[0]))
+        print("Pseudo is at {0}".format(pseudo_current_pos))
+        print("\n")
+        
+        if (increment_pseudo_position) > self.bragg_tolerance: 
+            raise Exception('Bigger movements than {0} degrees for Bragg angle pseudomotor will be rejected.'.format(self.bragg_tolerance))     
+        """ End of STEP 1 Validation """
+    
+    
+        """ STEP 2: Validation of physical positions according to last set
+        pseudo positon """
         print self.lastPos
         print pseudo_pos
         print("\n")
         print("Calculating if the motors are in correct position")
         print("\n")
-        position_tolerance = 0.01
-        print self.motor_roles
+        position_tolerance = 0.03
+        #print self.motor_roles
         print curr_physical_pos
         msg = ''
         revise = []
-        
+                
         for i in range(len(self.motor_roles)):
- 
-            virtualPos = self.CalcPhysical(i+1, self.lastPos, curr_physical_pos, True)
+            virtualPos = self.CalcPhysical(i+1, [self.lastPos], curr_physical_pos, True)
             #revise.append(pos)
-            name= self.motor_roles[i]
+            #name= self.motor_roles[i]
+            name= self.GetMotor(self.motor_roles[i])
             current = curr_physical_pos[i]
             print "%s, current %f, should be %f, last position of bragg pseudo %f" %(name,current,virtualPos,self.lastPos)
             if (abs(virtualPos - current) > position_tolerance):
@@ -361,14 +385,15 @@ class BraggController(PseudoMotorController):
         if msg != '':          
             print msg
             raise Exception(msg)   
-        
-        self.lastPos =  pseudo_pos[0]
-        
+        """ End of STEP 2 Validation """
 
         ret = []
         for i in range(len(self.motor_roles)):
             pos = self.CalcPhysical(i+1, pseudo_pos, curr_physical_pos)
             ret.append(pos)
+            
+        self.lastPos = pseudo_pos[0]
+        motor_proxy.write_attribute('lastPos',self.lastPos)
         return ret
 
        
@@ -376,26 +401,8 @@ class BraggController(PseudoMotorController):
     # Calculation of input motors values.
     def CalcPhysical(self, index, pseudo_pos, curr_physical_pos, comprove = False):	
         """Bragg angle"""
-                    
-        """ STEP 2: Validation of small movements in order to approach the
-        trajectory defined by the equations:"""
-        theta = pseudo_pos
-        if comprove == False:
-          pseudo_current_pos = self.GetPseudoMotor("theta").get_position().value
-          inc = pseudo_pos[0] - pseudo_current_pos
-          increment_pseudo_position = abs(inc)
-          print("\n")
-          print("Sending the pseudo to {0} position".format(pseudo_pos[0]))
-          print("Pseudo is at {0}".format(pseudo_current_pos))
-          print("\n")
-        
-          if (increment_pseudo_position) <= self.bragg_tolerance: 
-              pass
-          else:
-              raise Exception('Bigger movements than {0} degrees for Bragg angle pseudomotor will be rejected.'.format(self.bragg_tolerance))     
-          """ End of STEP 2 Validation """ 
-          theta = pseudo_pos[0] 
-        
+
+        theta = pseudo_pos[0]
         theta_rad = theta*math.pi/180.0
 
         alpha_rad = math.pi/2.0 - theta_rad
@@ -487,6 +494,8 @@ class BraggController(PseudoMotorController):
             self.oz = value
         elif (parameter == 'offset_sample_clear'):
             self.offset_sample_clear = value
+        elif (parameter == 'lastPos'):
+            self.lastPos = value
       
     # Introduce here attribute getter.
     def GetAxisExtraPar(self, axis, parameter):
@@ -500,6 +509,8 @@ class BraggController(PseudoMotorController):
             return self.oz
         elif (parameter == 'offset_sample_clear'):
             return self.offset_sample_clear
+        elif (parameter == 'lastPos'):
+            return self.lastPos
         else:
             return 1
 
