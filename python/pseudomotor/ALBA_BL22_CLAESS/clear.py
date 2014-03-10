@@ -335,8 +335,6 @@ class BraggController(PseudoMotorController):
             self.oz = 0.0 
         if not hasattr(self, 'offset_sample_clear'):
             self.offset_sample_clear = 350.0
-        if not hasattr(self, 'lastPos'):
-            self.lastPos = 82.
 
 
     def CalcAllPhysical(self, pseudo_pos, curr_physical_pos):
