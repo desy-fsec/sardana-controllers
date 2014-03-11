@@ -121,7 +121,7 @@ class EnergyOutController(PseudoMotorController):
         if value > 1 or value < -1:
             msg = 'It is not possible to set this energy: %6.2f eV' % energy
             raise Exception(msg)
-        theta_rad= math.asin(alfa) 
+        theta_rad= math.asin(value) 
         theta = theta_rad * 180.0 / math.pi
         
         bragg = theta
