@@ -93,33 +93,39 @@ class EnergyOutController(PseudoMotorController):
             for the Germanium."""
         if self.crystal.Position == 0: #Silicon crystal
             self.a = 0.0000005430710 
-            self.h = 1
-            self.k = 1
-            self.l = 1
+            self.h = 1.0
+            self.k = 1.0
+            self.l = 1.0
         elif self.crystal.Position == 1: #Silicon crystal
             self.a = 0.0000005430710 
-            self.h = 2
-            self.k = 2
-            self.l = 0
+            self.h = 2.0
+            self.k = 2.0
+            self.l = 0.0
         elif self.crystal.Position == 2: #Silicon crystal
             self.a = 0.0000005430710 
-            self.h = 4
-            self.k = 0
-            self.l = 0 
+            self.h = 4.0
+            self.k = 0.0
+            self.l = 0.0
         elif self.crystal.Position == 3: #Germanium crystal
             self.a = 0.000000565791 
-            self.h = 1
-            self.k = 1
-            self.l = 1
+            self.h = 1.0
+            self.k = 1.0
+            self.l = 1.0
 
         energy = pseudo_pos[0]
         lambdas = self.hc / energy 
         
         sq = (self.h)**2 + (self.k)**2 + (self.l)**2
-        theta_rad= math.asin(lambdas * self.n * math.sqrt(sq) / (2 * self.a)) 
+        sqrt = math.sqrt(sq)
+        value = (lambdas * self.n * sqrt)/ (2.0 * self.a)
+        if value > 1 or value < -1:
+            msg = 'It is not possible to set this energy: %6.2f eV' % energy
+            raise Exception(msg)
+        theta_rad= math.asin(alfa) 
         theta = theta_rad * 180.0 / math.pi
+        
         bragg = theta
-
+        
         #self._log.debug("CalcPhysical is being executed")
         ret = bragg
         return ret
