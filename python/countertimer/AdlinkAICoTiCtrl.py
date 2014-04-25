@@ -216,6 +216,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             raise
         bufferSize = int(self.integrationTime * self.SampleRate)
         try:
+            self.AIDevice['TriggerSources'] = 'SOFT'
             self.AIDevice['NumOfTriggers'] = 1
             self.AIDevice['TriggerInfinite'] = 0    
             self.AIDevice['SampleRate'] = self.SampleRate
@@ -249,9 +250,14 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             acqTime = self.AIDevice["BufferPeriod"].value
             return acqTime
         if name.lower() == "data":
-            rawValues = self.AIDevice["C0%d_MeanValues" % (axis - 2)].value
-            values = [eval(self.formulas[axis]) for value in rawValues]
-            return values
+            if axis == 1:
+                numOfTriggers = self.AIDevice["NumOfTriggers"].value
+                integrationTime = self.AIDevice["BufferPeriod"].value
+                return [integrationTime] * numOfTriggers
+            else:
+                rawValues = self.AIDevice["C0%d_MeanValues" % (axis - 2)].value
+                values = [eval(self.formulas[axis]) for value in rawValues]
+                return values
         #if name.lower() == "data":
             #data = []
             #values = self.AIDevice["C0%d_ChannelValues" % (axis -2)].value
@@ -267,34 +273,45 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
     def SetAxisExtraPar(self,axis, name, value):
         #self.set_extra_attribute_par(axis, name, value) #todo Ask to zibi what is this!!
-        if name.lower() == "formula":
+        name = name.lower()
+        if name == "formula":
             self.formulas[axis] = value
 
-        if name.lower() == "sharedformula":
+        elif name == "sharedformula":
             self.sharedFormula[axis] = value
             if value:
                 for i in self.formulas:
                     self.formulas[i] = self.formulas[axis]
 
         #attributes used for continuous acquisition
-        if name.lower() == "samplingfrequency":
-            maxFrequency = 500000
-            if value == -1 or value > maxFrequency: 
-                value = maxFrequency#-1 configures maximum frequency
-            rate = long(value)
-            #self.AIDevice["samplerate"] = rate #zreszela: uncomment me when it will be possible to change sampling frequency... memory available in the buffer etc..
-        if name.lower() == "triggermode":
-            if value == "soft":
-                mode = "SOFT"
-            if value == "gate":
-                mode = "ExtD:+"
-            self.AIDevice["TriggerSources"] = mode
-            self.AIDevice["TriggerInfinite"] = 0
-        if name.lower() == "nroftriggers":
-            self.AIDevice["NumOfTriggers"] = value
-        if name.lower() == "acquisitiontime":
-            #self.AIDevice["BufferPeriod"] = value # it changes SampleRate, better use ChannelSamplesPerTrigger
-            self.AIDevice["ChannelSamplesPerTrigger"]=long(self.AIDevice['SampleRate'].value * value)
+        elif name in ["samplingfrequency", "triggermode", "nroftriggers",
+                      "acquisitiontime"]:
+            # stopping Tango device, otherwise configuration won't be 
+            # possible
+            try:
+                state = self.AIDevice.state()
+                if state in [PyTango.DevState.RUNNING, PyTango.DevState.ON]:
+                    self.AIDevice.stop()
+            except PyTango.DevFailed, e:
+                raise e
+            if name == "samplingfrequency":
+                maxFrequency = 500000
+                if value == -1 or value > maxFrequency: 
+                    value = maxFrequency#-1 configures maximum frequency
+                rate = long(value)
+                #self.AIDevice["samplerate"] = rate #zreszela: uncomment me when it will be possible to change sampling frequency... memory available in the buffer etc..
+            elif name == "triggermode":
+                if value == "soft":
+                    mode = "SOFT"
+                if value == "gate":
+                    mode = "ExtD:+"
+                self.AIDevice["TriggerSources"] = mode
+                self.AIDevice["TriggerInfinite"] = 0
+            elif name == "nroftriggers":
+                self.AIDevice["NumOfTriggers"] = value
+            elif name == "acquisitiontime":
+                #self.AIDevice["BufferPeriod"] = value # it changes SampleRate, better use ChannelSamplesPerTrigger
+                self.AIDevice["ChannelSamplesPerTrigger"]=long(self.AIDevice['SampleRate'].value * value)
     
     
     def SendToCtrl(self, cmd):
