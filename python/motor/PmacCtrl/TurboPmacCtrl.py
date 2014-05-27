@@ -223,43 +223,41 @@ class TurboPmacController(MotorController):
     
     def StateOne(self, axis):
         switchstate = 0
+        status = ''
         if not self.pmacEthOk:
             state = PyTango.DevState.ALARM
-            status = "Ethernet connection with TurboPmac failed. \n(Check if PmacEth DS is running and if its state is ON)"
+            status += "\nEthernet connection with TurboPmac failed. \n(Check if PmacEth DS is running and if its state is ON)"
         elif not self.attributes[axis]["MotorActivated"]:
             state = PyTango.DevState.FAULT
-            status = "Motor is deactivated - it is not under Pmac control (Check Ix00 variable)."
+            status += "\nMotor is deactivated - it is not under Pmac control (Check Ix00 variable)."
         else:
             state = PyTango.DevState.MOVING
-            #state = PyTango.DevState.ON
-            status = "Motor is in MOVING state."
             #motion cases
             if self.attributes[axis]["InPosition"] and (not self.attributes[axis]["MotionProgramRunning"]):
                 state = PyTango.DevState.ON
-                status = "Motor is in ON state.\nMotor is stopped in position"
             else:
                 if self.attributes[axis]["HomeSearchInProgress"]:
                     status += "\nHome search in progress."
                 if self.attributes[axis]["MotionProgramRunning"]:
-                    status = "\nMotor is used by active motion program."
+                    status += "\nMotor is used by active motion program."
 
             #amplifier fault cases
             if not self.attributes[axis]["AmplifierEnabled"]:
                 state = PyTango.DevState.ALARM
-                status = "Amplifier disabled."
+                status += "\nAmplifier disabled."
                 if self.attributes[axis]["AmplifierFaultError"]:
                     status += "\nAmplifier fault signal received."
                 if self.attributes[axis]["FatalFollowingError"]:
                     status += "\nFatal Following / Integrated Following Error exceeded."
             #limits cases        
             if self.attributes[axis]["NegativeEndLimitSet"]:
-                   state = PyTango.DevState.ALARM
-                   status += "\nAt least one of the lower/upper switches is activated"
                    switchstate += 4
             if self.attributes[axis]["PositiveEndLimitSet"]:
-                   state = PyTango.DevState.ALARM
-                   status += "\nAt least one of the negative/positive limit is activated"
                    switchstate += 2
+            # 1 is reserved for the home switch
+            if switchstate > 1 and state == PyTango.DevState.ON:
+               # state is switched to ALARM only if we are not moving
+                state = PyTango.DevState.ALARM
         return (state, status, switchstate)
     
     def PreReadAll(self):
