@@ -41,7 +41,9 @@ class MOPIFilterThicknessPCCtrl(PseudoCounterController):
         # https://rt.cells.es/Ticket/Display.html?id=17856
         #x = mopi_lon - mopi_filt + 56.5 - 8.356
         #new definition of x: https://rt.cells.es/Ticket/Display.html?id=39823
-        x=mopi_lon - mopi_filt + 43.11
+        #x=mopi_lon - mopi_filt + 43.11
+        #new definition of x: https://rt.cells.es/Ticket/Display.html?id=41227
+        x = mopi_lon - mopi_filt + 42.25
 
         if x > 100:
             thickness = 0
