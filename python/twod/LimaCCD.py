@@ -134,17 +134,21 @@ class LimaCCDCtrl(TwoDController):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In PreStartAll method"
         pass
 
-    def PreStartOne(self,ind):
+    def PreStartOne(self,ind, value):
         return True
 		
-    def StartOne(self,ind):
- #       print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StartOne method for index",ind
+    def StartOne(self,ind, value):
+#        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StartOne method for index",ind
+        self.proxy[ind-1].write_attribute("acq_nb_frames", 1)
         self.proxy[ind-1].command_inout("prepareAcq")
         self.proxy[ind-1].command_inout("startAcq")
         
     def AbortOne(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("stopAcq")
+
+    def LoadOne(self, ind, value):
+        self.proxy[ind-1].write_attribute('acq_expo_time', value)
 
     def GetPar(self, ind, par_name):
         if par_name == "XDim":
