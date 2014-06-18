@@ -90,8 +90,7 @@ class LimaTwoDController(TwoDController):
 
     ctrl_properties = {
         'DetectorDevice': {'type': str,
-                           'description': 'Detector device name',
-                           'defaultvalue': ''
+                           'description': 'Detector device name'
                            }
         }
 
