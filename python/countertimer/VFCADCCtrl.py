@@ -8,7 +8,8 @@ class VFCADCCtrl(CounterTimerController):
 
     ctrl_extra_attributes = {'Gain':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
 			     'Offset':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'Polarity':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
+			     'Polarity':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
+			     'FlagReadVoltage':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
 
 			     
     class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the VFCADC Tango devices'}}
@@ -39,6 +40,8 @@ class VFCADCCtrl(CounterTimerController):
         self.Gain = []
         self.dft_Polarity = 0
         self.Polarity = []
+        self.dft_FlagReadVoltage = 0
+        self.FlagReadVoltage = []
         
         
     def AddDevice(self,ind):
@@ -52,6 +55,8 @@ class VFCADCCtrl(CounterTimerController):
         self.Offset.append(self.dft_Offset)
         self.Gain.append(self.dft_Gain)
         self.Polarity.append(self.dft_Polarity)
+        self.FlagReadVoltage.append(self.dft_FlagReadVoltage)
+        
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In DeleteDevice method for index",ind
@@ -81,7 +86,10 @@ class VFCADCCtrl(CounterTimerController):
     def ReadOne(self,ind):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In ReadOne method for index",ind
         if self.device_available[ind-1] == 1:
-            return self.proxy[ind-1].read_attribute("Value").value
+            if self.FlagReadVoltage[ind-1] == 1:
+                return self.proxy[ind-1].read_attribute("Value").value
+            else:
+                return self.proxy[ind-1].read_attribute("Counts").value
 
     def PreStartAllCT(self):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In PreStartAll method"
@@ -117,6 +125,9 @@ class VFCADCCtrl(CounterTimerController):
         if name == "Polarity":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Polarity").value)
+        if name == "FlagReadVoltage":
+            if self.device_available[ind-1]:
+                return int(self.FlagReadVoltage[ind-1])
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
@@ -132,6 +143,9 @@ class VFCADCCtrl(CounterTimerController):
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Polarity",value)
                 self.proxy[ind-1].command_inout("SetPolarity")
+        if name == "FlagReadVoltage":
+            if self.device_available[ind-1]:
+                self.FlagReadVoltage[ind-1] = value
         
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
