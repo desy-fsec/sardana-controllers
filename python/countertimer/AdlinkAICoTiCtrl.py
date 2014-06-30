@@ -329,7 +329,17 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self._log.debug("SendToCtrl(%s): starting channel %d", cmd, axis)
                 self.contAcqChannels.pop(axis)
                 if len(self.contAcqChannels.keys()) == 0:
-                    self.AIDevice.Start()
+                    # since randomly it inmediatelly finishes, we will retry again...
+                    for i in range(3):
+                        self._log.debug('StartAllCT: trying to start for the %d time' % i)
+                        self.AIDevice.start()
+                        state = self.AIDevice.state()
+                        self._log.debug('StartAllCT: AIDevice state after start is %s' % repr(state))                      
+                        if state == PyTango.DevState.ON:
+                            self._log.debug('StartAllCT: stoppin AIDevice')
+                            self.AIDevice.stop()
+                        else:
+                            break
                     self._log.debug("SendToCtrl(%s): acquisition started", cmd)
                     ret = "Acquisition started"
                 else:
