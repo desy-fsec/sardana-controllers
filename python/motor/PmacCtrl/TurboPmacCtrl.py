@@ -430,6 +430,7 @@ class TurboPmacController(MotorController):
                 if cmd_splitted[0].lower() == "setpvariable":
                     array = [float(cmd_splitted[i]) for i in range(1, len(cmd_splitted))]
                     self.pmacEth.command_inout("setpvariable", array)
+        return ''
                     
     def translateCoordinateDefinition(self, nr):
         if nr == 0:
