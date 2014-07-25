@@ -70,7 +70,6 @@ class LimaCCDCtrl(TwoDController):
         self.dft_Reset = 0
         self.Reset = []
         
-        
     def AddDevice(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self,ind)
@@ -150,7 +149,7 @@ class LimaCCDCtrl(TwoDController):
     def LoadOne(self, ind, value):
         self.proxy[ind-1].write_attribute('acq_expo_time', value)
 
-    def GetPar(self, ind, par_name):
+    def GetAxisPar(self, ind, par_name):
         if par_name == "XDim":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("image_width").value)
@@ -160,7 +159,13 @@ class LimaCCDCtrl(TwoDController):
         elif par_name == "IFormat":
             # ULong
             return 3 
-            
+        elif par_name == "data_source":
+            if self.proxy[ind-1].read_attribute("video_live").value == True: # This should never happens, in this mode the camera is taking images constantly so it has not sense for the scans
+                data_source = self.tango_device[ind-1] + "/video_last_image"
+            else:
+                data_source = self.tango_device[ind-1] + "/getImage" # Command to be called with arg 0
+                
+            return data_source
             
     def GetExtraAttributePar(self,ind,name):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
