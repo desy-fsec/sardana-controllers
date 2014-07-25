@@ -42,7 +42,7 @@ class LimaCounterCtrl(CounterTimerController):
         
 		
     def StateOne(self,ind):
-        sta = self.proxy[ind-1].command_inout("State")
+        sta = self.proxy.command_inout("State")
         tup = (sta,"Status error string from controller")
         return tup
 
