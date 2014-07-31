@@ -115,7 +115,10 @@ class PCOCtrl(TwoDController):
     def StartOne(self,ind):
         print "PYTHON -> PCOCtrl/",self.inst_name,": In StartOneCT method for index",ind
         self.proxy[ind-1].command_inout("StartStandardAcq")
-       
+      
+    def LoadOne(self, axis, value):
+        self.proxy[ind-1].write_attribute("ExposureTime",value)
+ 
     def GetPar(self, ind, par_name):       
         if par_name == "XDim":
             if self.device_available[ind-1]:

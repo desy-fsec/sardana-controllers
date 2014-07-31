@@ -40,7 +40,7 @@ class PerkinElmerCtrl(TwoDController):
         
     def AddDevice(self,ind):
 #        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In AddDevice method for index",ind
-        TwoDController.AddDevice()
+        TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
             return
@@ -51,7 +51,7 @@ class PerkinElmerCtrl(TwoDController):
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In DeleteDevice method for index",ind
-        TwoDController.DeleteDevice()
+        TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
@@ -107,7 +107,10 @@ class PerkinElmerCtrl(TwoDController):
             self.proxy[ind-1].command_inout("AcquireDarkImages")
         else:
             self.proxy[ind-1].command_inout("AcquireSubtractedImagesAndSave")
-       
+      
+    def LoadOne(self, axis, value):
+        self.proxy[ind-1].write_attribute("ExposureTime",value)
+ 
     def GetPar(self, ind, par_name):       
         if par_name == "XDim":
             return 1

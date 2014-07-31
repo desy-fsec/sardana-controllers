@@ -45,7 +45,7 @@ class ProsilicaCamCtrl(TwoDController):
         
     def AddDevice(self,ind):
 #        print "PYTHON -> ProsilicaCamCtrl/",self.inst_name,": In AddDevice method for index",ind
-        TwoDController.AddDevice()
+        TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
             return
@@ -56,7 +56,7 @@ class ProsilicaCamCtrl(TwoDController):
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> ProsilicaCamCtrl/",self.inst_name,": In DeleteDevice method for index",ind
-        TwoDController.DeleteDevice()
+        TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
@@ -102,7 +102,10 @@ class ProsilicaCamCtrl(TwoDController):
     def StartOne(self,ind):
         print "PYTHON -> ProsilicaCamCtrl/",self.inst_name,": In StartOneCT method for index",ind
         self.proxy[ind-1].command_inout("StartSingleAcquisition")
-       
+     
+    def LoadOne(self, axis, value):
+        self.proxy[ind-1].write_attribute("Exposure",value)
+  
     def GetPar(self, ind, par_name):       
         if par_name == "XDim":
             if self.device_available[ind-1]:
