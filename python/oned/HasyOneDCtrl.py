@@ -29,11 +29,13 @@ class HasyOneDCtrl(OneDController):
         self.tango_device = []
         self.proxy = []
         self.flagIsMCA8715 = []
+        self.flagIsXIA = []
         self.device_available = []
         for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.flagIsMCA8715.append( False)
+            self.flagIsXIA.append( False)
             self.device_available.append(False)
             self.max_device =  self.max_device + 1
         self.started = False
@@ -51,7 +53,9 @@ class HasyOneDCtrl(OneDController):
         self.DataLength.append(self.dft_DataLength)
         if hasattr(self.proxy[ind-1], 'BankId'):
             self.flagIsMCA8715[ind-1] = True
-        if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1]
+        if hasattr(self.proxy[ind-1], 'Spectrum') and hasattr(self.proxy[ind-1], 'McaLength'):
+            self.flagIsXIA[ind-1] = True
+        if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1]
 
        
     def DeleteDevice(self,ind):
@@ -92,7 +96,8 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
         if self.proxy[ind-1].state() != PyTango.DevState.ON:
             self.proxy[ind-1].command_inout("Stop")
-        self.proxy[ind-1].command_inout("Read")
+        if self.flagIsXIA[ind-1] == 0:
+            self.proxy[ind-1].command_inout("Read")
 
     def ReadAll(self):
         if self.debugFlag: print "HasyOneDCtrl.ReadAll",self.inst_name
@@ -100,7 +105,10 @@ class HasyOneDCtrl(OneDController):
 
     def ReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.ReadOne",self.inst_name,"index",ind
-        data = self.proxy[ind-1].Data
+        if self.flagIsXIA[ind-1]:
+            data.self.proxy[ind-1].Spectrum
+        else:
+            data = self.proxy[ind-1].Data
         return data
 
     def PreStartAll(self):
@@ -142,7 +150,10 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if name == "DataLength":
             if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("DataLength",value)
+                if self.flagIsXIA[ind-1]:
+                    self.proxy[ind-1].write_attribute("McaLength",value)
+                else:
+                    self.proxy[ind-1].write_attribute("DataLength",value)
         pass
 
     def SendToCtrl(self,in_data):
