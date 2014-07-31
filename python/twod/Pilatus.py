@@ -78,7 +78,7 @@ class PilatusCtrl(TwoDController):
         
     def AddDevice(self,ind):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In AddDevice method for index",ind
-        TwoDController.AddDevice()
+        TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
             return
@@ -102,7 +102,7 @@ class PilatusCtrl(TwoDController):
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In DeleteDevice method for index",ind
-        TwoDController.DeleteDevice()
+        TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
