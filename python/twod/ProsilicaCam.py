@@ -95,15 +95,12 @@ class ProsilicaCamCtrl(TwoDController):
     def PreStartAll(self):
 #        print "PYTHON -> ProsilicaCamCtrl/",self.inst_name,": In PreStartAllCT method"
         pass
-
-    def PreStartOne(self,ind):
-        return True
 		
-    def StartOne(self,ind):
+    def StartOne(self,ind, position=None):
         print "PYTHON -> ProsilicaCamCtrl/",self.inst_name,": In StartOneCT method for index",ind
         self.proxy[ind-1].command_inout("StartSingleAcquisition")
      
-    def LoadOne(self, axis, value):
+    def LoadOne(self, ind, value):
         self.proxy[ind-1].write_attribute("Exposure",value)
   
     def GetPar(self, ind, par_name):       

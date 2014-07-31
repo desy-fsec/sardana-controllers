@@ -143,12 +143,9 @@ class PilatusCtrl(TwoDController):
 
     def PreStartAll(self):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In PreStartAll method"
-        pass
 
-    def PreStartOne(self,ind):
-        return True
 		
-    def StartOne(self,ind):
+    def StartOne(self,ind, position=None):
         print "PYTHON -> PilatusCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].command_inout("StartStandardAcq")
         

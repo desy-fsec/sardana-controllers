@@ -90,10 +90,9 @@ class PerkinElmerCtrl(TwoDController):
 #        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In PreStartAllCT method"
         pass
 
-    def PreStartOne(self,ind):
-        return True
+
 		
-    def StartOne(self,ind):
+    def StartOne(self,ind, position=None):
         print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In StartOneCT method for index",ind
         if self.AcquireMode[ind-1] == 0:
             self.proxy[ind-1].command_inout("AcquireSubtractedImagesAndSave")
@@ -108,7 +107,7 @@ class PerkinElmerCtrl(TwoDController):
         else:
             self.proxy[ind-1].command_inout("AcquireSubtractedImagesAndSave")
       
-    def LoadOne(self, axis, value):
+    def LoadOne(self, ind, value):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
  
     def GetPar(self, ind, par_name):       

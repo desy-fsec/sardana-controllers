@@ -132,9 +132,6 @@ class LimaCCDCtrl(TwoDController):
     def PreStartAll(self):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In PreStartAll method"
         pass
-
-    def PreStartOne(self,ind, value):
-        return True
 		
     def StartOne(self,ind, value):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StartOne method for index",ind
