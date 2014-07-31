@@ -155,6 +155,14 @@ class PilatusCtrl(TwoDController):
     def AbortOne(self,ind):
         print "PYTHON -> PilatusCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("StopAcq")
+
+    def LoadOne(self, axis, value):
+        self.proxy[ind-1].write_attribute("ExposureTime",value)
+
+    def GetAxisPar(self, ind, par_name):
+        if par_name == "data_source":
+            data_source = str(self.tango_device[ind -1]) + "/LastImageTaken"
+            return data_source
  
     def GetExtraAttributePar(self,ind,name):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
