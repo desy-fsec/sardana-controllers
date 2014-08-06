@@ -2,7 +2,6 @@ import PyTango
 from sardana.pool.controller import OneDController
 import time, os
 
-debugFlag = True
 
 class HasyOneDCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
@@ -18,7 +17,7 @@ class HasyOneDCtrl(OneDController):
     def __init__(self,inst,props, *args, **kwargs):
         OneDController.__init__(self,inst,props, *args, **kwargs)
         self.debugFlag = False
-        if os.isatty(1): 
+        if os.isatty(1):
             self.debugFlag = True
         if self.debugFlag: print "HasyOneDCtrl.__init__, inst ",self.inst_name,"RootDeviceName",self.RootDeviceName
         self.ct_name = "HasyOneDCtrl/" + self.inst_name
@@ -39,8 +38,6 @@ class HasyOneDCtrl(OneDController):
             self.device_available.append(False)
             self.max_device =  self.max_device + 1
         self.started = False
-        self.dft_DataLength = 0
-        self.DataLength = []
 
         
     def AddDevice(self,ind):
@@ -50,7 +47,6 @@ class HasyOneDCtrl(OneDController):
             return
         self.proxy[ind-1] = PyTango.DeviceProxy(self.tango_device[ind-1])
         self.device_available[ind-1] = True
-        self.DataLength.append(self.dft_DataLength)
         if hasattr(self.proxy[ind-1], 'BankId'):
             self.flagIsMCA8715[ind-1] = True
         if hasattr(self.proxy[ind-1], 'Spectrum') and hasattr(self.proxy[ind-1], 'McaLength'):
@@ -71,6 +67,10 @@ class HasyOneDCtrl(OneDController):
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
                 tup = (sta,"The MCA is ready")
+            elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
+                tup = (sta,"Device is acquiring data")
+            else:
+                tup = (sta, "")
         else:
             sta = PyTango.DevState.FAULT
             tup = (sta, "Device not available")
@@ -106,7 +106,7 @@ class HasyOneDCtrl(OneDController):
     def ReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.ReadOne",self.inst_name,"index",ind
         if self.flagIsXIA[ind-1]:
-            data.self.proxy[ind-1].Spectrum
+            data = self.proxy[ind-1].Spectrum
         else:
             data = self.proxy[ind-1].Data
         return data
@@ -126,6 +126,9 @@ class HasyOneDCtrl(OneDController):
         self.proxy[ind-1].command_inout("Stop")
         self.proxy[ind-1].command_inout("Clear")
         self.proxy[ind-1].command_inout("Start")
+        if self.flagIsXIA[ind-1]: # need for the XIA because the acquisition has to be stopped manually
+            time.sleep(value)
+            self.proxy[ind-1].command_inout("Stop")
         
     def AbortOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.AbortOne",self.inst_name,"index",ind
@@ -142,9 +145,13 @@ class HasyOneDCtrl(OneDController):
         if name == "TangoDevice":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].name()
-        elif name == "DataLength": 
+        elif name == "DataLength":
             if self.device_available[ind-1]:
-                return int(self.proxy[ind-1].read_attribute("DataLength").value)
+                if self.flagIsXIA[ind-1]:
+                    datalength = int(self.proxy[ind-1].read_attribute("McaLength").value)
+                else:
+                    datalength = int(self.proxy[ind-1].read_attribute("DataLength").value)
+                return datalength
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.debugFlag: print "HasyOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
