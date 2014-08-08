@@ -37,7 +37,8 @@ class Ni660XCounterCTCtrl(CounterTimerController):
                                "triggerMode" : { Type : str,      Access : ReadWrite, Memorize : NotMemorized }, #to be replaced by mnt grp conf
                          "samplingFrequency" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, #to be removed, not generic
                            "acquisitionTime" : { Type : float,    Access : ReadWrite, Memorize : NotMemorized }, #to be removed, not generic
-                                      "data" : { Type : (float,), Access : ReadOnly, MaxDimSize : (1000000,)}
+                                      "data" : { Type : (float,), Access : ReadOnly, MaxDimSize : (1000000,)},
+                              "extraTrigger" : { Type : bool,    Access : ReadWrite, Memorize : NotMemorized }
                        }
     
     count = 0
@@ -56,6 +57,7 @@ class Ni660XCounterCTCtrl(CounterTimerController):
         self.channels[axis] = taurus.Device(self.channelDevNamesList[axis-1])
         #self.channels[axis].set_timeout_millis(20000) #readout of 60000 buffer takes aprox 20ms, default timeout value should be enough
         self.attributes[axis] = {}
+        self.attributes[axis]["ExtraTrigger"] = False
 
     def DeleteDevice(self, axis):
         self.channels.pop(axis)
@@ -79,7 +81,8 @@ class Ni660XCounterCTCtrl(CounterTimerController):
             raw = self.channels[axis].getAttribute("CountBuffer").read().value
             numRaw = numpy.array(raw)
             v = list(numRaw[1:] - numRaw[:-1])
-            v.insert(0,raw[0])
+            if not self.attributes[axis]["ExtraTrigger"]:
+                v.insert(0,raw[0])
             e = datetime.datetime.now()
             self._log.debug("GetAxisExtraPar() data: end time = %s" % e.isoformat())
             t = e - s
@@ -96,6 +99,8 @@ class Ni660XCounterCTCtrl(CounterTimerController):
             v = float("nan")
         elif name == "acquisitiontime":
             v = float("nan")        
+        elif name == "extratrigger":
+            v = self.attributes[axis]["ExtraTrigger"]
             
         return v
 
@@ -121,6 +126,9 @@ class Ni660XCounterCTCtrl(CounterTimerController):
             pass
         elif name == "acquisitiontime":
             pass        
+        elif name == "extratrigger":
+            self.attributes[axis]["ExtraTrigger"] = value
+    
         
     def PreStateAll(self):
         pass
