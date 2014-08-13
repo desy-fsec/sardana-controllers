@@ -43,7 +43,8 @@ class LimaCounterCtrl(CounterTimerController):
 		
     def StateOne(self,ind):
         sta = self.proxy.command_inout("State")
-        tup = (sta,"Status error string from controller")
+        status = self.proxy.command_inout("Status")
+        tup = (sta,status)
         return tup
 
     def PreReadAll(self):
@@ -58,8 +59,6 @@ class LimaCounterCtrl(CounterTimerController):
 
     def ReadOne(self,ind):
         counts = self.proxy.command_inout("readCounters",0)
-        print counts
-        print 6*(ind-1) + 2
         return counts[7*(ind-1) + 2]
 	
     def AbortOne(self,ind):

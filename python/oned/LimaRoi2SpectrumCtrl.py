@@ -43,7 +43,8 @@ class LimaRoi2SpectrumCtrl(OneDController):
         
     def StateOne(self,ind):
         sta = self.proxy.command_inout("State")
-        tup = (sta,"Status error string from controller")
+        status = self.proxy.command_inout("Status")
+        tup = (sta,status)
         return tup
    
     def LoadOne(self, axis, value):
