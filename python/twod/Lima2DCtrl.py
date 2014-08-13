@@ -176,6 +176,7 @@ class LimaTwoDController(TwoDController):
             self.det.write_attribute('acq_nb_frames', value)
         elif name == 'TriggerMode':
             TrigList = ['INTERNAL_TRIGGER',
+                        'INTERNAL_TRIGGER_MULTI',
                         'EXTERNAL_TRIGGER',
                         'EXTERNAL_TRIGGER_MULTI',
                         'EXTERNAL_GATE',
