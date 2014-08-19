@@ -125,7 +125,7 @@ class LimaCCDCtrl(TwoDController):
     def ReadOne(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In ReadOne method for index",ind
         #The LimaCCD return an Image in type encoded
-        # Fill an ouput for avoinding reaout errors
+        # Fill an ouput for avoiding reaout errors
         tmp_value = [(-1,), (-1,)]
         if self.device_available[ind-1] == 1:
             return tmp_value
