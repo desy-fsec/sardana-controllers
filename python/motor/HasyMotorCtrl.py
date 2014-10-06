@@ -20,7 +20,9 @@ class HasyMotorCtrl(MotorController):
                        'PositionSim':{Type:float,Access:ReadWrite},
                        'ResultSim':{Type:str,Access:ReadWrite},
                        'TangoDevice':{Type:str,Access:ReadOnly}, # used for handling limits between TanoServer and PoolDevice
-                        'Calibrate':{Type:float,Access:ReadWrite}}
+                       'Calibrate':{Type:float,Access:ReadWrite},
+                       'Conversion':{Type:float,Access:ReadWrite}
+                       }
 
                              
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
@@ -166,6 +168,8 @@ class HasyMotorCtrl(MotorController):
                 return str(self.proxy[ind-1].name())
             elif name == "Calibrate":
                 return -1
+            elif name == "Conversion":
+                return float(self.proxy[ind-1].read_attribute("Conversion").value)
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.device_available[ind-1]:
@@ -179,6 +183,8 @@ class HasyMotorCtrl(MotorController):
                 self.proxy[ind-1].write_attribute("ResultSim",value)
             elif name == "Calibrate":
                 self.proxy[ind-1].command_inout("Calibrate",value)
+            elif name == "Conversion":
+                self.proxy[ind-1].write_attribute("Conversion",value)
     
     def SetAxisPar(self, ind, name, value):
         if self.device_available[ind-1]:
@@ -195,8 +201,6 @@ class HasyMotorCtrl(MotorController):
                     self.proxy[ind-1].write_attribute("SlewDouble",float(value))
                 except:
                     self.proxy[ind-1].write_attribute("SlewRate",long(value))
-            elif name == "step_per_unit":
-                self.proxy[ind-1].write_attribute("Conversion",value)
             
     def GetAxisPar(self, ind, name):
         if self.device_available[ind-1]:
@@ -212,8 +216,6 @@ class HasyMotorCtrl(MotorController):
                     v = self.proxy[ind-1].read_attribute("SlewDouble").value
                 except:
                     v = self.proxy[ind-1].read_attribute("SlewRate").value
-            elif name == "step_per_unit":
-                v = self.proxy[ind-1].read_attribute("Conversion").value
         return v
     
     def StartAll(self):
