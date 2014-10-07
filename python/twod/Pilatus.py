@@ -143,7 +143,7 @@ class PilatusCtrl(TwoDController):
 
     def PreStartAll(self):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In PreStartAll method"
-
+        pass
 		
     def StartOne(self,ind, position=None):
         print "PYTHON -> PilatusCtrl/",self.inst_name,": In StartOne method for index",ind
