@@ -143,7 +143,7 @@ class PilatusCtrl(TwoDController):
 
     def PreStartAll(self):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In PreStartAll method"
-
+        pass
 		
     def StartOne(self,ind, position=None):
         print "PYTHON -> PilatusCtrl/",self.inst_name,": In StartOne method for index",ind
@@ -153,7 +153,7 @@ class PilatusCtrl(TwoDController):
         print "PYTHON -> PilatusCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("StopAcq")
 
-    def LoadOne(self, axis, value):
+    def LoadOne(self, ind, value):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
 
     def GetAxisPar(self, ind, par_name):

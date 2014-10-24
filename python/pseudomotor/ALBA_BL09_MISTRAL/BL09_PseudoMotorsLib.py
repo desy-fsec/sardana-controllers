@@ -51,6 +51,11 @@ class EnergyCff(PseudoMotorController):
                                   {'Type':'PyTango.DevDouble',
                                    'R/W Type':'PyTango.READ',
                                   },
+                             "offsetEnergy":
+                                  {'Type':'PyTango.DevDouble',
+                                   'memorized':Memorized,
+                                   'R/W Type':'PyTango.READ_WRITE',
+                                  },
                              "offsetGrxLE":
                                   {'Type':'PyTango.DevDouble',
                                    'memorized':Memorized,
@@ -93,6 +98,7 @@ class EnergyCff(PseudoMotorController):
         self.iorDP = PyTango.DeviceProxy(self.gr_ior)
         self.iorDP2 = PyTango.DeviceProxy(self.m3_ior)
 
+        self.offsetEnergy = 0.0
         self.offsetGrxLE = 0.0
         self.offsetMxLE = 0.0
         self.offsetGrxHE = 0.0
@@ -109,47 +115,59 @@ class EnergyCff(PseudoMotorController):
     def calc_all_physical(self, pseudo_pos, param=None):
         """From a given energy, we calculate the physical
          position for the real motors."""
+        #self._log.debug('!!!!!!!calc_all_physical(%s): entering...' % repr(pseudo_pos))
+        energy = pseudo_pos[0] - self.offsetEnergy
+        Cff = pseudo_pos[1]
 
-        self.energy = pseudo_pos[0]
-        self.Cff = pseudo_pos[1]
-
-        if self.energy == 0.0:
+        if energy == 0.0:
             waveLen = 0.0
         else:
-            waveLen = self.hc / self.energy
+            waveLen = self.hc / energy
         
-        f1 = self.Cff**2 + 1
-        f2 = 1 - self.Cff**2
+        f1 = Cff**2 + 1
+        f2 = 1 - Cff**2
         K = self.DiffrOrder * waveLen * self.look_at_grx()
         
-        CosAlpha = math.sqrt(-1*K**2 * f1 + 2*math.fabs(K) * math.sqrt(f2**2 + self.Cff**2 * K**2))/math.fabs(f2)
+        CosAlpha = math.sqrt(-1*K**2 * f1 + 2*math.fabs(K) * math.sqrt(f2**2 + Cff**2 * K**2))/math.fabs(f2)
 
-        self.alpha = math.acos(CosAlpha)
-        CosBeta = self.Cff * CosAlpha
-        self.beta = -math.acos(CosBeta)
-        self.theta = (self.alpha - self.beta) * 0.5
+        alpha = math.acos(CosAlpha)
+        self.alpha = alpha
+        CosBeta = Cff * CosAlpha
+        beta = -math.acos(CosBeta)
+        self.beta = beta
+        theta = (alpha - beta) * 0.5
+        self.theta = theta
 
         offsetG,offsetM = self.checkOffset()
-        m = ((math.pi/2.0) - self.theta + offsetM)*1000 #angle*1000 to have it in mrad
-        g = (self.beta + (math.pi/2.0) + offsetG)*1000
+        m = ((math.pi/2.0) - theta + offsetM)*1000 #angle*1000 to have it in mrad
+        g = (beta + (math.pi/2.0) + offsetG)*1000
+        #self._log.debug('!!!!!!!!calc_all_physical(): returning (%f, %f)' % (m,g))
         return (m,g)
  
     def calc_all_pseudo(self, physical_pos, param=None):
         """From the real motor positions, we calculate the pseudomotors positions."""
 
+        #self._log.debug('!!!!!!!!calc_all_pseudo(%s): entering...' % repr(physical_pos))
         offsetG,offsetM = self.checkOffset()
-        self.beta = (physical_pos[1]/1000) - (math.pi/2.0) - offsetG
-        self.theta = (math.pi/2.0) - (physical_pos[0]/1000) + offsetM
-        self.alpha = (2.0*self.theta) + self.beta
-        wavelength = (math.sin(self.alpha) + math.sin(self.beta)) / (self.DiffrOrder * self.look_at_grx())
+        beta = (physical_pos[1]/1000) - (math.pi/2.0) - offsetG
+        self.beta = beta
+        theta = (math.pi/2.0) - (physical_pos[0]/1000) + offsetM
+        self.theta = theta
+        alpha = (2.0*theta) + beta
+        self.alpha = alpha
+        wavelength = (math.sin(alpha) + math.sin(beta)) / (self.DiffrOrder * self.look_at_grx())
         
         if wavelength == 0.0:
-            self.energy = 0.0
+            energy = 0.0
         else:
-            self.energy = self.hc / wavelength
-        self.Cff = math.cos(self.beta)/math.cos(self.alpha)
-        if self.energy < 0 : self.energy = self.energy *(-1) #warning: wavelength se vuelve negativo ... ??????
-        return (self.energy,self.Cff)
+            energy = self.hc / wavelength
+        Cff = math.cos(beta)/math.cos(alpha)
+        if energy < 0 : energy = energy *(-1) #warning: wavelength se vuelve negativo ... ??????
+        #self._log.debug('!!!!!!!!!calc_all_pseudo(): returning (%f, %f)' % (energy, Cff))
+        
+        energy = energy + self.offsetEnergy
+
+        return (energy,Cff)
 
     def GetExtraAttributePar(self, axis, name):
         
@@ -162,6 +180,8 @@ class EnergyCff(PseudoMotorController):
             return self.beta
         if name.lower() == "theta":
             return self.theta
+        if name.lower() == "offsetenergy":
+            return self.offsetEnergy
         if name.lower() == "offsetgrxle":
             return self.offsetGrxLE
         if name.lower() == "offsetmxle":
@@ -180,6 +200,8 @@ class EnergyCff(PseudoMotorController):
     def SetExtraAttributePar(self, axis, name, value):
         if name.lower() == "diffrorder":
             self.DiffrOrder = value
+        if name.lower() == "offsetenergy":
+            self.offsetEnergy = value
         if name.lower() == "offsetgrxle":
             self.offsetGrxLE = value
         if name.lower() == "offsetmxle":
@@ -662,6 +684,8 @@ class EnergyCffFixed(PseudoMotorController):
         self.offsetGrxHE = 0.0
         self.offsetMxHE = 0.0
 
+        self.offsetEnergyDP = PyTango.DeviceProxy('pm/energycff_ctrl/1')
+    
     def calc_physical(self, index, pseudos):
         return self.calc_all_physical(pseudos)[index - 1]
 
@@ -672,7 +696,8 @@ class EnergyCffFixed(PseudoMotorController):
         """From a given energy, we calculate the physical
          position for the real motors."""
 
-        energy = pseudo_pos[0]
+        offsetEnergy=self.offsetEnergyDP.offsetEnergy
+        energy = pseudo_pos[0] - offsetEnergy
 
         waveLen = self.hc / energy
         f1 = self.Cff**2 + 1
@@ -704,6 +729,9 @@ class EnergyCffFixed(PseudoMotorController):
             energy = 0
         else:
             energy = self.hc / wavelength
+
+        offsetEnergy=self.offsetEnergyDP.offsetEnergy
+        energy = energy + offsetEnergy
         return energy
 
     def GetExtraAttributePar(self, axis, name):
