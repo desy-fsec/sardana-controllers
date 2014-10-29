@@ -5,6 +5,7 @@ import time
 class PilatusCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Pilatus"
 
+
     ctrl_extra_attributes = {'DelayTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
 			     'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
 			     'ExposurePeriod':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
@@ -16,11 +17,10 @@ class PilatusCtrl(TwoDController):
 			     'NbFrames':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'NbExposures':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'ShutterEnable':{'Type':'PyTango.DevBoolean','R/W Type':'PyTango.READ_WRITE'},
-			     'TriggerMode':{'Type':'PyTango.DevShort','R/W Type':'PyTango.READ_WRITE'},
+			     'TriggerMode':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'Threshold':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'Gain':{'Type':'PyTango.DevShort','R/W Type':'PyTango.READ_WRITE'},
+			     'Gain':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'Reset':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
-
 			     
     class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the Pilatus Tango devices'}}
 			     
