@@ -20,7 +20,8 @@ class PilatusCtrl(TwoDController):
 			     'TriggerMode':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'Threshold':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
 			     'Gain':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'Reset':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
+                             'TangoDevice':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_ONLY'}
+                             }
 			     
     class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the Pilatus Tango devices'}}
 			     
@@ -146,11 +147,11 @@ class PilatusCtrl(TwoDController):
         pass
 		
     def StartOne(self,ind, position=None):
-        print "PYTHON -> PilatusCtrl/",self.inst_name,": In StartOne method for index",ind
+#        print "PYTHON -> PilatusCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].command_inout("StartStandardAcq")
         
     def AbortOne(self,ind):
-        print "PYTHON -> PilatusCtrl/",self.inst_name,": In AbortOne method for index",ind
+#        print "PYTHON -> PilatusCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("StopAcq")
 
     def LoadOne(self, ind, value):
@@ -163,96 +164,67 @@ class PilatusCtrl(TwoDController):
  
     def GetExtraAttributePar(self,ind,name):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
-        if name == "DelayTime":
-            if self.device_available[ind-1]:
+        if self.device_available[ind-1]:
+            if name == "DelayTime":
                 return self.proxy[ind-1].read_attribute("DelayTime").value
-        if name == "ExposureTime":
-            if self.device_available[ind-1]:
+            elif name == "ExposureTime":
                 return self.proxy[ind-1].read_attribute("ExposureTime").value
-        if name == "ExposurePeriod":
-            if self.device_available[ind-1]:
+            elif name == "ExposurePeriod":
                 return self.proxy[ind-1].read_attribute("ExposurePeriod").value
-        if name == "FileStartNum":
-            if self.device_available[ind-1]:
+            elif name == "FileStartNum":
                 return self.proxy[ind-1].read_attribute("FileStartNum").value
-        if name == "FilePrefix":
-            if self.device_available[ind-1]:
+            elif name == "FilePrefix":
                 return self.proxy[ind-1].read_attribute("FilePrefix").value
-        if name == "FilePostfix":
-            if self.device_available[ind-1]:
+            elif name == "FilePostfix":
                 return self.proxy[ind-1].read_attribute("FilePostfix").value
-        if name == "FileDir":
-            if self.device_available[ind-1]:
+            elif name == "FileDir":
                 return self.proxy[ind-1].read_attribute("FileDir").value
-        if name == "LastImageTaken":
-            if self.device_available[ind-1]:
+            elif name == "LastImageTaken":
                 return self.proxy[ind-1].read_attribute("LastImageTaken").value
-        if name == "NbFrames":
-            if self.device_available[ind-1]:
+            elif name == "NbFrames":
                 return self.proxy[ind-1].read_attribute("NbFrames").value
-        if name == "NbExposures":
-            if self.device_available[ind-1]:
+            elif name == "NbExposures":
                 return self.proxy[ind-1].read_attribute("NbExposures").value
-        if name == "TriggerMode":
-            if self.device_available[ind-1]:
+            elif name == "TriggerMode":
                 return self.proxy[ind-1].read_attribute("TriggerMode").value
-        if name == "Threshold":
-            if self.device_available[ind-1]:
+            elif name == "Threshold":
                 return self.proxy[ind-1].read_attribute("Threshold").value
-        if name == "Gain":
-            if self.device_available[ind-1]:
+            elif name == "Gain":
                 return self.proxy[ind-1].read_attribute("Gain").value
-        if name == "Reset":
-            if self.device_available[ind-1]:
-                return 0
+            elif name == "TangoDevice":
+                return str(self.proxy[ind-1].name())
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
-        if name == "DelayTime":
-            if self.device_available[ind-1]:
+        if self.device_available[ind-1]:
+            if name == "DelayTime":
                 self.proxy[ind-1].write_attribute("DelayTime",value)
-        if name == "ExposureTime":
-            if self.device_available[ind-1]:
+            elif name == "ExposureTime":
                 self.proxy[ind-1].write_attribute("ExposureTime",value)
-        if name == "ExposurePeriod":
-            if self.device_available[ind-1]:
+            elif name == "ExposurePeriod":
                 self.proxy[ind-1].write_attribute("ExposurePeriod",value)
-        if name == "FileStartNum":
-            if self.device_available[ind-1]:
+            elif name == "FileStartNum":
                 self.proxy[ind-1].write_attribute("FileStartNum",value)
-        if name == "FilePrefix":
-            if self.device_available[ind-1]:
+            elif name == "FilePrefix":
                 self.proxy[ind-1].write_attribute("FilePrefix",value)
-        if name == "FilePostfix":
-            if self.device_available[ind-1]:
+            elif name == "FilePostfix":
                 self.proxy[ind-1].write_attribute("FilePostfix",value)
-        if name == "FileDir":
-            if self.device_available[ind-1]:
+            elif name == "FileDir":
                 self.proxy[ind-1].write_attribute("FileDir",value)
-        if name == "LastImageTaken":
-            if self.device_available[ind-1]:
+            elif name == "LastImageTaken":
                 self.proxy[ind-1].write_attribute("LastImageTaken",value)
-        if name == "NbFrames":
-            if self.device_available[ind-1]:
+            elif name == "NbFrames":
                 self.proxy[ind-1].write_attribute("NbFrames",value)
-        if name == "NbExposures":
-            if self.device_available[ind-1]:
+            elif name == "NbExposures":
                 self.proxy[ind-1].write_attribute("NbExposures",value)
-        if name == "ShutterEnable":
-            if self.device_available[ind-1]:
+            elif name == "ShutterEnable":
                 self.proxy[ind-1].write_attribute("ShutterEnable",value)
-        if name == "TriggerMode":
-            if self.device_available[ind-1]:
+            elif name == "TriggerMode":
                 self.proxy[ind-1].write_attribute("TriggerMode",value)
-        if name == "Threshold":
-            if self.device_available[ind-1]:
+            elif name == "Threshold":
                 self.proxy[ind-1].write_attribute("Threshold",value)
-        if name == "Gain":
-            if self.device_available[ind-1]:
+            elif name == "Gain":
                 self.proxy[ind-1].write_attribute("Gain",value)
-        if name == "Reset":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].command_inout("Reset")
         
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
