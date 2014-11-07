@@ -1,4 +1,5 @@
 import math, logging
+import PyTango
 from sardana import pool
 from sardana.pool import PoolUtil
 from sardana.pool.controller import PseudoMotorController
@@ -53,9 +54,10 @@ class TripodTableController(PseudoMotorController):
     motor_roles = ('jack1', 'jack2', 'jack3')
 
     class_prop = { 'Jack1Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'jack1 coordination: x,y,z'},
-                         'Jack2Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'jack2 coordination: x,y,z'},
-                         'Jack3Coordinates' : {'Type' : 'PyTango.DevString', 'Description' : 'jack3 coordination: x,y,z'},
-                         'CenterCoordinates': {'Type' : 'PyTango.DevString', 'Description' : 'center coordination: x,y,z'}}
+                         'Jack2Coordinates'    : {'Type' : 'PyTango.DevString', 'Description' : 'jack2 coordination: x,y,z'},
+                         'Jack3Coordinates'    : {'Type' : 'PyTango.DevString', 'Description' : 'jack3 coordination: x,y,z'},
+                         'CenterCoordinates'   : {'Type' : 'PyTango.DevString', 'Description' : 'center coordination: x,y,z'},
+                         'CrossedPMLimitsCheck': {'Type' : 'PyTango.DevBoolean','Description' : 'checks the crossed PM limits'}}
     
     #This is azimuth angle for BL22-CLAESS (Synchrotron ALBA) which is 45 degrees indeed  
     #for your beamline change it accordingly to your azimuth angle 
@@ -70,7 +72,9 @@ class TripodTableController(PseudoMotorController):
             self.jack2 = [float(c) for c in props['Jack2Coordinates'].split(',')]
             self.jack3 = [float(c) for c in props['Jack3Coordinates'].split(',')]
             self.center = [float(c) for c in props['CenterCoordinates'].split(',')]
-            
+            self.check_limits = props['CrossedPMLimitsCheck']
+            self._log.debug("check limits value: %s" % self.check_limits )
+
             if len(self.jack1) != 3 or len(self.jack2) != 3 or len(self.jack3) != 3:
                 raise ValueError("Jack1, Jack2, Jack3 and Center Coordinates properties must be x,y,z coordinates in global system")
             
@@ -112,6 +116,10 @@ class TripodTableController(PseudoMotorController):
 
     def calc_all_physical(self, pseudos):
         self._log.debug("Entering calc_all_physical")
+
+        if self.check_limits:
+            self._validateCurrentPositions()
+
         z, pitch, roll = pseudos
         # Ax + By + Cz = D in local system:
         pitch = pitch / 1000
@@ -192,3 +200,55 @@ class TripodTableController(PseudoMotorController):
         roll *= 1000
         self._log.debug("Leaving calc_all_pseudo")
         return z, pitch, roll
+
+    def _validateCurrentPositions(self):
+
+        self._checkPseudoMotorLimits()
+
+        try:
+
+            for role in self.pseudo_motor_roles:
+            
+                pseudo = self.GetPseudoMotor(role)
+                attr_position =  PyTango.AttributeProxy(pseudo.full_name + '/position')
+                current_position = attr_position.read()
+
+        except Exception:
+
+            raise ValueError('Move the physical motors to a save position.')
+
+
+    def _checkPseudoMotorLimits(self):
+
+        NE = 'Not specified'
+#        min_limits = []
+#        max_limits = []
+        msg = ''
+        flg_ne = False
+
+        for role in self.pseudo_motor_roles:
+            
+            pseudo = self.GetPseudoMotor(role)
+            attr_position =  PyTango.AttributeProxy(pseudo.full_name + '/position')
+            config = attr_position.get_config()
+
+            max = config.max_value
+            if (max == NE):
+                flg_ne = True
+                msg += 'Set limit %s\n' % pseudo.name
+                continue
+ #           else:
+ #               max_limits.append(float(max))
+                
+            min = config.min_value
+            if (min == NE):
+                flg_ne = True
+                msg += 'Set limit %s\n' % pseudo.name
+ #           else:
+ #               min_limits.append(float(max))
+
+        if flg_ne:
+            self._log.debug("uninitialized limits")
+            raise ValueError(msg)
+                
+ #       return min_limits, max_limits
