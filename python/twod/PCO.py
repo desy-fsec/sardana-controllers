@@ -101,7 +101,7 @@ class PCOCtrl(TwoDController):
     def ReadOne(self,ind):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In ReadOne method for index",ind
         #The PCO return an Image in type encoded
-        tmp_value = 0.0
+        tmp_value = [(-1,), (-1,)]
         if self.device_available[ind-1] == 1:
             return tmp_value
 
