@@ -165,7 +165,8 @@ class HasyMotorCtrl(MotorController):
             elif name == "ResultSim":
                 return str(self.proxy[ind-1].read_attribute("ResultSim").value)
             elif name == "TangoDevice":
-                return str(self.proxy[ind-1].name())
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
             elif name == "Calibrate":
                 return -1
             elif name == "Conversion":

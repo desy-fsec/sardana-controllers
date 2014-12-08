@@ -14,7 +14,9 @@ ReadWrite = DataAccess.ReadWrite
 
 class SIS3820Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3820"
-    axis_attributes = {'Offset':{Type:float,Access:ReadWrite}}
+    axis_attributes = {'Offset':{Type:float,Access:ReadWrite},
+                       'TangoDevice':{Type:str,Access:ReadOnly},
+                       }
 			     
     class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3820 Tango devices'},
                   'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
@@ -114,10 +116,12 @@ class SIS3820Ctrl(CounterTimerController):
 		pass
 	
     def GetExtraAttributePar(self,ind,name):
-        if name == "Offset":
-            if self.device_available[ind-1]:
+        if self.device_available[ind-1]:
+            if name == "Offset":
                 return float(self.proxy[ind-1].read_attribute("Offset").value)
-        
+            elif name == "TangoDevice":
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
             
     def SetExtraAttributePar(self,ind,name,value):
         if name == "Offset":

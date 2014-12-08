@@ -1,21 +1,26 @@
+
+
+import time, os
+
 import PyTango
+from sardana import State, DataAccess
 from sardana.pool.controller import OneDController
 from sardana.pool.controller import Type, Access, Description, DefaultValue
 from sardana.pool import PoolUtil
-import time, os
-
-debugFlag = True
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+debugFlag = True
+
+
 class HasyMCSCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    ctrl_extra_attributes = {'TangoDevice':{Type:'PyTango.DevString'Access:ReadWrite,},
-                             'NbChannels':{Type:'PyTango.DevLong',Access:ReadWrite},
+    ctrl_extra_attributes = {'NbChannels':{Type:'PyTango.DevLong',Access:ReadWrite},
                              'NbAcquisitions':{Type:'PyTango.DevLong',Access:ReadWrite},
                              'Preset':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'TangoDevice':{Type:str,Access:ReadOnly},
                              }
                  
     class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCS Tango devices'},
@@ -148,10 +153,7 @@ class HasyMCSCtrl(OneDController):
     
     def GetExtraAttributePar(self,ind,name):
         if self.debugFlag: print "HasyMCSCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
-        if name == "TangoDevice":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].name()
-        elif name == "NbChannels": 
+        if name == "NbChannels": 
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("NbChannels").value)
         elif name == "NbAcquisitions": 
@@ -160,6 +162,10 @@ class HasyMCSCtrl(OneDController):
         elif name == "Preset": 
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Preset").value)
+        elif name == "TangoDevice":
+            if self.device_available[ind-1]:
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.debugFlag: print "HasyMCSCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value

@@ -145,7 +145,8 @@ class MarCCDCtrl(TwoDController):
             elif name == "ReadMode":
                 return self.proxy[ind-1].read_attribute("ReadMode").value
             elif name == "TangoDevice":
-                return str(self.proxy[ind-1].name())
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> MarCCDCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value

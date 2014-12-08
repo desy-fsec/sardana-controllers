@@ -166,7 +166,8 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
         if name == "TangoDevice":
             if self.device_available[ind-1]:
-                return self.proxy[ind-1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
         elif name == "DataLength":
             if self.device_available[ind-1]:
                 if self.flagIsXIA[ind-1]:

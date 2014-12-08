@@ -1,16 +1,25 @@
+
 import PyTango
-from sardana.pool.controller import CounterTimerController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
+
 import time
 
+from sardana import State, DataAccess
+from sardana.pool.controller import CounterTimerController
+from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool import PoolUtil
+
+ReadOnly = DataAccess.ReadOnly
+ReadWrite = DataAccess.ReadWrite
 
 class VFCADCCtrl(CounterTimerController):
     "This class is the Tango Sardana Zero D controller for the VFCADC"
 
-    ctrl_extra_attributes = {'Gain':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'Offset':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'Polarity':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'FlagReadVoltage':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
+    ctrl_extra_attributes = {'Gain':{Type:'PyTango.DevDouble',Access:ReadWrite},
+			     'Offset':{Type:'PyTango.DevDouble',Access:ReadWrite},
+			     'Polarity':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'FlagReadVoltage':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'TangoDevice':{Type:str,Access:ReadOnly},
+                             }
 
 			     
     class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the VFCADC Tango devices'},
@@ -133,15 +142,19 @@ class VFCADCCtrl(CounterTimerController):
         if name == "Offset":
             if self.device_available[ind-1]:
                 return float(self.proxy[ind-1].read_attribute("Offset").value)
-        if name == "Gain":
+        elif name == "Gain":
             if self.device_available[ind-1]:
                 return float(self.proxy[ind-1].read_attribute("Gain").value)
-        if name == "Polarity":
+        elif name == "Polarity":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Polarity").value)
-        if name == "FlagReadVoltage":
+        elif name == "FlagReadVoltage":
             if self.device_available[ind-1]:
                 return int(self.FlagReadVoltage[ind-1])
+        elif name == "TangoDevice":
+            if self.device_available[ind-1]:
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value

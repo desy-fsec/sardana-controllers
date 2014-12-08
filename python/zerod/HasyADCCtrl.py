@@ -12,7 +12,11 @@ ReadWrite = DataAccess.ReadWrite
 
 class HasyADCCtrl(ZeroDController):
     "This class is the Tango Sardana Zero D controller for a generic Hasylab ADC"
-			     
+	
+    axis_attributes = {
+                       'TangoDevice':{Type:str,Access:ReadOnly}, 
+                       }
+		     
     class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the VFCADC Tango devices'},
                   'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
@@ -105,6 +109,13 @@ class HasyADCCtrl(ZeroDController):
     def StartOne(self,ind):
         #print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StartOne method for index",ind
         self.wanted.append(ind)
+    
+    def GetExtraAttributePar(self,ind,name):
+        if self.device_available[ind-1]:
+            if name == "TangoDevice":
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device        
+            
         
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data

@@ -17,7 +17,8 @@ class PCOCtrl(TwoDController):
 			     'ADCs':{Type:'PyTango.DevLong',Access:ReadWrite},
 			     'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
 			     'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite}}
+			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
+                             'TangoDevice':{Type:str,Access:ReadOnly},}
 
 			     
     class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PCO Tango devices'},
@@ -170,6 +171,10 @@ class PCOCtrl(TwoDController):
         if name == "FileDir":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].read_attribute("FileDir").value
+        if name == "TangoDevice":
+            if self.device_available[ind-1]:
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value

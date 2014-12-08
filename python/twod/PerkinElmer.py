@@ -13,7 +13,8 @@ class PerkinElmerCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the PerkinElmer detector"
 
     ctrl_extra_attributes = {'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-                             'AcquireMode':{Type:'PyTango.DevLong',Access:ReadWrite},}
+                             'AcquireMode':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'TangoDevice':{Type:str,Access:ReadOnly},}
 
 			     
     class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PerkinElmer Tango devices'},
@@ -142,6 +143,10 @@ class PerkinElmerCtrl(TwoDController):
                 return self.proxy[ind-1].read_attribute("ExposureTime").value
         if name == "AcquireMode":
             return self.AcquireMode[ind-1]
+        if name == "TangoDevice":
+            if self.device_available[ind-1]:
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",valu

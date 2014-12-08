@@ -12,7 +12,11 @@ ReadWrite = DataAccess.ReadWrite
 
 class DGG2Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the DGG2 timer"
-			     
+	
+
+    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly}, 
+                       }
+		     
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the DGG2 timer Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
                        }
@@ -120,7 +124,10 @@ class DGG2Ctrl(CounterTimerController):
             self.proxy[ind-1].write_attribute("SampleTime", value)
 	
     def GetExtraAttributePar(self,ind,name):
-        pass
+        if self.device_available[ind-1]:
+            if name == "TangoDevice":
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
         
             
     def SetExtraAttributePar(self,ind,name,value):
