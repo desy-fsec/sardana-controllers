@@ -1,30 +1,46 @@
 import PyTango
 from sardana.pool.controller import OneDController
+from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool import PoolUtil
 import time, os
 
 debugFlag = True
 
+ReadOnly = DataAccess.ReadOnly
+ReadWrite = DataAccess.ReadWrite
+
 class HasyMCSCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    ctrl_extra_attributes = {'TangoDevice':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_ONLY'},
-                             'NbChannels':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-                             'NbAcquisitions':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-                             'Preset':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
+    ctrl_extra_attributes = {'TangoDevice':{Type:'PyTango.DevString'Access:ReadWrite,},
+                             'NbChannels':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'NbAcquisitions':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'Preset':{Type:'PyTango.DevLong',Access:ReadWrite},
                              }
                  
-    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the MCS Tango devices'}}
+    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCS Tango devices'},
+                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
                  
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
+        self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
         self.debugFlag = False
         if os.isatty(1): 
             self.debugFlag = True
         if self.debugFlag: print "HasyMCSCtrl.__init__, inst ",self.inst_name,"RootDeviceName",self.RootDeviceName
         self.ct_name = "HasyMCSCtrl/" + self.inst_name
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+            self.db = PyTango.Database()
+        else:
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
