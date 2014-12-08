@@ -6,9 +6,7 @@ class HKLMotorCtrl(MotorController):
     """This class is the Tango Sardana motor controller for the HKL axis of the diffractometer device.
     """
 
-    #ctrl_features = ['Encoder','Home_speed','Home_acceleration']
-
-    ## The properties used to connect to the diffraco motor controller
+    ## The property used to connect to the diffractometer controller
     class_prop = {'DiffracDevName':{'Type':'PyTango.DevString','Description':'The diffractometer device name'}}
     
     gender = "Motor"
