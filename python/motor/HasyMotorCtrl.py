@@ -47,7 +47,7 @@ class HasyMotorCtrl(MotorController):
         if os.isatty(1): 
             self.debugFlag = True
         if self.TangoHost == None:
-             self.db = PyTango.Database()
+            self.db = PyTango.Database()
         else:
             #
             # TangoHost can be hasgksspp07eh3:10000
