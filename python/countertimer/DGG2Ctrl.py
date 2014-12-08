@@ -13,7 +13,9 @@ ReadWrite = DataAccess.ReadWrite
 class DGG2Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the DGG2 timer"
 			     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the DGG2 timer Tango devices'}}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the DGG2 timer Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
+                       }
 
     gender = "CounterTimer"
     model = "DGG2"
@@ -22,8 +24,18 @@ class DGG2Ctrl(CounterTimerController):
     status = ""
     
     def __init__(self,inst,props, *args, **kwargs):
+        self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+            self.db = PyTango.Database()
+        else:
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0

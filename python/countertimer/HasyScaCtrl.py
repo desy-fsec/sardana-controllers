@@ -29,7 +29,6 @@ class HasyScaCtrl(CounterTimerController):
     
     def __init__(self,inst,props, *args, **kwargs):
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        self.db = PyTango.Database()
         self.max_device = 1
         self.tango_device = [None]
         self.proxy = [ None]
@@ -47,7 +46,6 @@ class HasyScaCtrl(CounterTimerController):
             print "HasyScaCtrl wrong index"
             return
         self.proxy[ind-1] = PyTango.DeviceProxy( self.mca)
-        #+++self.proxy[ind-1] = PyTango.DeviceProxy( "p09/mca/exp.01")
         self.device_available[ind-1] = 1
         
         

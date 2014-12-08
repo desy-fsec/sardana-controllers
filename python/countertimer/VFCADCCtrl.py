@@ -1,5 +1,6 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
+from sardana.pool.controller import Type, Access, Description, DefaultValue
 import time
 
 
@@ -12,16 +13,29 @@ class VFCADCCtrl(CounterTimerController):
 			     'FlagReadVoltage':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
 
 			     
-    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the VFCADC Tango devices'}}
+    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the VFCADC Tango devices'},
+                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props,*args, **kwargs):
+        self.TangoHost = None
         CounterTimerController.__init__(self,inst,props,*args, **kwargs)
 #        print "PYTHON -> CounterTimerController ctor for instance",inst
 
         self.ct_name = "VFCADCCtrl/" + self.inst_name
-        self.db = PyTango.Database()
+        
+        if self.TangoHost == None:
+            self.db = PyTango.Database()
+        else:
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
+
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0

@@ -16,8 +16,9 @@ class SIS3820Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3820"
     axis_attributes = {'Offset':{Type:float,Access:ReadWrite}}
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3820 Tango devices'}}
-      
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3820 Tango devices'},
+                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    
     gender = "CounterTimer"
     model = "SIS3820"
     organization = "DESY"
@@ -25,8 +26,18 @@ class SIS3820Ctrl(CounterTimerController):
     status = ""
     
     def __init__(self,inst,props, *args, **kwargs):
+        self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+             self.db = PyTango.Database()
+        else:
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
@@ -117,7 +128,7 @@ class SIS3820Ctrl(CounterTimerController):
         return "Nothing sent"
 
     def start_acquisition(self, value=None):
-        print "Teresa: my start_aquisition"
+        pass
     
     def __del__(self):
         print "PYTHON -> SIS3820Ctrl/",self.inst_name,": dying"
