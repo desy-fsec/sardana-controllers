@@ -1,36 +1,54 @@
 import PyTango
+import time, os
+
+from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-import time
+from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool import PoolUtil
+
+ReadOnly = DataAccess.ReadOnly
+ReadWrite = DataAccess.ReadWrite
 
 class LimaCCDCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the LimaCCD"
 
-    ctrl_extra_attributes = {'LatencyTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'FilePrefix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'FileSuffix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'SavingMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'SavingCommondHeader':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'SavingHeaderDelimiter':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'SavingNextNumber':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'LastImageReady':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'NbFrames':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'TriggerMode':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'CameraType':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ'},
-			     'Reset':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'}}
+    ctrl_extra_attributes = {'LatencyTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+			     'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+			     'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'FileSuffix':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'SavingMode':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'SavingCommondHeader':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'SavingHeaderDelimiter':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'SavingNextNumber':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'LastImageReady':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'CameraType':{Type:'PyTango.DevString',Access:ReadOnly},
+			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite}}
 
 			     
-    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the LimaCCD Tango devices'}}
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the LimaCCD Tango devices'},
+                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
+        self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
         print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "LimaCCDCtrl/" + self.inst_name
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+            self.db = PyTango.Database()
+        else:
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0

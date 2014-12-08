@@ -19,7 +19,7 @@ class HasyMotorCtrl(MotorController):
                        'UnitLimitMin':{Type:float,Access:ReadWrite},
                        'PositionSim':{Type:float,Access:ReadWrite},
                        'ResultSim':{Type:str,Access:ReadWrite},
-                       'TangoDevice':{Type:str,Access:ReadOnly}, # used for handling limits between TanoServer and PoolDevice
+                       'TangoDevice':{Type:str,Access:ReadOnly}, # used for handling limits between TangoServer and PoolDevice
                        'Calibrate':{Type:float,Access:ReadWrite},
                        'Conversion':{Type:float,Access:ReadWrite}
                        }

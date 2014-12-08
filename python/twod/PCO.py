@@ -1,28 +1,46 @@
 import PyTango
+import time, os
+
+from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-import time
+from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool import PoolUtil
+
+ReadOnly = DataAccess.ReadOnly
+ReadWrite = DataAccess.ReadWrite
 
 class PCOCtrl(TwoDController):
     "This class is the Tango Sardana Zero D controller for the PCO"
 
-    ctrl_extra_attributes = {'DelayTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-			     'ADCs':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'FileStartNum':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},
-			     'FilePrefix':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'},
-			     'FileDir':{'Type':'PyTango.DevString','R/W Type':'PyTango.READ_WRITE'}}
+    ctrl_extra_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+			     'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+			     'ADCs':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
+			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite}}
 
 			     
-    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the PCO Tango devices'}}
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PCO Tango devices'},
+                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
+        self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
         print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "PCOCtrl/" + self.inst_name
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+            self.db = PyTango.Database()
+        else:
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0

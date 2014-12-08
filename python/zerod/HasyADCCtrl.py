@@ -1,20 +1,42 @@
 import PyTango
+
+import time, os
+
+from sardana import State, DataAccess
 from sardana.pool.controller import ZeroDController
-import time
+from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool import PoolUtil
+
+ReadOnly = DataAccess.ReadOnly
+ReadWrite = DataAccess.ReadWrite
 
 class HasyADCCtrl(ZeroDController):
     "This class is the Tango Sardana Zero D controller for a generic Hasylab ADC"
 			     
-    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the VFCADC Tango devices'}}
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the VFCADC Tango devices'},
+                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props,*args, **kwargs):
+        self.TangoHost = None
         ZeroDController.__init__(self,inst,props,*args, **kwargs)
 #        print "PYTHON -> ZeroDController ctor for instance",inst
 
         self.ct_name = "HasyADCCtrl/" + self.inst_name
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+            self.db = PyTango.Database()
+        else:
+            #
+            # TangoHost can be hasgksspp07eh3:10000
+            #
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0

@@ -1,24 +1,42 @@
 import PyTango
+import time, os
+
+from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-import time
+from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool import PoolUtil
+
+ReadOnly = DataAccess.ReadOnly
+ReadWrite = DataAccess.ReadWrite
 
 class PerkinElmerCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the PerkinElmer detector"
 
-    ctrl_extra_attributes = {'ExposureTime':{'Type':'PyTango.DevDouble','R/W Type':'PyTango.READ_WRITE'},
-                             'AcquireMode':{'Type':'PyTango.DevLong','R/W Type':'PyTango.READ_WRITE'},}
+    ctrl_extra_attributes = {'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+                             'AcquireMode':{Type:'PyTango.DevLong',Access:ReadWrite},}
 
 			     
-    class_prop = {'RootDeviceName':{'Type':'PyTango.DevString','Description':'The root name of the PerkinElmer Tango devices'}}
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PerkinElmer Tango devices'},
+                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
+        self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
         print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "PerkinElmerCtrl/" + self.inst_name
-        self.db = PyTango.Database()
+        if self.TangoHost == None:
+            self.db = PyTango.Database()
+        else:
+            self.node = self.TangoHost
+            self.port = 10000
+            if self.TangoHost.find( ':'):
+                lst = self.TangoHost.split(':')
+                self.node = lst[0]
+                self.port = int( lst[1])                           
+            self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
