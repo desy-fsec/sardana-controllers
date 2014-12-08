@@ -2,6 +2,7 @@
 import time, os
 
 import PyTango
+from sardana import State, DataAccess
 from sardana.pool.controller import OneDController
 from sardana.pool.controller import Type, Access, Description, DefaultValue
 from sardana.pool import PoolUtil
