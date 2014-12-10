@@ -38,8 +38,8 @@ class DGG2Ctrl(CounterTimerController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
-            self.db = PyTango.Database(self.node, self.port)
+                self.port = int( lst[1])
+        self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
 	self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
@@ -60,7 +60,12 @@ class DGG2Ctrl(CounterTimerController):
         if ind > self.max_device:
             print "False index"
             return
-        self.proxy[ind-1] = PyTango.DeviceProxy(self.tango_device[ind-1])
+        proxy_name = self.tango_device[ind-1]
+        if self.TangoHost == None:
+            proxy_name = self.tango_device[ind-1]
+        else:
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
+        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
         self.Offset.append(self.dft_Offset)
 		
@@ -106,7 +111,7 @@ class DGG2Ctrl(CounterTimerController):
             self.proxy[ind-1].command_inout("Stop")
         
     def PreStartAllCT(self):
-		self.wantedCT = []
+        self.wantedCT = []
 
     def PreStartOneCT(self,ind):
         pass

@@ -73,7 +73,12 @@ class HasyMCSCtrl(OneDController):
         if ind > self.max_device:
             print "HasyMCSCtrl: False index %d max %d" % (ind, self.max_device)
             return
-        self.proxy[ind-1] = PyTango.DeviceProxy(self.tango_device[ind-1])
+        proxy_name = self.tango_device[ind-1]
+        if self.TangoHost == None:
+            proxy_name = self.tango_device[ind-1]
+        else:
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
+        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = True
         self.NbChannels.append(self.dft_NbChannels)
         self.NbAcquisitions.append(self.dft_NbAcquisitions)
