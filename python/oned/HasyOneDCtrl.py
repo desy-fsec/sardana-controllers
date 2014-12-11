@@ -72,6 +72,7 @@ class HasyOneDCtrl(OneDController):
             proxy_name = self.tango_device[ind-1]
         else:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
+        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = True
         if hasattr(self.proxy[ind-1], 'BankId'):
             self.flagIsMCA8715[ind-1] = True
