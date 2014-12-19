@@ -89,7 +89,7 @@ class HasyOneDCtrl(OneDController):
         
         
     def StateOne(self,ind):
-        if self.debugFlag: print "HasyOneDCtrl.StatOne",self.inst_name,"index",ind
+        #if self.debugFlag: print "HasyOneDCtrl.StatOne",self.inst_name,"index",ind
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -121,8 +121,7 @@ class HasyOneDCtrl(OneDController):
 
     def PreReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
-        if self.proxy[ind-1].state() != PyTango.DevState.ON:
-            self.proxy[ind-1].command_inout("Stop")
+        self.proxy[ind-1].command_inout("Stop")
         if self.flagIsXIA[ind-1] == 0:
             self.proxy[ind-1].command_inout("Read")
 
@@ -153,9 +152,6 @@ class HasyOneDCtrl(OneDController):
         self.proxy[ind-1].command_inout("Stop")
         self.proxy[ind-1].command_inout("Clear")
         self.proxy[ind-1].command_inout("Start")
-        if self.flagIsXIA[ind-1]: # need for the XIA because the acquisition has to be stopped manually
-            time.sleep(value)
-            self.proxy[ind-1].command_inout("Stop")
         
     def AbortOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.AbortOne",self.inst_name,"index",ind
