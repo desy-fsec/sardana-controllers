@@ -125,6 +125,8 @@ class PCOCtrl(TwoDController):
     def ReadOne(self,ind):
 #        print "PYTHON -> PCOCtrl/",self.inst_name,": In ReadOne method for index",ind
         #The PCO return an Image in type encoded
+        while self.proxy[ind-1].state() != PyTango.DevState.ON:
+            time.sleep(0.001)
         tmp_value = [(-1,), (-1,)]
         if self.device_available[ind-1] == 1:
             return tmp_value
@@ -135,6 +137,8 @@ class PCOCtrl(TwoDController):
 		
     def StartOne(self,ind, position=None):
         print "PYTHON -> PCOCtrl/",self.inst_name,": In StartOneCT method for index",ind
+        while self.proxy[ind-1].state() != PyTango.DevState.ON: # Need it because the PCO goes to DISABLE after MOVING
+            time.sleep(0.001)
         self.proxy[ind-1].command_inout("StartStandardAcq")
       
     def LoadOne(self, ind, value):
