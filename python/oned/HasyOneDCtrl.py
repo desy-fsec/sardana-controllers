@@ -121,9 +121,12 @@ class HasyOneDCtrl(OneDController):
 
     def PreReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
-        self.proxy[ind-1].command_inout("Stop")
         if self.flagIsXIA[ind-1] == 0:
+            self.proxy[ind-1].command_inout("Stop")
             self.proxy[ind-1].command_inout("Read")
+        else:
+            if self.proxy[ind-1].state() != PyTango.DevState.ON:
+                self.proxy[ind-1].command_inout("Stop")  
 
     def ReadAll(self):
         if self.debugFlag: print "HasyOneDCtrl.ReadAll",self.inst_name
@@ -156,6 +159,9 @@ class HasyOneDCtrl(OneDController):
     def AbortOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.AbortOne",self.inst_name,"index",ind
         self.proxy[ind-1].command_inout("Stop")
+        if self.flagIsXIA[ind-1] == 0:
+            self.proxy[ind-1].command_inout("Read")
+
        
     def GetPar(self, ind, par_name):
         if self.debugFlag: print "HasyOneDCtrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
