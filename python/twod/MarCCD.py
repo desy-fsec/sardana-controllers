@@ -143,7 +143,7 @@ class MarCCDCtrl(TwoDController):
 
     def GetAxisPar(self, ind, par_name):
         if par_name == "data_source":
-            data_source = "Not set"
+            data_source =  self.proxy[ind-1].read_attribute("SavingDirectory").value + self.proxy[ind-1].read_attribute("SavingPrefix").value + "." +  self.proxy[ind-1].read_attribute("SavingPostfix").value
             return data_source
  
     def GetExtraAttributePar(self,ind,name):
