@@ -128,6 +128,28 @@ class MarCCDCtrl(TwoDController):
 		
     def StartOne(self,ind, position=None):
 #        print "PYTHON -> MarCCDCtrl/",self.inst_name,": In StartOne method for index",ind
+        file_name_tmp =  self.proxy[ind-1].read_attribute("SavingPrefix").value
+        if file_name_tmp.find('_') != -1:
+            file_name_split = file_name_tmp.split('_')
+            file_name_last = file_name_split[len(file_name_split)-1]
+            try:
+                last_nb = int(file_name_last)
+                last_nb = last_nb + 1
+                new_file_name = ""
+                file_name_tmp = file_name_tmp.rsplit("_", 1)[0]
+            except:
+                last_nb = 0
+        else:
+            last_nb = 0
+        if last_nb < 10:
+            new_file_name = file_name_tmp + "_000" + str(last_nb)
+        elif last_nb < 100:
+            new_file_name = file_name_tmp + "_00" + str(last_nb)
+        elif last_nb < 1000:
+            new_file_name = file_name_tmp + "_0" + str(last_nb)
+        else:
+            new_file_name = file_name_tmp + "_" + str(last_nb)
+        self.proxy[ind-1].write_attribute("SavingPrefix", new_file_name)
         self.proxy[ind-1].command_inout("StartExposing")
         
     def AbortOne(self,ind):
@@ -143,7 +165,7 @@ class MarCCDCtrl(TwoDController):
 
     def GetAxisPar(self, ind, par_name):
         if par_name == "data_source":
-            data_source =  self.proxy[ind-1].read_attribute("SavingDirectory").value + self.proxy[ind-1].read_attribute("SavingPrefix").value + "." +  self.proxy[ind-1].read_attribute("SavingPostfix").value
+            data_source = "Not set"
             return data_source
  
     def GetExtraAttributePar(self,ind,name):
