@@ -27,6 +27,7 @@ class PilatusCtrl(TwoDController):
 			     'TriggerMode':{Type:'PyTango.DevLong',Access:ReadWrite},
 			     'Threshold':{Type:'PyTango.DevLong',Access:ReadWrite},
 			     'Gain':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
                              'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
                              }
 			     
@@ -214,6 +215,9 @@ class PilatusCtrl(TwoDController):
                 return self.proxy[ind-1].read_attribute("Threshold").value
             elif name == "Gain":
                 return self.proxy[ind-1].read_attribute("Gain").value
+            elif name == "Reset":
+                if self.device_available[ind-1]:
+                    return 0
             elif name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
@@ -249,6 +253,9 @@ class PilatusCtrl(TwoDController):
                 self.proxy[ind-1].write_attribute("Threshold",value)
             elif name == "Gain":
                 self.proxy[ind-1].write_attribute("Gain",value)
+            elif name == "Reset":
+                if self.device_available[ind-1]:
+                    self.proxy[ind-1].command_inout("Reset")
         
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
