@@ -25,7 +25,9 @@ class LimaCCDCtrl(TwoDController):
 			     'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
 			     'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
 			     'CameraType':{Type:'PyTango.DevString',Access:ReadOnly},
-			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite}}
+			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+                             }
 
 			     
     class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the LimaCCD Tango devices'},
@@ -232,6 +234,9 @@ class LimaCCDCtrl(TwoDController):
         if name == "Reset":
             if self.device_available[ind-1]:
                 return 0
+        if name == "TangoDevice":
+            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+            return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
