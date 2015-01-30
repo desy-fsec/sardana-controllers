@@ -54,6 +54,7 @@ class DGG2Ctrl(CounterTimerController):
         self.started = False
         self.dft_Offset = 0
         self.Offset = []
+        self.preset_mode = 0 # Trigger with counts
 
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
@@ -122,10 +123,18 @@ class DGG2Ctrl(CounterTimerController):
 	
     def StartAllCT(self):
         for index in self.wantedCT:
-            self.proxy[index-1].command_inout("Start")
+            if self.preset_mode:
+                self.proxy[index-1].command_inout("StartPreset")
+            else:
+                self.proxy[index-1].command_inout("Start")
 		     	
     def LoadOne(self,ind,value):
         if self.device_available[ind-1] == 1:
+            if value < 0:
+                self.preset_mode = 1
+                value = -1. * value
+            else:
+                self.preset_mode = 0
             self.proxy[ind-1].write_attribute("SampleTime", value)
 	
     def GetExtraAttributePar(self,ind,name):
