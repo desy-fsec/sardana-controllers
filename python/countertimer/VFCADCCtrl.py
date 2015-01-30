@@ -96,7 +96,7 @@ class VFCADCCtrl(CounterTimerController):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
-            tup = (sta,"Status error string from controller")
+            tup = (sta,"State from connected Tango device")
             return tup
 
     def PreReadAll(self):

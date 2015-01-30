@@ -79,7 +79,7 @@ class SIS3820Ctrl(CounterTimerController):
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
-            tup = (sta,"Status error string from controller")
+            tup = (sta,"State from connected Tango device")
             return tup
 
     def PreReadAll(self):
