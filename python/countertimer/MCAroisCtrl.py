@@ -11,7 +11,7 @@ ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 class MCAroisCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the MCArois timer"
+    "This class is the Tango Sardana CounterTimer controller for the MCA RoIs"
 	
 
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
