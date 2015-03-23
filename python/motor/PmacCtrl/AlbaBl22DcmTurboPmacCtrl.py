@@ -35,19 +35,31 @@ import math, logging, time
 import PyTango
 from sardana import pool
 from sardana.pool import PoolUtil
-from sardana.pool.controller import MotorController
+from sardana.pool.controller import MotorController, Type, FSet, FGet, Access, Description, DataAccess, DefaultValue 
+
 import TurboPmacCtrl
 
 class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
     """This class is a Sardana motor controller for DCM of CLAESS beamline at ALBA.
         DCM comprises many motors, and two of them: Bragg and 2ndXtalPerpendicular are controlled
         from TurboPmac Motor Controller"""
-
+    ctrl_attributes = {'MoveBraggOnly' : { Type : bool,
+                                           DefaultValue: False,
+                                           Description : "Move only bragg, without perp",
+                                           Access : DataAccess.ReadWrite,
+                                           FGet : 'getMoveBragg', 
+                                           FSet : 'setMoveBragg'},
+                       }
+    
+    
+    
     MaxDevice = 2
     
     def __init__(self, inst, props, *args, **kwargs):
         #TurboPmacCtrl.TurboPmacController.__init__(self, inst, props, *args, **kwargs)
         super(DcmTurboPmacController, self).__init__(inst, props, *args, **kwargs)
+        self.move_bragg_only = False
+
 
     def StateOne(self, axis):
         switchstate = 0
@@ -146,8 +158,17 @@ class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
             self._log.debug('Starting energy movement with bragg: %f, exitOffset: %f' %(bragg_deg,exitOffset))
             self.pmacEth.command_inout("SetPVariable", [100,bragg_deg])
             self.pmacEth.command_inout("SetPVariable", [101,exitOffset])
-            self.pmacEth.command_inout("RunMotionProg", 11)
+            program = 11
+            if self.move_bragg_only:
+                program = 12
+            self.pmacEth.command_inout("RunMotionProg", program)
         else:
 #            self.superklass.StartAll(self)
             super(DcmTurboPmacController, self).StartAll()
         self._log.debug("Leaving StartAll")
+
+    def setMoveBragg(self,value):
+        self.move_bragg_only = value
+
+    def getMoveBragg(self):
+        return self.move_bragg_only
