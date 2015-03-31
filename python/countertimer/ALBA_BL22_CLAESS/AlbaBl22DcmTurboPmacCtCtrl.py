@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy
+import math
 import PyTango
 from sardana import State, DataAccess
 from sardana.pool.controller import CounterTimerController, MaxDimSize
@@ -217,7 +218,35 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         encRegCounts = float(self.pmac.GetMVariable(101))
         offset = braggPosCounts - encRegCounts + braggMotorOffsetEncCounts
         translate = lambda count: (count + offset) / stepPerUnit 
-        degrees = [translate(count) for count in rawCounts]
+        maxCounts = math.pow(2,23)
+        minCounts = -maxCounts
+        #correcting the problem with the negative value of the encoder
+        p1 = rawCounts[0]
+        #p2 = rawCounts[1]
+        p2 = rawCounts[2]
+        pEnd = rawCounts[len(rawCounts) - 1]
+        
+        overFlow = False
+
+        if (p1 < p2) and (pEnd < p2):
+            #overFlow Positive
+            overFlow = True
+        elif (p1 > p2) and (pEnd > p2):
+            #overFlow Negative
+            overFlow = True
+        
+        correctedRawCounts = []
+        for count in rawCounts:
+           if overFlow and count < 0:
+              print "enter negative\n"
+              ccount = maxCounts + abs(-8388606.5 - count)
+              correctedRawCounts.append(ccount)
+           else:
+              correctedRawCounts.append(count)
+       
+        degrees = [translate(count) for count in correctedRawCounts]
+        #degrees = [translate(count) for count in rawCounts]
+        print ("degrees %s\n, offset %s\n, bragPosCounts %s encRegCounts %s, braggMotorOffsetEncCounts %s\n", str(degrees), str(offset), str(braggPosCounts), str(encRegCounts), str(braggMotorOffsetEncCounts)) 
         #degrees = rawCounts
         return degrees
     
