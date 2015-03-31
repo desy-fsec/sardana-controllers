@@ -44,9 +44,11 @@ class AmptekPX5CounterTimerController(CounterTimerController):
     def __init__(self, inst, props, *args, **kwargs):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         self.amptekPX5 = taurus.Device(self.deviceName)
+        self.amptekPX5.set_timeout_millis(7000)
         self.acqTime = 0
         self.sta = State.On
         self.acq = False
+        self.timeout = 0 #not need for now
 
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("SetAxisExtraPar() entering...")
@@ -100,6 +102,11 @@ class AmptekPX5CounterTimerController(CounterTimerController):
 
     def StateAll(self):
         self._log.debug("StateAll(): entering...")
+        #to fixed the callback error
+        dt = time.time() - self.t1
+
+        if dt < self.timeout:
+            return
         sta = self.amptekPX5.State()
         self.status = self.amptekPX5.Status()
         self._log.info("AmptekPX5CounterTimerController StateOne - state = %s" % repr(sta))
@@ -107,7 +114,9 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             self.acq = False
             self.sca_values = self.amptekPX5.LatchGetClearSCA()
         self.sta = sta
-
+        self.t1 = time.time()
+        
+        
     def StateOne(self, ind):
         return self.sta, self.status
 
@@ -175,6 +184,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         self.amptekPX5 = taurus.Device(self.deviceName)
         self.amptekPX5.SetTextConfiguration(['MCAC=%d'%4096])
+        self.amptekPX5.set_timeout_millis(7000)
         self.acqTime = 0
         self.sta = State.On
         self.acqStartTime = None
