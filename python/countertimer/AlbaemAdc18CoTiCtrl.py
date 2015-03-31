@@ -35,7 +35,6 @@ class AlbaemAdc18CoTiCtrl(CounterTimerController):
     ctrl_properties = {
         'ElectroMeterDevice': {'type': str,
                            'description': 'Detector device name',
-                           'defaultvalue': ''
                            }
         }
 
