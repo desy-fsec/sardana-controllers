@@ -123,13 +123,10 @@ class HasyMotorCtrl(MotorController):
                 upper = 0
             if lower == 1 and upper == 1:
                 switchstate = 6
-                sta = PyTango.DevState.ALARM
             elif lower == 1:
                 switchstate = 4
-                sta = PyTango.DevState.ALARM
             elif upper == 1:
                 switchstate = 2
-                sta = PyTango.DevState.ALARM
             status_string = status_template % (sta,upper,lower)
             tup = (sta,status_string,switchstate)
             return tup
