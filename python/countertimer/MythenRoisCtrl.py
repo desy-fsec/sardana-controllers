@@ -82,6 +82,11 @@ class MythenRoisCtrl(CounterTimerController):
         
     def StartOneCT(self,ind):
         sta = self.proxy.command_inout("State")
+        if self.proxy.ConnectionToDoor == 0:
+            try:
+                self.proxy.ConnectToDoor()
+            except:
+                pass
         if sta == PyTango.DevState.ON:
             self.proxy.command_inout("StartAcquisition")
             
