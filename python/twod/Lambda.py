@@ -158,7 +158,7 @@ class LambdaCtrl(TwoDController):
         self.proxy[ind-1].command_inout("StopAcq")
 
     def LoadOne(self, ind, value):
-        self.proxy[ind-1].write_attribute("ShutterTime",value)
+        self.proxy[ind-1].write_attribute("ShutterTime",value*1000) # Shutter Time is in ms
 
     def GetAxisPar(self, ind, par_name):
         if par_name == "data_source":
