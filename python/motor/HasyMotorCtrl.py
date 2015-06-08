@@ -203,6 +203,8 @@ class HasyMotorCtrl(MotorController):
                     self.proxy[ind-1].write_attribute("SlewDouble",float(value))
                 except:
                     self.proxy[ind-1].write_attribute("SlewRate",long(value))
+            elif name == "step_per_unit":
+                self.proxy[ind-1].write_attribute("Conversion",value)
             
     def GetAxisPar(self, ind, name):
         if self.device_available[ind-1]:
@@ -219,6 +221,8 @@ class HasyMotorCtrl(MotorController):
                     v = self.proxy[ind-1].read_attribute("SlewDouble").value
                 except:
                     v = self.proxy[ind-1].read_attribute("SlewRate").value
+            elif name == "step_per_unit":
+                v = self.proxy[ind-1].read_attribute("Conversion").value
         return v
     
     def StartAll(self):
