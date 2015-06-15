@@ -24,7 +24,7 @@
 #import time
 
 from sardana import State
-from sardana.pool.controller import TwoDController
+from sardana.pool.controller import TwoDController 
 from sardana.pool.controller import Type, MaxDimSize
 
 import PyTango
@@ -90,7 +90,8 @@ class LimaTwoDController(TwoDController):
 
     ctrl_properties = {
         'DetectorDevice': {'type': str,
-                           'description': 'Detector device name'
+                           'description': 'Detector device name',
+                           'defaultvalue': ''
                            }
         }
 
@@ -108,6 +109,8 @@ class LimaTwoDController(TwoDController):
         self._log.debug('Detector device: %s' % self.DetectorDevice)
         self.det = PyTango.DeviceProxy(self.DetectorDevice)
         self.det.write_attribute('saving_mode', 'MANUAL')
+        # Workarround to increment image number
+        self.pilatus = PyTango.DeviceProxy('pilatus_custom')
 
     def GetAxisAttributes(self, axis):
         # We fit the MaxDimSize to the actual image size
@@ -131,7 +134,12 @@ class LimaTwoDController(TwoDController):
     def ReadOne(self, axis):
         self._log.debug('ReadOne')
         dataSize = self.det.read_attribute('image_sizes').value
-        data = self.det.command_inout('getImage', 0)
+        # TODO: Get data from image file?
+        #data = self.det.command_inout('getImage', 0)
+        data = numpy.ones(dataSize[2]*dataSize[3])
+        nexti = (self.pilatus.read_attribute('nb_first_image').value + 
+                 self.det.read_attribute('acq_nb_frames').value)
+        self.pilatus.write_attribute('nb_first_image',nexti)
         if dataSize[1] == 2:
             data.dtype = 'uint16'
         elif dataSize[1] == 4:
@@ -140,6 +148,7 @@ class LimaTwoDController(TwoDController):
 
         img = numpy.float32(data)
         self._log.debug('Image data min %f max %f' % (img.min(), img.max()))
+        self._log.debug('Image shape %dx%d' % (img.shape[0], img.shape[1]))
         return img
 
     def ReadAll(self):
@@ -176,7 +185,6 @@ class LimaTwoDController(TwoDController):
             self.det.write_attribute('acq_nb_frames', value)
         elif name == 'TriggerMode':
             TrigList = ['INTERNAL_TRIGGER',
-                        'INTERNAL_TRIGGER_MULTI',
                         'EXTERNAL_TRIGGER',
                         'EXTERNAL_TRIGGER_MULTI',
                         'EXTERNAL_GATE',
