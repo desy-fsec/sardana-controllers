@@ -1,6 +1,7 @@
 from PyTango import DevState, AttrQuality
 from sardana import pool
 from sardana.pool.controller import IORegisterController
+from threading import Lock
 import taurus
 import time
 
@@ -15,13 +16,14 @@ class BL13EHBlightIORController(IORegisterController):
                            'Description':'Percentage of brightness 0 - 100',
                            'R/W Type':'PyTango.READ_WRITE'},
                       }
-    MaxDevice = 1
+    MaxDevice = 2
 
     def __init__(self, inst, props, *args, **kwargs):
         IORegisterController.__init__(self, inst, props, *args, **kwargs)
         self.labels = ['OFF:0 ON:1']
         self.ls1 = taurus.Device('BL13/CT/SERIAL-09')
         self.brightness = 10
+        self.serial_lock = Lock()
 
     def AddDevice(self, axis):
         pass
@@ -45,15 +47,15 @@ class BL13EHBlightIORController(IORegisterController):
         return (state, status_template % state)
 
     def ReadOne(self, axis):
-        if self.check_light_is_on():
+        if self.check_light_is_on(axis):
             return 1
         return 0
 
     def WriteOne(self, axis, value):
         if value == 1:
-            self.light_on()
+            self.light_on(axis)
         else:
-            self.light_off()
+            self.light_off(axis)
         
     def GetAxisExtraPar(self, axis, name):
         if name == 'Labels':
@@ -66,7 +68,7 @@ class BL13EHBlightIORController(IORegisterController):
             # MAYBE THIS HAS TO BE SET FOR BRIGHTNESS IN ORDER
             # TO BE ABLE TO READ IT
             # BUT WE STILL DON'T KNOW THE VARIALBE NUMBER FOR IT
-            return self.brightness
+            return self.get_brightness(axis)
         return None
 
     def SetAxisExtraPar(self, axis, name, value):
@@ -75,7 +77,7 @@ class BL13EHBlightIORController(IORegisterController):
         elif name == 'Brightness':
             if 0<=value<=100:
                 self.brightness = value
-                self.set_brightness(value)
+                self.set_brightness(axis, value)
             else:
                 raise Exception('Brightness should be between 0 and 100. %d received.'%value)
 
@@ -83,15 +85,23 @@ class BL13EHBlightIORController(IORegisterController):
     ################################################################################
     ## COMMUNICATION WITH LS-1
     ################################################################################
-    def ask(self, cmd):
-        self.ls1.DevSerFlush(2)
-        cmd_list = list(cmd + self.calc_crc8_dallas(cmd))
-        self.ls1.DevSerWriteChar(map(ord,cmd_list))
-        time.sleep(0.2)
-        ans_list = map(chr, self.ls1.DevSerReadNBinData(6))
-        ans = ''.join(ans_list)
-        # print(cmd_list,'->',ans_list)
-        return ans
+    def ask(self, cmd, ans_size=6):
+        with self.serial_lock:
+            self.ls1.DevSerFlush(2)
+            cmd_list = list(cmd + self.calc_crc8_dallas(cmd))
+            self.ls1.DevSerWriteChar(map(ord,cmd_list))
+            #time.sleep(0.2)
+            #ans_list = map(chr, self.ls1.DevSerReadNBinData(6))
+            # wait for the exact amount of data to aviod exceptions
+            ans_list = []
+            while len(ans_list) < ans_size:
+                ans = []
+                while len(ans) == 0:
+                    ans = self.ls1.DevSerReadNBinData(1)
+                ans_list.append(chr(ans[0]))
+            ans = ''.join(ans_list)
+            # print(cmd_list,'->',ans_list)
+            return ans
 
     def calc_crc8_dallas(self, cmd_str):
         '''
@@ -151,34 +161,55 @@ class BL13EHBlightIORController(IORegisterController):
             # crc = crc ^ char OR crc = (crc ^ char) ^ xor_value
         return chr(crc)
 
-    def light_on(self):
-        CMD_LIGHT_ON = '\x1B\x40\xAA\x02\x02\x00'
-        self.ask(CMD_LIGHT_ON)
-    
-    def light_off(self):
-        CMD_LIGHT_OFF = '\x1B\x40\xAA\x02\x02\x01'
-        self.ask(CMD_LIGHT_OFF)
-    
-    def check_light_is_on(self):
+    def check_light_is_on(self, axis):
+        # Front light is always on (brightness should be set to 0%)
+        if axis == 2:
+            return True
+
         CMD_LIGHT_STATE = '\x1B\x40\xAA\x02\x00\x01'
         ans = self.ask(CMD_LIGHT_STATE)
         state = ord(ans[-2])
         return (state & 2) == 0
 
-    def get_brightness(self):
-        # how we should access to this value?
-        return None
-
-    def set_brightness(self, n):
-        self.set_brightness_int(1023*n/100)
+    def light_on(self, axis):
+        if axis == 1:
+            CMD_LIGHT_ON = '\x1B\x40\xAA\x02\x02\x00'
+        if axis == 2:
+            CMD_LIGHT_ON = '\x1B\x40\xAA\x02\x04\x00'
+        self.ask(CMD_LIGHT_ON)
+    
+    def light_off(self, axis):
+        if axis == 1:
+            CMD_LIGHT_OFF = '\x1B\x40\xAA\x02\x02\x01'
+            self.ask(CMD_LIGHT_OFF)
+        if axis == 2:
+            # NOT POSSIBLE, only Brightness can be set to 0%
+            self.set_brightness(axis, 0)
+    
+    def set_brightness(self, axis, n):
+        lsb, msb = self.calc_brightness_chars(n)
+        if axis == 1:
+            CMD_SET_BRIGHTNESS = '\x1B\x40\xA8\x03\x00'+msb+lsb
+        if axis == 2:
+            CMD_SET_BRIGHTNESS = '\x1B\x40\xA8\x03\x01'+msb+lsb
+        self.ask(CMD_SET_BRIGHTNESS)
   
-    def set_brightness_int(self, n):
-        CMD_SET_BRIGHTNESS = '\x1B\x40\xA8\x03\x00'
-        n = int(n)
-        lsb, msb = self.get_brightness_chars(n)
-        cmd = CMD_SET_BRIGHTNESS+msb+lsb
-        self.ask(cmd)
+    def get_brightness(self, axis):
+        if axis == 1:
+            CMD_GET_BRIGHTNESS = '\x1B\x40\x92\x01\x01'
+        if axis == 2:
+            CMD_GET_BRIGHTNESS = '\x1B\x40\x92\x01\x02'
+        ans = self.ask(CMD_GET_BRIGHTNESS, ans_size=8)
+        msb, lsb = ans[-3:-1]
+        brightness = self.calc_brightness(lsb, msb)
+        return brightness
 
-    def get_brightness_chars(self, n):
+    def calc_brightness_chars(self, brightness):
         # return lsb, msb
+        n = int(1023*brightness/100)
         return chr(n&0xff),chr(n>>8&0x03)
+
+    def calc_brightness(self, lsb, msb):
+        n = ord(lsb) + (ord(msb)<<8)
+        brightness = n * 100 / 1023
+        return brightness + 1
