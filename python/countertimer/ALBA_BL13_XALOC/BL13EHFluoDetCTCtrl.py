@@ -14,11 +14,11 @@ class BL13EHFluoDetCTController(CounterTimerController):
     axis_attributes ={'Spectrum': 
                       {'Type':(float,),
                        'Description':'Fluorescence spectrum',
-                       'R/W Type':'read'},
+                       'R/W Type':'read_write'},
                       'SpectrumXScale': 
                       {'Type':(float,),
                        'Description':'Fluorescence spectrum X axis scale',
-                       'R/W Type':'read'},
+                       'R/W Type':'read_write'},
                       'FluoRoiCenter':
                       {'Type':float,
                        'Description':'Center of Fluorescence ROI',
@@ -114,6 +114,8 @@ class BL13EHFluoDetCTController(CounterTimerController):
             return self.spectrum
         elif name_lower == "spectrumxscale":
             if self.spectrum == None and self.running == False:
+                self.spectrum_xscale = self.fluodet.getSpectrumScale(binning=self.binning)
+            else:
                 self.spectrum_xscale = self.fluodet.getSpectrumScale(binning=self.binning)
             return self.spectrum_xscale
         elif name_lower == 'fluoroicenter':
