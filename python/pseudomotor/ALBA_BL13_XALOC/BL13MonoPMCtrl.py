@@ -9,6 +9,7 @@ from scipy.constants import physical_constants
 
 import undulator
 import mono
+import diftab
 
 class MonoEnergyEPMController(PseudoMotorController):
     """ This controller provides E as a function of theta."""
@@ -177,6 +178,72 @@ class MonoEugapPMController(PseudoMotorController):
         elif par == 'harmonicautoset':
             return self.harmonicAutoSet
 
+
+
+class MonoEalignPMController(PseudoMotorController):
+    """ This controller provides Eugap as a function of E and ugap.
+    In spock can be created with:
+    %defctrl MonoEalignPMController oh_monoealignpm_ctrl Ealign=Ealign Eugap=Eugap diftabx=diftabx diftabz=diftabz EugapName Eugap
+    """
+
+    pseudo_motor_roles = ('Ealign',)
+    motor_roles = ('Eugap', 'diftabx', 'diftabz')
+
+    class_prop = { 'EugapName':{'Type':'PyTango.DevString', 'Description':'Eugap motor name.'}}
+
+    axis_attributes = {'diftabxCorrection':{'Type':bool,
+                                            'R/W Type':'PyTango.READ_WRITE',
+                                            'DefaultValue':False},
+                       'diftabzCorrection':{'Type':bool,
+                                            'R/W Type':'PyTango.READ_WRITE',
+                                            'DefaultValue':False},
+                       }
+
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
+        self.eugap_motor =  PoolUtil().get_motor(self.inst_name, self.EugapName)
+        self.diftabxCorrection = False
+        self.diftabzCorrection = False
+        
+    def CalcPhysical(self, index, pseudos, curr_physicals):
+        Ealign, = pseudos
+        Eugap, diftabx, diftabz = curr_physicals
+        physical_role = self.motor_roles[index - 1]
+
+        harmonic = self.eugap_motor.harmonic
+        diftab_shifts_calc = diftab.getdiftab_E(E_curr=Eugap, E_final=Ealign, harmonic=harmonic)
+        diftabx_shift, diftabz_shift, diftabx_stripe_RhIr, diftabz_stripe_RhIr = diftab_shifts_calc
+
+        if physical_role == 'Eugap':
+            return Ealign
+        elif physical_role == 'diftabx':
+            if self.diftabxCorrection:
+                return diftabx + diftabx_shift
+            else:
+                return diftabx
+        elif physical_role == 'diftabz':
+            if self.diftabzCorrection:
+                return diftabz + diftabz_shift
+            else:
+                return diftabz
+
+    def CalcPseudo(self, index, physicals, curr_pseudos):
+        Eugap, diftabx, diftabz = physicals
+        return Eugap
+
+    def SetAxisExtraPar(self, axis, name, value):
+        par = name.lower()
+        if par == 'diftabxcorrection':
+            self.diftabxCorrection = value
+        elif par == 'diftabzcorrection':
+            self.diftabzCorrection = value
+
+    def GetAxisExtraPar(self, axis, name):
+        par = name.lower()
+        if par == 'diftabxcorrection':
+            return self.diftabxCorrection
+        elif par == 'diftabzcorrection':
+            return self.diftabzCorrection
 
 
 class PitStrokePMController(PseudoMotorController):
