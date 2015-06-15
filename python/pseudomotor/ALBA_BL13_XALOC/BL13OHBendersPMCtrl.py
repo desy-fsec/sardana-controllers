@@ -117,18 +117,18 @@ class VFMBenderFrontPMController(PseudoMotorController):
 
 
 class VFMBenderEllipsePMController(PseudoMotorController):
+    """ Pseudomotor controller to allow bending the mirror with q and DE3"""
 
-    pseudo_motor_roles = ('q', 'DE3')
-    motor_roles = ('vfmbenfb_N', 'vfmbenff_N')
+    pseudo_motor_roles = ('q', 'DE3',)
+    motor_roles = ('vfmbenfb_N', 'vfmbenff_N',)
 
-    axis_attributes = {'vfm_ellipse_p':
-                           {'Type':'PyTango.DevDouble',
-                            'R/W Type':'PyTango.READ_WRITE',
-                            'DefaultValue':22.8},
-                       'vfm_ellipse_pit_offset':
-                           {'Type':'PyTango.DevDouble',
-                            'R/W Type':'PyTango.READ_WRITE',
-                            'DefaultValue':0}}
+    axis_attributes = {'vfm_ellipse_p': {'Type':'PyTango.DevDouble',
+                                         'R/W Type':'PyTango.READ_WRITE',
+                                         'DefaultValue':22.8},
+                       'vfm_ellipse_pit_offset': {'Type':'PyTango.DevDouble',
+                                                  'R/W Type':'PyTango.READ_WRITE',
+                                                  'DefaultValue':0}
+                       }
 
     def __init__(self, inst, props, *args, **kwargs):
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
