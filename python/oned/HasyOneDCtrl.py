@@ -51,12 +51,14 @@ class HasyOneDCtrl(OneDController):
         self.proxy = []
         self.flagIsMCA8715 = []
         self.flagIsXIA = []
+        self.flagIsSIS3320 = []
         self.device_available = []
         for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.flagIsMCA8715.append( False)
             self.flagIsXIA.append( False)
+            self.flagIsSIS3320.append(False)
             self.device_available.append(False)
             self.max_device =  self.max_device + 1
         self.started = False
@@ -78,6 +80,8 @@ class HasyOneDCtrl(OneDController):
             self.flagIsMCA8715[ind-1] = True
         if hasattr(self.proxy[ind-1], 'Spectrum') and hasattr(self.proxy[ind-1], 'McaLength'):
             self.flagIsXIA[ind-1] = True
+        if hasattr(self.proxy[ind-1], 'ADCxInputInvert') or hasattr(self.proxy[ind-1], 'TriggerPeakingTime'):
+            self.flagIsSIS3320[ind-1] = True
         if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1]
 
        
@@ -90,14 +94,22 @@ class HasyOneDCtrl(OneDController):
         
     def StateOne(self,ind):
         #if self.debugFlag: print "HasyOneDCtrl.StatOne",self.inst_name,"index",ind
-        if  self.device_available[ind-1] == 1:
+        if  self.device_available[ind-1] == 1: 
             sta = self.proxy[ind-1].command_inout("State")
-            if sta == PyTango.DevState.ON:
-                tup = (sta,"The MCA is ready")
-            elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
-                tup = (sta,"Device is acquiring data")
+            if self.flagIsSIS3320[ind-1]:
+                if sta == PyTango.DevState.ON:
+                    tup = (sta,"The MCA is ready")
+                elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
+                    tup = (PyTango.DevState.ON,"Device is acquiring data")
+                else:
+                    tup = (sta, "")
             else:
-                tup = (sta, "")
+                if sta == PyTango.DevState.ON:
+                    tup = (sta,"The MCA is ready")
+                elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
+                    tup = (sta,"Device is acquiring data")
+                else:
+                    tup = (sta, "")
         else:
             sta = PyTango.DevState.FAULT
             tup = (sta, "Device not available")
