@@ -1,11 +1,10 @@
-""" """
-
-from PyTango import DevState
 from PyTango import AttrQuality
 from PyTango import AttributeProxy
 from PyTango import DevFailed
-from pool import MotorController
-from pool import PoolUtil
+
+from sardana import State, DataAccess
+from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description
 
 import math
 import time
@@ -50,35 +49,34 @@ class TangoAttrMotorController(MotorController):
                      
     MaxDevice = 1024
 
-    ctrl_extra_attributes ={TANGO_ATTR:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The first Tango Attribute to read (e.g. my/tango/dev/attr)'
-                             ,'R/W Type':'PyTango.READ_WRITE'},
-                            FORMULA_READ:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The Formula to get the desired position from attribute value.\ne.g. "math.sqrt(VALUE)"'
-                             ,'R/W Type':'PyTango.READ_WRITE'},
-                            FORMULA_WRITE:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The Formula to set the desired value from motor position.\ne.g. "math.pow(VALUE,2)"'
-                             ,'R/W Type':'PyTango.READ_WRITE'},
-                            TANGO_ATTR_ENC:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The Tango Attribute used as encoder"'
-                             ,'R/W Type':'PyTango.READ_WRITE'},
-                            TANGO_ATTR_ENC_THRESHOLD:
-                            {'Type':'PyTango.DevDouble'
-                             ,'Description':'Maximum difference for considering the motor stopped"'
-                             ,'R/W Type':'PyTango.READ_WRITE'},
-                            TANGO_ATTR_ENC_SPEED:
-                            {'Type':'PyTango.DevDouble'
-                             ,'Description':'Units per second used to wait encoder value within threshold after a movement."'
-                             ,'R/W Type':'PyTango.READ_WRITE'}
-
-                            }
+    axis_attributes ={TANGO_ATTR:
+                        {Type : str
+                         , Description : 'The first Tango Attribute to read (e.g. my/tango/dev/attr)'
+                         ,Access : DataAccess.ReadWrite},
+                      FORMULA_READ:
+                        {Type : str
+                         ,Description : 'The Formula to get the desired position from attribute value.\ne.g. "math.sqrt(VALUE)"'
+                         ,Access : DataAccess.ReadWrite},
+                      FORMULA_WRITE:
+                        {Type : str
+                         ,Description : 'The Formula to set the desired value from motor position.\ne.g. "math.pow(VALUE,2)"'
+                         ,Access : DataAccess.ReadWrite},
+                      TANGO_ATTR_ENC:
+                        {Type : str
+                         ,Description : 'The Tango Attribute used as encoder"'
+                         ,Access : DataAccess.ReadWrite},
+                      TANGO_ATTR_ENC_THRESHOLD:
+                        {Type : float
+                         ,Description : 'Maximum difference for considering the motor stopped"'
+                         ,Access : DataAccess.ReadWrite},
+                      TANGO_ATTR_ENC_SPEED:
+                        {Type : float
+                         ,Description : 'Units per second used to wait encoder value within threshold after a movement."'
+                         ,Access : DataAccess.ReadWrite}
+                     }
     
-    def __init__(self, inst, props):
-        MotorController.__init__(self, inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
+        MotorController.__init__(self, inst, props, *args, **kwargs)
         self.axisAttributes = {}
 
     def AddDevice(self, axis):
@@ -97,15 +95,15 @@ class TangoAttrMotorController(MotorController):
 
     def StateOne(self, axis):
         try:
-            state = DevState.ON
+            state = State.On
             status = 'ok'
             switch_state = 0
             tau_attr = self.axisAttributes[axis][TAU_ATTR]
             if tau_attr is None:
-                return (DevState.ALARM, "attribute proxy is None", 0)
+                return (State.Alarm, "attribute proxy is None", 0)
 
             if tau_attr.read().quality == AttrQuality.ATTR_CHANGING:
-                state = DevState.MOVING
+                state = State.Moving
 
             elif self.axisAttributes[axis][MOVE_TIMEOUT] != None:
                 tau_attr_enc = self.axisAttributes[axis][TAU_ATTR_ENC]
@@ -115,15 +113,15 @@ class TangoAttrMotorController(MotorController):
 
                 current_pos = self.ReadOne(axis)
 
-                if abs(move_to - current_pos) < abs(enc_threshold):
+                if abs(move_to - current_pos) <= abs(enc_threshold):
                     self.axisAttributes[axis][MOVE_TIMEOUT] = None
                     self.axisAttributes[axis][MOVE_TO] = None
                     # Allow last event for position
-                    state = DevState.ON
+                    state = State.On
                 elif time.time() < move_timeout:
-                    state = DevState.MOVING
+                    state = State.Moving
                 else:
-                    state = DevState.ALARM
+                    state = State.Alarm
                     status = 'Motor did not reach the desired position. %f not in [%f,%f]' % (current_pos, move_to - enc_threshold, move_to + enc_threshold)
 
             # SHOULD DEAL ALSO ABOUT LIMITS
@@ -131,7 +129,7 @@ class TangoAttrMotorController(MotorController):
             return (state, status, switch_state)
         except Exception,e:
             self._log.error(" (%d) error getting state: %s"%(axis,str(e)))
-            return (DevState.ALARM, "Exception: %s" % str(e), 0)
+            return (State.Alarm, "Exception: %s" % str(e), 0)
 
     def PreReadAll(self):
         pass
@@ -204,10 +202,10 @@ class TangoAttrMotorController(MotorController):
     def GetPar(self,axis,name):
         return self.axisAttributes[axis][name]
 
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         return self.axisAttributes[axis][name]
 
-    def SetExtraAttributePar(self,axis, name, value):
+    def SetAxisExtraPar(self,axis, name, value):
         try:
             self._log.debug("SetExtraAttributePar [%d] %s = %s" % (axis, name, value))
             self.axisAttributes[axis][name] = value
