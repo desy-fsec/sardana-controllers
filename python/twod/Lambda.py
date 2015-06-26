@@ -87,7 +87,6 @@ class LambdaCtrl(TwoDController):
         self.device_available[ind-1] = 1
         self.DelayTime.append(self.dft_DelayTime)
         self.ShutterTime.append(self.dft_ShutterTime)
-        self.ExposurePeriod.append(self.dft_ExposurePeriod)
         self.FileStartNum.append(self.dft_FileStartNum)
         self.SaveFileName.append(self.dft_SaveFileName)
         self.FilePostfix.append(self.dft_FilePostfix)
