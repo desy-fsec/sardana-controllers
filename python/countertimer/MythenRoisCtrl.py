@@ -10,6 +10,8 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+global last_sta
+
 class MythenRoisCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the Mythen RoIs"
 	
@@ -45,7 +47,9 @@ class MythenRoisCtrl(CounterTimerController):
         proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
-        self.proxy = PyTango.DeviceProxy(proxy_name)
+        self.proxy = PyTango.DeviceProxy(proxy_name) 
+        global last_sta
+        last_sta = PyTango.DevState.ON
 
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
@@ -58,7 +62,12 @@ class MythenRoisCtrl(CounterTimerController):
         
 		
     def StateOne(self,ind):
-        sta = self.proxy.command_inout("State")
+        global last_sta
+        try:
+            sta = self.proxy.command_inout("State")
+            last_sta = sta
+        except:
+            sta = last_sta
         if sta == PyTango.DevState.ON:
             status_string = "Mythen is in ON state"
         elif sta == PyTango.DevState.MOVING:
@@ -81,7 +90,10 @@ class MythenRoisCtrl(CounterTimerController):
         return True
         
     def StartOneCT(self,ind):
-        sta = self.proxy.command_inout("State")
+        try:
+            sta = self.proxy.command_inout("State")
+        except:
+            sta = PyTango.DevState.ON
         if self.proxy.ConnectionToDoor == 0:
             try:
                 self.proxy.ConnectToDoor()
@@ -91,7 +103,10 @@ class MythenRoisCtrl(CounterTimerController):
             self.proxy.command_inout("StartAcquisition")
             
     def ReadOne(self,ind):
-        value = self.proxy.read_attribute(self.AttributeNames[ind-1]).value
+        try:
+            value = self.proxy.read_attribute(self.AttributeNames[ind-1]).value
+        except:
+            value = -999
         return  value
 	
     def AbortOne(self,ind):
