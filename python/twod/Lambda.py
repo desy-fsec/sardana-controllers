@@ -115,6 +115,9 @@ class LambdaCtrl(TwoDController):
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
                 tup = (sta,"Camera taking images")
+            elif sta == PyTango.DevState.MOVING:
+                sta = PyTango.DevState.MOVING
+                tup = (sta,"Camera taking images")
             elif sta == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
             elif sta == PyTango.DevState.DISABLE:
