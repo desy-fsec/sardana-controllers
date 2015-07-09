@@ -194,6 +194,7 @@ class HasyMotorCtrl(MotorController):
                 value = 1./value
                 self.proxy[ind-1].write_attribute("Acceleration",long(value))
             elif name == "deceleration":
+                value = 1./value
                 self.proxy[ind-1].write_attribute("Acceleration",long(value))
             elif name == "base_rate":
                 self.proxy[ind-1].write_attribute("BaseRate",long(value))
@@ -214,6 +215,7 @@ class HasyMotorCtrl(MotorController):
                 v = 1./v
             elif name == "deceleration":
                 v = self.proxy[ind-1].read_attribute("Acceleration").value
+                v = 1./v
             elif name == "base_rate":
                 v = self.proxy[ind-1].read_attribute("BaseRate").value
             elif name == "velocity":
