@@ -191,19 +191,47 @@ class HasyMotorCtrl(MotorController):
         if self.device_available[ind-1]:
             name = name.lower()
             if name == "acceleration":
-                value = 1./value
+                try:
+                    v = self.proxy[ind-1].read_attribute("SlewDouble").value
+                except:
+                    v = self.proxy[ind-1].read_attribute("SlewRate").value
+                if value != 0:
+                    value = v/value
+                else:
+                    value = v
                 self.proxy[ind-1].write_attribute("Acceleration",long(value))
             elif name == "deceleration":
-                value = 1./value
+                try:
+                    v = self.proxy[ind-1].read_attribute("SlewDouble").value
+                except:
+                    v = self.proxy[ind-1].read_attribute("SlewRate").value
+                if value != 0:
+                    value = v/value
+                else:
+                    value = v
                 self.proxy[ind-1].write_attribute("Acceleration",long(value))
             elif name == "base_rate":
-                self.proxy[ind-1].write_attribute("BaseRate",long(value))
-            elif name == "velocity":
+                conversion = 1
                 try:
-                    self.proxy[ind-1].write_attribute("SlewRate",long(value))
-                    self.proxy[ind-1].write_attribute("SlewDouble",float(value))
+                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
                 except:
-                    self.proxy[ind-1].write_attribute("SlewRate",long(value))
+                    pass
+                if conversion == 0:
+                    conversion = 1
+                self.proxy[ind-1].write_attribute("BaseRate",long(value*conversion))
+            elif name == "velocity":
+                conversion = 1
+                try:
+                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
+                except:
+                    pass
+                if conversion == 0:
+                    conversion = 1
+                try:
+                    self.proxy[ind-1].write_attribute("SlewRate",long(value*conversion))
+                    self.proxy[ind-1].write_attribute("SlewDouble",float(value*conversion))
+                except:
+                    self.proxy[ind-1].write_attribute("SlewRate",long(value*conversion))
             elif name == "step_per_unit":
                 self.proxy[ind-1].write_attribute("Conversion",value)
             
@@ -211,18 +239,46 @@ class HasyMotorCtrl(MotorController):
         if self.device_available[ind-1]:
             name = name.lower()
             if name == "acceleration":
-                v = self.proxy[ind-1].read_attribute("Acceleration").value
-                v = 1./v
-            elif name == "deceleration":
-                v = self.proxy[ind-1].read_attribute("Acceleration").value
-                v = 1./v
-            elif name == "base_rate":
-                v = self.proxy[ind-1].read_attribute("BaseRate").value
-            elif name == "velocity":
                 try:
-                    v = self.proxy[ind-1].read_attribute("SlewDouble").value
+                    vel = self.proxy[ind-1].read_attribute("SlewDouble").value
                 except:
-                    v = self.proxy[ind-1].read_attribute("SlewRate").value
+                    vel = self.proxy[ind-1].read_attribute("SlewRate").value
+                v = self.proxy[ind-1].read_attribute("Acceleration").value
+                if v != 0:
+                    v = vel/v
+                else:
+                    v = 1
+            elif name == "deceleration":
+                try:
+                    vel = self.proxy[ind-1].read_attribute("SlewDouble").value
+                except:
+                    vel = self.proxy[ind-1].read_attribute("SlewRate").value
+                v = self.proxy[ind-1].read_attribute("Acceleration").value
+                if v != 0:
+                    v = vel/v
+                else:
+                    v = 1
+            elif name == "base_rate":
+                conversion = 1
+                try:
+                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
+                except:
+                    pass
+                if conversion == 0:
+                    conversion = 1
+                v = self.proxy[ind-1].read_attribute("BaseRate").value/conversion
+            elif name == "velocity":
+                conversion = 1
+                try:
+                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
+                except:
+                    pass
+                if conversion == 0:
+                    conversion = 1
+                try:
+                    v = self.proxy[ind-1].read_attribute("SlewDouble").value/conversion
+                except:
+                    v = self.proxy[ind-1].read_attribute("SlewRate").value/conversion
             elif name == "step_per_unit":
                 v = self.proxy[ind-1].read_attribute("Conversion").value
         return v
