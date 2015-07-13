@@ -242,8 +242,14 @@ class HasyMotorCtrl(MotorController):
                 try:
                     vel = self.proxy[ind-1].read_attribute("SlewDouble").value
                 except:
-                    vel = self.proxy[ind-1].read_attribute("SlewRate").value
-                v = self.proxy[ind-1].read_attribute("Acceleration").value
+                    try:
+                        vel = self.proxy[ind-1].read_attribute("SlewRate").value
+                    except:
+                        vel = 1
+                try:
+                    v = self.proxy[ind-1].read_attribute("Acceleration").value
+                except:
+                    v = 1
                 if v != 0:
                     v = vel/v
                 else:
@@ -252,8 +258,14 @@ class HasyMotorCtrl(MotorController):
                 try:
                     vel = self.proxy[ind-1].read_attribute("SlewDouble").value
                 except:
-                    vel = self.proxy[ind-1].read_attribute("SlewRate").value
-                v = self.proxy[ind-1].read_attribute("Acceleration").value
+                    try:
+                        vel = self.proxy[ind-1].read_attribute("SlewRate").value
+                    except:
+                        vel = 1
+                try:
+                    v = self.proxy[ind-1].read_attribute("Acceleration").value
+                except:
+                    v = 1
                 if v != 0:
                     v = vel/v
                 else:
@@ -266,7 +278,10 @@ class HasyMotorCtrl(MotorController):
                     pass
                 if conversion == 0:
                     conversion = 1
-                v = self.proxy[ind-1].read_attribute("BaseRate").value/conversion
+                try:
+                    v = self.proxy[ind-1].read_attribute("BaseRate").value/conversion
+                except:
+                    v = 1
             elif name == "velocity":
                 conversion = 1
                 try:
@@ -278,9 +293,15 @@ class HasyMotorCtrl(MotorController):
                 try:
                     v = self.proxy[ind-1].read_attribute("SlewDouble").value/conversion
                 except:
-                    v = self.proxy[ind-1].read_attribute("SlewRate").value/conversion
+                    try:
+                        v = self.proxy[ind-1].read_attribute("SlewRate").value/conversion
+                    except:
+                        v = 1
             elif name == "step_per_unit":
-                v = self.proxy[ind-1].read_attribute("Conversion").value
+                try:
+                    v = self.proxy[ind-1].read_attribute("Conversion").value
+                except:
+                    v = 1
         return v
     
     def StartAll(self):
