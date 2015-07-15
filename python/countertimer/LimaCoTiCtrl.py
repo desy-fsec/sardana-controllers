@@ -145,16 +145,18 @@ class LimaCoTiCtrl(CounterTimerController):
     def ReadOne(self, axis):
         self._log.debug("ReadOne(%d): Entering...", axis)
         try:
-            number = self.GetAxisExtraPar(axis,'NextNumber')
-            prefix = self.GetAxisExtraPar(axis,'FilePrefix')
-            dir = self.GetAxisExtraPar(axis,'FileDir')
-            format = self.GetAxisExtraPar(axis,'FileFormat')
-            value = dir + "/" + prefix + "_" + str(number) + "." + format
-            return value
+            return self.filename
         except Exception, e:
             self._log.error("StateOne(%d): Could not read image counter of the"
                             " device: %s.\nException: %s",
                             axis, self.LimaDeviceName, e)
+
+    def _save_filename(self, axis):
+        number = self.GetAxisExtraPar(axis, 'NextNumber')
+        prefix = self.GetAxisExtraPar(axis, 'FilePrefix')
+        file_dir = self.GetAxisExtraPar(axis, 'FileDir')
+        file_format = self.GetAxisExtraPar(axis, 'FileFormat')
+        self.filename = '%s/%s_%s.%s' % (file_dir, prefix, number, file_format)
 
     def ReadAll(self):
         self._log.debug("ReadAll: Entering...")
@@ -178,13 +180,14 @@ class LimaCoTiCtrl(CounterTimerController):
     def StartAll(self):
         self._log.debug("StartAll: Entering...")
         self.LimaDevice.startAcq()
+        self.t0 = time.time()
 
     def LoadOne(self, axis, value):
         self._log.debug("LoadOne(%d): Entering...", axis)
         if self.GetAxisExtraPar(axis,'NbFrames') == 0:
             raise RuntimeError('You must set the number of frames')
         self.LimaDevice.write_attribute('acq_expo_time', value)
-        self.t0 = time.time()
+        self._save_filename(axis)
 
     def AbortOne(self, axis):
         self._log.debug("AbortOne(%d): Entering...", axis)
