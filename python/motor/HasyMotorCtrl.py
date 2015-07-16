@@ -213,7 +213,7 @@ class HasyMotorCtrl(MotorController):
             elif name == "base_rate":
                 conversion = 1
                 try:
-                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
+                    conversion = abs(self.proxy[ind-1].read_attribute("Conversion").value)
                 except:
                     pass
                 if conversion == 0:
@@ -222,7 +222,7 @@ class HasyMotorCtrl(MotorController):
             elif name == "velocity":
                 conversion = 1
                 try:
-                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
+                    conversion = abs(self.proxy[ind-1].read_attribute("Conversion").value)
                 except:
                     pass
                 if conversion == 0:
@@ -273,7 +273,7 @@ class HasyMotorCtrl(MotorController):
             elif name == "base_rate":
                 conversion = 1
                 try:
-                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
+                    conversion = abs(self.proxy[ind-1].read_attribute("Conversion").value)
                 except:
                     pass
                 if conversion == 0:
@@ -285,7 +285,7 @@ class HasyMotorCtrl(MotorController):
             elif name == "velocity":
                 conversion = 1
                 try:
-                    conversion = self.proxy[ind-1].read_attribute("Conversion").value
+                    conversion = abs(self.proxy[ind-1].read_attribute("Conversion").value)
                 except:
                     pass
                 if conversion == 0:
