@@ -73,9 +73,9 @@ class LimaCoTiCtrl(CounterTimerController):
             'R/W Type': 'READ',
             'Description': 'Image Id of last acquired image',
             },
-        'Value': {
+        'ImageFileName': {
             'Type': str,
-            'R/W Type': 'READ_WRITE',
+            'R/W Type': 'READ',
             'Description': 'Image identifier'},
         }
 
@@ -100,6 +100,7 @@ class LimaCoTiCtrl(CounterTimerController):
             raise
 
         self.t0 = time.time()
+        self.filename = ''
 
     def AddDevice(self, axis):
         self._log.debug("AddDevice(%d): Entering...", axis)
@@ -145,7 +146,7 @@ class LimaCoTiCtrl(CounterTimerController):
     def ReadOne(self, axis):
         self._log.debug("ReadOne(%d): Entering...", axis)
         try:
-            return self.filename
+            return  self.GetAxisExtraPar(axis, 'ExposureTime')
         except Exception, e:
             self._log.error("StateOne(%d): Could not read image counter of the"
                             " device: %s.\nException: %s",
@@ -257,3 +258,5 @@ class LimaCoTiCtrl(CounterTimerController):
             value = self.LimaDevice.read_attribute('last_image_ready').value
             self._log.debug('LastImageReady: %s' % value)
             return value
+         elif name == 'ImageFileName':
+            return self.filename
