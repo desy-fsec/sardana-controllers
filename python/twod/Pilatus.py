@@ -28,6 +28,7 @@ class PilatusCtrl(TwoDController):
 			     'Threshold':{Type:'PyTango.DevLong',Access:ReadWrite},
 			     'Gain':{Type:'PyTango.DevLong',Access:ReadWrite},
 			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
+			     'SettleTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
                              'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
                              }
 			     
@@ -94,6 +95,8 @@ class PilatusCtrl(TwoDController):
         self.Gain = []
         self.dft_Reset = 0
         self.Reset = []
+        self.dft_SettleTime = 0.4
+        self.SettleTime = []
         
         
     def AddDevice(self,ind):
@@ -124,6 +127,7 @@ class PilatusCtrl(TwoDController):
         self.Threshold.append(self.dft_Threshold)
         self.Gain.append(self.dft_Gain)
         self.Reset.append(self.dft_Reset)
+        self.SettleTime.append(self.dft_SettleTime)
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In DeleteDevice method for index",ind
@@ -171,14 +175,14 @@ class PilatusCtrl(TwoDController):
         pass
     
     def PreStartOne(self, ind, value):
-        if self.proxy[ind-1].read_attribute("TriggerMode").value == 3:
+        if self.proxy[ind-1].read_attribute("TriggerMode").value > 0:
             self.proxy[ind-1].command_inout("StartStandardAcq")
-            time.sleep(0.4)
+            time.sleep(self.SettleTime[ind-1])
         return True
             
     def StartOne(self,ind, position=None):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In StartOne method for index",ind
-        if self.proxy[ind-1].read_attribute("TriggerMode").value != 3:
+        if self.proxy[ind-1].read_attribute("TriggerMode").value == 0:
             self.proxy[ind-1].command_inout("StartStandardAcq")
         
     def AbortOne(self,ind):
@@ -228,6 +232,8 @@ class PilatusCtrl(TwoDController):
             elif name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
+            elif name == "SettleTime":
+                return self.SettleTime[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
@@ -263,6 +269,9 @@ class PilatusCtrl(TwoDController):
             elif name == "Reset":
                 if self.device_available[ind-1]:
                     self.proxy[ind-1].command_inout("Reset")
+            elif name == "SettleTime":
+                if self.device_available[ind-1]:
+                    self.SettleTime[ind-1] = value
         
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
