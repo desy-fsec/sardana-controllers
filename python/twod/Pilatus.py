@@ -174,6 +174,7 @@ class PilatusCtrl(TwoDController):
         if self.proxy[ind-1].read_attribute("TriggerMode").value == 3:
             self.proxy[ind-1].command_inout("StartStandardAcq")
             time.sleep(0.4)
+        return True
             
     def StartOne(self,ind, position=None):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In StartOne method for index",ind
