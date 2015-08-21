@@ -17,6 +17,8 @@ class MHzDAQp01Ctrl(CounterTimerController):
 	
 
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
+                       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
+                       'FileNum':{Type:'PyTango.DevLong',Access:ReadWrite},
                        }
 		     
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Mythenrois Tango devices'},
@@ -120,10 +122,18 @@ class MHzDAQp01Ctrl(CounterTimerController):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
+        elif name == "FilePrefix":
+            return self.proxy.read_attribute("FilePrefix").value
+        elif name == "FileNum":
+            return self.proxy.read_attribute("FileNum").value
+        
         
             
     def SetExtraAttributePar(self,ind,name,value):
-        pass
+        if name == "FilePrefix":
+            self.proxy.write_attribute("FilePrefix",value)
+        elif name == "FileNum":
+            self.proxy.write_attribute("FileStartNum",value)
 			
     def SendToCtrl(self,in_data):
         return "Nothing sent"
