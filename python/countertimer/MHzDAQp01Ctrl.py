@@ -95,7 +95,7 @@ class MHzDAQp01Ctrl(CounterTimerController):
             if ind == 1:
                 value = self.proxy.read_attribute("MeanValue").value
             else:
-                value = self.proxy.read_attribute("STDDevValue").value
+                value = self.proxy.read_attribute("StdDevValue").value
                 
         except:
             value = -999
@@ -114,7 +114,7 @@ class MHzDAQp01Ctrl(CounterTimerController):
         pass
 		     	
     def LoadOne(self,ind,value):
-        pass
+        self.proxy.write_attribute("NbTriggers", value)
 	
     def GetExtraAttributePar(self,ind,name):
         if name == "TangoDevice":
