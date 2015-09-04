@@ -86,6 +86,9 @@ class SMCMotorController(MotorController):
         MotorController.__init__(self, inst, props, *args, **kwargs)
         self.tango_vm = None
         self.smc_proxies = [None, None, None]
+        self.accelerations = [0.0, 0.0, 0.0]
+        self.decelerations = [0.0, 0.0, 0.0]
+        self.base_rate = 0.0
         #build vector magnet device proxy
         self.tango_vm = PyTango.DeviceProxy(self.TangoDevice)
         #build SMC device proxies
@@ -170,13 +173,26 @@ class SMCMotorController(MotorController):
     def GetAxisPar(self, axis, name):
         name = name.lower()
         if name == 'velocity':
-            return (self.smc_proxies[axis-1].read_attribute(self.ATTR_RAMP_RATE).value)
+            return (self.smc_proxies[axis-1].read_attribute(self.ATTR_RAMP_RATE).value/60.0)
+        elif name == 'base_rate':
+            return self.base_rate
+        elif name == "acceleration":
+            return self.accelerations[axis-1]
+        elif name == "deceleration":
+            return self.decelerations[axis-1]
+
 
     def SetAxisPar(self, axis, name, value):
         name = name.lower()
         if name == 'velocity':
-            self.smc_proxies[axis-1].write_attribute(self.ATTR_RAMP_RATE,value)
+            self.smc_proxies[axis-1].write_attribute(self.ATTR_RAMP_RATE,value*60.0)
 #            self.tango_vm.write_attribute("%s%s" % (self.AXES[axis-1], self.ATTR_RAMP_RATE), values)
+        elif name == 'base_rate':
+            self.base_rate = value
+        elif name == "acceleration":
+            self.accelerations[axis-1] = value
+        elif name == "deceleration":
+            self.decelerations[axis-1] = value
 
 
     def GetCtrlPar(self, parameter):
