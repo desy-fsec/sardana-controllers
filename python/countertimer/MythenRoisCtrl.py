@@ -12,6 +12,8 @@ ReadWrite = DataAccess.ReadWrite
 
 global last_sta
 
+start_one = 0
+
 class MythenRoisCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the Mythen RoIs"
 	
@@ -99,8 +101,11 @@ class MythenRoisCtrl(CounterTimerController):
                 self.proxy.ConnectToDoor()
             except:
                 pass
-        if sta == PyTango.DevState.ON:
+        global start_one
+        if sta == PyTango.DevState.ON and start_one == 0:
             self.proxy.command_inout("StartAcquisition")
+            start_one = 1
+            
             
     def ReadOne(self,ind):
         try:
@@ -123,6 +128,8 @@ class MythenRoisCtrl(CounterTimerController):
 		     	
     def LoadOne(self,ind,value):
         self.proxy.write_attribute("ExposureTime", value)
+        global start_one
+        start_one = 0
 	
     def GetExtraAttributePar(self,ind,name):
         if name == "TangoDevice":
