@@ -52,8 +52,19 @@ class XiaIORController(IORegisterController):
                 self.status = "It was not possible to interpret shutter position returned by Xia device server. Going into ALARM state..."
                 raise Exception(self.status)
         else:
-            devAxisVal = self.device.read_attribute("Filter_Positions").value.split(" ")[3][(axis-2)]
-            value = int(devAxisVal)
+
+            devAxisVal = self.device.read_attribute("Filter_Positions").value
+            if devAxisVal == "":        
+                value = -1
+            else:
+                self._log.debug('testXiaIORCTRL')
+                self._log.debug(devAxisVal)
+                tmp = devAxisVal.split(" ")[3][(axis-2)]
+                self._log.debug(tmp)
+                self._log.debug(type(tmp))
+
+
+                value = int(tmp)
         return value
         
     def WriteOne(self, axis, value):        

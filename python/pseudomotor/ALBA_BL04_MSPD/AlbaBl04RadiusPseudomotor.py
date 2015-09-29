@@ -1,5 +1,8 @@
 import math, logging
-from pool import PseudoMotorController, PoolUtil
+
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
 
 class RadiusController(PseudoMotorController):
     """This pseudomotor controller does the calculation of radius 
@@ -14,8 +17,8 @@ class RadiusController(PseudoMotorController):
 
     ctrl_extra_attributes = {"PusherOffset":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
 
-    def __init__(self, inst, props):    
-        PseudoMotorController.__init__(self, inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         #self._log.setLevel(logging.DEBUG)
         #Setting the default value for Pusher Offset
         self.pusherOffset = 253113 

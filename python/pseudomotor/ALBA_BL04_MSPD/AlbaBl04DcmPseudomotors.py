@@ -32,7 +32,9 @@
 ###########################################################################
 import logging, math
 import PyTango
-from pool import PseudoMotorController, PoolUtil
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
 
 #Conversion Energy [keV] <-> wavelength lambda [Angstroem] :   lambda= 
 #12.3984 / Energy
@@ -60,8 +62,8 @@ class Energy(PseudoMotorController):
     pseudo_motor_roles = ("energy",)
     motor_roles = ("bragg","t2")
     
-    def __init__(self,inst,props):
-        PseudoMotorController.__init__(self,inst,props)
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         #self._log.setLevel(logging.DEBUG)
 
         self.attributes = {}

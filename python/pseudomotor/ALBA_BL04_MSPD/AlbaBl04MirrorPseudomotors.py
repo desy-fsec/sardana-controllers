@@ -1,6 +1,8 @@
 import math
 
-from pool import PseudoMotorController
+from sardana import pool
+from sardana.pool import PoolUtil
+from sardana.pool.controller import PseudoMotorController
   
 class MirrorZPitchRoll(PseudoMotorController):
   """ The PseudoMotor controller for the MSPD's M1 table: Z, Pitch, Roll.
