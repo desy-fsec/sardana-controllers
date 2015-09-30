@@ -14,7 +14,8 @@ class HasyADCCtrl(ZeroDController):
     "This class is the Tango Sardana Zero D controller for a generic Hasylab ADC"
 	
     axis_attributes = {
-                       'TangoDevice':{Type:str,Access:ReadOnly}, 
+                       'TangoDevice':{Type:str,Access:ReadOnly},
+                       'Conversion':{Type:float,Access:ReadWrite},
                        }
 		     
     class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the VFCADC Tango devices'},
@@ -46,11 +47,13 @@ class HasyADCCtrl(ZeroDController):
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
+        self.conversion = []
         self.device_available = []
 	for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
+            self.conversion.append(1.)
             self.max_device =  self.max_device + 1
         self.started = False
         
@@ -102,7 +105,7 @@ class HasyADCCtrl(ZeroDController):
     def ReadOne(self,ind):
 #        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In ReadOne method for index",ind
         if self.device_available[ind-1] == 1:
-            return self.proxy[ind-1].read_attribute("Value").value
+            return self.proxy[ind-1].read_attribute("Value").value*self.conversion[ind-1]
 
     def PreStartAll(self):
 #        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In PreStartAll method"
@@ -119,8 +122,14 @@ class HasyADCCtrl(ZeroDController):
         if self.device_available[ind-1]:
             if name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
-                return tango_device        
-            
+                return tango_device   
+            elif name == "Conversion": 
+                return self.conversion[ind-1]
+          
+    def SetExtraAttributePar(self,ind,name,value):
+        if self.device_available[ind-1]:
+            if name == "Conversion":
+                self.conversion[ind-1] = value        
         
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
