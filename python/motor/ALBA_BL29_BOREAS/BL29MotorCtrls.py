@@ -30,6 +30,66 @@ from sardana.pool.controller import MotorController
 from sardana.pool.controller import Type, Description, Memorize, NotMemorized
 from sardana.tango.core.util import State, from_tango_state_to_state
 
+import PyTango
+from IcePAPCtrl import IcepapController
+
+
+class BL29MaresMagnet(IcepapController):
+    """This controller will behave exactly the same as an IcepapController
+    except that it will disengage/engage the vertical magnet brake when
+    starting/stopping the movement"""
+
+    ctrl_properties = dict(IcepapController.ctrl_properties) #copy dictionary
+    ctrl_properties.update({'BrakeAttribute':
+        {
+            Type : str,
+            Description : 'The attribute from which to read/write brake status'
+        }})
+
+    gender = 'Motor'
+    model  = 'BL29_MARES_MagnetBrake'
+    organization = 'ALBA'
+    image = 'ALBA_logo.png'
+    logo = 'ALBA_logo.png'
+    icon = 'ALBA_logo.png'
+    state = ''
+    status = ''
+
+    def __init__(self, inst, props, *args, **kwargs):
+        """Do the default init"""
+        IcepapController.__init__(self, inst, props, *args, **kwargs)
+        self.disengaged = PyTango.AttributeProxy(self.BrakeAttribute)
+
+    def StartAll(self):
+        """Disengage and check before moving motors"""
+        try:
+            self.disengaged.write(True)
+            if self.disengaged.read().value != True: #brake was not disengaged
+                raise Exception('')
+        except Exception, e:
+            raise Exception('Unable to disengage magnet brake. Details:%s' % str(e))
+        super(BL29MaresMagnet,self).StartAll()
+
+    def StopOne(self, axis):
+        """Engage brake after stopping motor"""
+        super(BL29MaresMagnet,self).StopOne()
+        try:
+            self.disengaged.write(False)
+            if self.disengaged.read().value != False: #brake was not engaged
+                raise Exception('')
+        except Exception, e:
+            raise Exception('Failed to check if magnet brake was engaged, please check!')
+
+    def AbortOne(self, axis):
+        """Engage brake after stopping motor"""
+        super(BL29MaresMagnet,self).AbortOne()
+        try:
+            self.disengaged.write(False)
+            if self.disengaged.read().value != False: #brake was not engaged
+                raise Exception('')
+        except Exception, e:
+            raise Exception('Failed to check if magnet brake was engaged, please check!')
+
 
 class BL29XMCDVectorMagnet(MotorController):
     """..."""
