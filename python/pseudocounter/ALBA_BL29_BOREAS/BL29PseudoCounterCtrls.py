@@ -95,8 +95,8 @@ class BL29EnergyPCCtrl(PseudoCounterController):
                 self.gr_pitch[index-1] = PoolUtil.get_device(self.GetName(), self.gr_pitch_source[index-1])
 
             #get currently selected grating, selected spherical mirror and grating pitch encoder counts
-            sm_selected = self.sm_selected.position
-            gr_selected = self.gr_selected.position
+            sm_selected = int(self.sm_selected.position)
+            gr_selected = int(self.gr_selected.position)
             gr_pitch_dev_class = self.gr_pitch[index-1].info().dev_class.lower()
 
             #get the value of the gr pitch depending on the type of its source 
