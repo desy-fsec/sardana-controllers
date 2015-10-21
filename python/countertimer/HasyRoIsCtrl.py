@@ -54,8 +54,8 @@ class HasyRoIsCtrl(CounterTimerController):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
                 self.port = int( lst[1])
-        self.RoIs_x = []
-        self.RoIs_y = []
+        self.RoIs_start = []
+        self.RoIs_end = []
         proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
@@ -73,8 +73,8 @@ class HasyRoIsCtrl(CounterTimerController):
         
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
-        self.RoIs_x.append(0)
-        self.RoIs_y.append(0)
+        self.RoIs_start.append(0)
+        self.RoIs_end.append(0)
        
     def DeleteDevice(self,ind):
         if self.debugFlag: print "HasyRoIsCtrl.DeleteDevice",self.inst_name,"index",ind
@@ -131,7 +131,7 @@ class HasyRoIsCtrl(CounterTimerController):
         else:
             data = self.proxy.Data
         value = 0
-        for i in range(self.RoIs_x[ind-1], self.RoIs_y[ind-1] + 1):
+        for i in range(self.RoIs_start[ind-1], self.RoIs_end[ind-1] + 1):
             value = value + data[i]
         return value
 
@@ -180,10 +180,10 @@ class HasyRoIsCtrl(CounterTimerController):
             else:
                 datalength = int(self.proxy.read_attribute("DataLength").value)
             return datalength
-        elif name == "RoIx":
-            return self.RoIs_x[ind-1]
-        elif name == "RoIy":
-            return self.RoIs_y[ind-1]
+        elif name == "RoIStart":
+            return self.RoIs_start[ind-1]
+        elif name == "RoIEnd":
+            return self.RoIs_end[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.debugFlag: print "HasyRoIsCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
@@ -192,10 +192,10 @@ class HasyRoIsCtrl(CounterTimerController):
                 self.proxy.write_attribute("McaLength",value)
             else:
                 self.proxy.write_attribute("DataLength",value)
-        elif name == "RoIx":
-            self.RoIs_x[ind-1] = value
-        elif name == "RoIy":
-            self.RoIs_y[ind-1] = value
+        elif name == "RoIStart":
+            self.RoIs_start[ind-1] = value
+        elif name == "RoIEnd":
+            self.RoIs_end[ind-1] = value
 
     def SendToCtrl(self,in_data):
         return "Nothing sent"
