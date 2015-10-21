@@ -12,7 +12,6 @@ ReadWrite = DataAccess.ReadWrite
 
 global last_sta
 
-start_one = 0
 
 class HasyRoIsCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for making RoIs from OneD"
@@ -56,6 +55,7 @@ class HasyRoIsCtrl(CounterTimerController):
                 self.port = int( lst[1])
         self.RoIs_start = []
         self.RoIs_end = []
+        self.value = []
         proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
@@ -75,6 +75,7 @@ class HasyRoIsCtrl(CounterTimerController):
         CounterTimerController.AddDevice(self,ind)
         self.RoIs_start.append(0)
         self.RoIs_end.append(0)
+        self.value.append(0)
        
     def DeleteDevice(self,ind):
         if self.debugFlag: print "HasyRoIsCtrl.DeleteDevice",self.inst_name,"index",ind
@@ -109,10 +110,6 @@ class HasyRoIsCtrl(CounterTimerController):
             self.monitor_count = -value
         
     def PreReadAll(self):
-        pass
-
-    def PreReadOne(self,ind):
-        if self.debugFlag: print "HasyRoIsCtrl.PreReadOne",self.inst_name,"index",ind
         if self.flagIsXIA == 0:
             self.proxy.command_inout("Stop")
             self.proxy.command_inout("Read")
@@ -120,20 +117,23 @@ class HasyRoIsCtrl(CounterTimerController):
             if self.proxy.command_inout("State") != PyTango.DevState.ON:
                 self.proxy.command_inout("Stop")  
 
-    def ReadAll(self):
-        if self.debugFlag: print "HasyRoIsCtrl.ReadAll",self.inst_name
+    def PreReadOne(self,ind):
         pass
 
-    def ReadOne(self,ind):
-        if self.debugFlag: print "HasyRoIsCtrl.ReadOne",self.inst_name,"index",ind
+    def ReadAll(self):
+        if self.debugFlag: print "HasyRoIsCtrl.ReadAll",self.inst_name
         if self.flagIsXIA:
             data = self.proxy.Spectrum
         else:
             data = self.proxy.Data
-        value = 0
-        for i in range(self.RoIs_start[ind-1], self.RoIs_end[ind-1] + 1):
-            value = value + data[i]
-        return value
+        for i in range(0, len(self.value)):
+            self.value[i] = 0
+            for j in range(self.RoIs_start[i], self.RoIs_end[i] + 1):
+                self.value[i] = self.value[i] + data[j]
+
+    def ReadOne(self,ind):
+        if self.debugFlag: print "HasyRoIsCtrl.ReadOne",self.inst_name,"index",ind
+        return self.value[ind - 1]
 
     def PreStartAll(self):
         pass	
@@ -146,14 +146,11 @@ class HasyRoIsCtrl(CounterTimerController):
         if self.flagIsMCA8715:
             self.proxy.BankId = 0
         # the state may be ON but one bank can be active
-        global start_one
-        if sta == PyTango.DevState.ON and start_one == 0:
+        if sta == PyTango.DevState.ON:
             self.proxy.command_inout("Stop")
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
-            start_one = 1
         
-
     def PreStartOne(self,ind, value):
         return True
         
