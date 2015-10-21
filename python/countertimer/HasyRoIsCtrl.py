@@ -136,13 +136,9 @@ class HasyRoIsCtrl(CounterTimerController):
         return value
 
     def PreStartAll(self):
-        pass
+        pass	
 
-    def PreStartOne(self,ind, value):
-        return True
-        
-    def StartOne(self,ind, value):
-        if self.debugFlag: print "HasyRoIsCtrl.StartOne",self.inst_name,"index",ind
+    def StartAllCT(self):
         try:
             sta = self.proxy.command_inout("State")
         except:
@@ -156,6 +152,13 @@ class HasyRoIsCtrl(CounterTimerController):
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
             start_one = 1
+        
+
+    def PreStartOne(self,ind, value):
+        return True
+        
+    def StartOne(self,ind, value):
+        pass
         
     def AbortOne(self,ind):
         if self.debugFlag: print "HasyRoIsCtrl.AbortOne",self.inst_name,"index",ind
