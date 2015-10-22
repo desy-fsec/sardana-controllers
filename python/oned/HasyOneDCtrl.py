@@ -141,21 +141,16 @@ class HasyOneDCtrl(OneDController):
         pass
 
     def PreReadOne(self,ind):
-        print "HasyOneDCtrl: PreReadOne"
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
         if self.flagIsXIA[ind-1] == 0:
             self.proxy[ind-1].command_inout("Stop")
             self.proxy[ind-1].command_inout("Read")
         else:
-            print "HasyOneDCtrl: state"
-            print self.proxy[ind-1].command_inout("State")
             if self.proxy[ind-1].state() != PyTango.DevState.ON:
-                print "HasyOneDCtrl calling Stop"
                 self.proxy[ind-1].command_inout("Stop")  
 
     def ReadAll(self):
         if self.debugFlag: print "HasyOneDCtrl.ReadAll",self.inst_name
-        pass
 
     def ReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.ReadOne",self.inst_name,"index",ind
@@ -183,14 +178,12 @@ class HasyOneDCtrl(OneDController):
         # the state may be ON but one bank can be active
         sta = self.proxy[ind-1].command_inout("State")
         if sta == PyTango.DevState.ON:
-            print "HasyOneDCtrl.StartOne calling Stop, Clear, Start"
             self.proxy[ind-1].command_inout("Stop")
             self.proxy[ind-1].command_inout("Clear")
             self.proxy[ind-1].command_inout("Start")
         
     def AbortOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.AbortOne",self.inst_name,"index",ind
-        print "Abort One calling Stop"
         self.proxy[ind-1].command_inout("Stop")
         if self.flagIsXIA[ind-1] == 0:
             self.proxy[ind-1].command_inout("Read")
