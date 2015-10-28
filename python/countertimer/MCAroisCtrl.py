@@ -51,8 +51,6 @@ class MCAroisCtrl(CounterTimerController):
         CounterTimerController.AddDevice(self,ind)
         self.Offset.append(self.dft_Offset)
         self.AttributeNames.append("")
-        if ind == 1:
-            self.AttributeNames[ind -1] = "Master"
         
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
@@ -69,14 +67,13 @@ class MCAroisCtrl(CounterTimerController):
         return tup
 
     def PreReadAll(self):
-        pass
+        if self.proxy.state() != PyTango.DevState.ON:
+            self.proxy.command_inout("Stop")
+        self.proxy.command_inout("Read")
         
 
     def PreReadOne(self,ind):
-        if ind == 1:
-            if self.proxy.state() != PyTango.DevState.ON:
-                self.proxy.command_inout("Stop")
-            self.proxy.command_inout("Read")
+        pass
 
     def ReadAll(self):
         pass
@@ -85,17 +82,10 @@ class MCAroisCtrl(CounterTimerController):
         return True
         
     def StartOneCT(self,ind):
-        if ind == 1:
-        # the state may be ON but one bank can be active
-            self.proxy.command_inout("Stop")
-            #self.proxy.command_inout("Clear")
-            self.proxy.command_inout("Start")
+        pass
             
     def ReadOne(self,ind):
-        if ind == 1:
-            value = -1
-        else:
-            value = self.proxy.read_attribute(self.AttributeNames[ind-1]).value
+        value = self.proxy.read_attribute(self.AttributeNames[ind-1]).value
         return  value
 	
     def AbortOne(self,ind):
@@ -108,7 +98,10 @@ class MCAroisCtrl(CounterTimerController):
         pass
 	
     def StartAllCT(self):
-        pass
+        # the state may be ON but one bank can be active
+        self.proxy.command_inout("Stop")
+        #self.proxy.command_inout("Clear")
+        self.proxy.command_inout("Start")
 		     	
     def LoadOne(self,ind,value):
         self.exp_time = value
@@ -123,8 +116,7 @@ class MCAroisCtrl(CounterTimerController):
             
     def SetExtraAttributePar(self,ind,name,value):
         if name == "TangoAttribute":
-            if ind != 1:
-                self.AttributeNames[ind-1] = value
+            self.AttributeNames[ind-1] = value
 			
     def SendToCtrl(self,in_data):
         return "Nothing sent"
