@@ -258,5 +258,5 @@ class LimaCoTiCtrl(CounterTimerController):
             value = self.LimaDevice.read_attribute('last_image_ready').value
             self._log.debug('LastImageReady: %s' % value)
             return value
-         elif name == 'ImageFileName':
+        elif name == 'ImageFileName':
             return self.filename
