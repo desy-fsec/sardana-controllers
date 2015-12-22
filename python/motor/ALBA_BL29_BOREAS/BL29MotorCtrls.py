@@ -72,7 +72,7 @@ class BL29MaresMagnet(IcepapController):
 
     def StopOne(self, axis):
         """Engage brake after stopping motor"""
-        super(BL29MaresMagnet,self).StopOne()
+        super(BL29MaresMagnet,self).StopOne(axis)
         try:
             self.disengaged.write(False)
             if self.disengaged.read().value != False: #brake was not engaged
@@ -82,7 +82,7 @@ class BL29MaresMagnet(IcepapController):
 
     def AbortOne(self, axis):
         """Engage brake after stopping motor"""
-        super(BL29MaresMagnet,self).AbortOne()
+        super(BL29MaresMagnet,self).AbortOne(axis)
         try:
             self.disengaged.write(False)
             if self.disengaged.read().value != False: #brake was not engaged
