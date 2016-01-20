@@ -114,6 +114,10 @@ class HasyMotorCtrl(MotorController):
         self.dft_ResultSim = " "
         self.ResultSim = []
         self.extraparametername = "None"
+        self.poolmotor_proxy = []
+        self.set_for_memorized_min = []
+        self.set_for_memorized_max = []
+        
 
     def AddDevice(self, ind):
         MotorController.AddDevice(self, ind)
@@ -133,6 +137,10 @@ class HasyMotorCtrl(MotorController):
         self.UnitLimitMin.append(self.dft_UnitLimitMin)
         self.PositionSim.append(self.dft_PositionSim)
         self.ResultSim.append(self.dft_ResultSim)
+        self.poolmotor_proxy.append(None) #  Can not be created in AddDevice because the pool motor device does not exist
+        self.set_for_memorized_min.append(1)
+        self.set_for_memorized_max.append(1)
+        
         attrs = self.proxy[ind-1].get_attribute_list()
         cmds = [cmd.cmd_name for cmd in self.proxy[ind-1].command_list_query()]
         for attrName in HasyMotorCtrl.attrNames_UnitLimitMax:
@@ -167,7 +175,7 @@ class HasyMotorCtrl(MotorController):
             # there are two different GalilDMC servers used at DESY
             if not (self.proxy[ind-1].info().dev_class == "GalilDMCMotor" and self.attrName_Acceleration[ind-1] == "SlewRate"):
                 self.conversion_included[ind-1] = True
-
+        
     def DeleteDevice(self, ind):
         MotorController.DeleteDevice(self, ind)
         self.proxy[ind-1] = None
@@ -215,9 +223,30 @@ class HasyMotorCtrl(MotorController):
         value = None
         if self.device_available[ind-1]:
             if name == "UnitLimitMax":
+                if self.poolmotor_proxy[ind -1 ] == None:
+                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
                 value = float(self.proxy[ind-1].read_attribute(self.attrName_UnitLimitMax[ind-1]).value)
+
+                print "Teresa: GetExtraAttributePar UnitLimitMax"
+                cfg = []
+                config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                print config
+                config.max_value = str(value)
+                cfg.append(config)
+                self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
+                print "Teresa: GetExtraAttributePar UnitLimitMax end"
+                
             elif name == "UnitLimitMin":
+                if self.poolmotor_proxy[ind -1 ] == None:
+                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
                 value = float(self.proxy[ind-1].read_attribute(self.attrName_UnitLimitMin[ind-1]).value)
+                               
+                cfg = []
+                config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                config.min_value = str(value)
+                cfg.append(config)
+                self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
+                
             elif name == "PositionSim":
                 value = float(self.proxy[ind-1].read_attribute("PositionSim").value)
             elif name == "ResultSim":
@@ -234,9 +263,28 @@ class HasyMotorCtrl(MotorController):
     def SetExtraAttributePar(self, ind, name, value):
         if self.device_available[ind-1]:
             if name == "UnitLimitMax":
+                if self.poolmotor_proxy[ind -1 ] == None:
+                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
                 self.proxy[ind-1].write_attribute(self.attrName_UnitLimitMax[ind-1], value)
+                if not self.set_for_memorized_max[ind-1]:
+                    cfg = []
+                    config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                    config.max_value = str(value)
+                    cfg.append(config)
+                    self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
+                self.set_for_memorized_max[ind-1] = 0
             elif name == "UnitLimitMin":
+                if self.poolmotor_proxy[ind -1 ] == None:
+                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
                 self.proxy[ind-1].write_attribute(self.attrName_UnitLimitMin[ind-1], value)
+                if not self.set_for_memorized_min[ind-1]:
+                    cfg = []
+                    config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                    config.min_value = str(value)
+                    cfg.append(config)
+                    self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
+                self.set_for_memorized_min[ind-1] = 0
+                
             elif name == "PositionSim":
                 self.proxy[ind-1].write_attribute("PositionSim", value)
             elif name == "ResultSim":
