@@ -50,7 +50,7 @@ class SIS3302RoisCtrl(CounterTimerController):
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         self.Offset.append(self.dft_Offset)
-        self.RoIIndexes.append("")
+        self.RoIIndexes.append(-1)
         
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
@@ -79,8 +79,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
 
     def ReadAll(self):
-        counts = self.proxy.read_attribute("Count").value
-        pass
+        self.counts = self.proxy.read_attribute("Count").value
 
     def PreStartOne(self,ind,pos):
         return True
@@ -89,7 +88,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
             
     def ReadOne(self,ind):
-        value = counts[self.RoIIndexes[ind-1]]
+        value = self.counts[self.RoIIndexes[ind-1]-1]
         return  value
 	
     def AbortOne(self,ind):
@@ -114,7 +113,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
-        if name == "TangoAttribute":
+        if name == "RoIIndex":
             return self.RoIIndexes[ind-1]
         
             
