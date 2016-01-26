@@ -10,6 +10,10 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
+# This controller has to be used with another controller for the sis3302 in the MG
+# It only reads the counts.
+
 class SIS3302RoisCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3302 RoIs"
 	
@@ -62,6 +66,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         if sta == PyTango.DevState.ON:
             status_string = "MCA is in ON state"
         elif sta == PyTango.DevState.MOVING:
+            sta = PyTango.DevState.ON
             status_string = "MCA is busy"
         elif sta == PyTango.DevState.OFF:
             sta = PyTango.DevState.FAULT
@@ -70,9 +75,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         return tup
 
     def PreReadAll(self):
-        if self.proxy.state() != PyTango.DevState.ON:
-            self.proxy.command_inout("Stop")
-        self.proxy.command_inout("Read")
+        pass
         
 
     def PreReadOne(self,ind):
@@ -85,7 +88,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         return True
         
     def StartOneCT(self,ind):
-        pass
+        return True
             
     def ReadOne(self,ind):
         value = self.counts[self.RoIIndexes[ind-1]-1]
@@ -101,10 +104,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
 	
     def StartAllCT(self):
-        if sta == PyTango.DevState.ON:
-            self.proxy.command_inout("Stop")
-            self.proxy.command_inout("Clear")
-            self.proxy.command_inout("Start")
+        pass
 		     	
     def LoadOne(self,ind,value):
         self.exp_time = value
