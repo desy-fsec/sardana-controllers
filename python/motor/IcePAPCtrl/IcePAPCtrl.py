@@ -416,6 +416,10 @@ class IcepapController(MotorController):
         @param name of the parameter
         @param value to be set
         """
+
+        if name.lower() == "step_per_unit":
+            self.attributes[axis]["step_per_unit"] = float(value)
+
         if self.iPAP.connected:
             try:
                 if name.lower() == "velocity":
@@ -433,8 +437,7 @@ class IcepapController(MotorController):
                     raise Exception('This is a configuration parameter set by an expert with IcepapCMS')
                 elif name.lower() == "acceleration" or name == "deceleration":
                     self.iPAP.setAcceleration(axis, value)
-                elif name.lower() == "step_per_unit":
-                    self.attributes[axis]["step_per_unit"] = float(value)
+
             except Exception,e:
                 self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
@@ -450,6 +453,10 @@ class IcepapController(MotorController):
         @param name of the parameter to get the value
         @return the value of the parameter
         """
+
+        if name.lower() == "step_per_unit":
+           return float(self.attributes[axis]["step_per_unit"])
+
         if self.iPAP.connected:
             try:
                 if name.lower() == "velocity":
@@ -462,8 +469,7 @@ class IcepapController(MotorController):
                     return float(strt_vel_float / self.attributes[axis]["step_per_unit"])
                 elif name.lower() == "acceleration" or name.lower() == "deceleration":
                     return float(self.iPAP.getAcceleration(axis))
-                elif name.lower() == "step_per_unit":
-                    return float(self.attributes[axis]["step_per_unit"])
+
             except Exception,e:
                 self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
