@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import math
+from scipy.optimize import fsolve
 
 from BL29Energy import Energy
 
@@ -12,10 +13,10 @@ from sardana.pool.controller import Type, Access, Description, DefaultValue
 
 class BL29EnergyMono(PseudoMotorController):
     """
-    Energy pseudo motor controller for handling BL29-Boreas theoric energy of
-    the monochromator given the positions of all the motors involved (and viceversa).
+    Energy pseudo motor controller for handling BL29-Boreas theoretical energy of
+    the monochromator given the positions of all the motors involved (and vice versa).
     This pseudo motor does not have access to the insertion device, so it gives
-    or sets only the theoric energy
+    or sets only the theoretical energy
     """
 
     gender = 'Energy'
@@ -44,7 +45,8 @@ class BL29EnergyMono(PseudoMotorController):
         'lock_mirrors' : {
             Type : bool,
             Description : 'Whether or not allow me to change spherical mirror and/or gratings when asked to go to a given energy',
-            Access : DataAccess.ReadWrite
+            Access : DataAccess.ReadWrite,
+            DefaultValue : False
         },
         'heg_sm2_offset' : {
             Type : float,
@@ -272,13 +274,226 @@ class BL29EnergyMono(PseudoMotorController):
             pass
 
 
+class BL29EnergyMonoCorrected(BL29EnergyMono):
+    """
+    Energy pseudo motor controller for handling BL29-Boreas theoretical energy of
+    the monochromator given the positions of all the motors involved (and vice versa).
+    This pseudo motor does not have access to the insertion device, so it gives
+    or sets only the theoretical energy.
+    This controller is the very similar to BL29EnergyMono but it takes into
+    account the non linearity between the grating pitch position and the energy,
+    resulting in a more precise value of energy (both for reading and writing)
+    """
+
+    gender = 'Energy'
+    model  = 'BL29-Boreas monochromator corrected energy calculation'
+    organization = 'CELLS - ALBA'
+    image = 'energy.png'
+    logo = 'ALBA_logo.png'
+
+    pseudo_motor_roles = ('energy_mono_corrected',)
+    motor_roles = ('gr_pitch',)
+
+    axis_attributes = {
+        'enc_to_axis_factor' : {
+            Type : float,
+            Description : 'factor conversion between grating pitch encoder counts and axis counts',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : 0.606697
+        },
+        'factor' : {
+            Type : float,
+            Access : DataAccess.ReadWrite,
+            DefaultValue : 67.9905256862177
+        },
+        'offset' : {
+            Type : float,
+            Access : DataAccess.ReadWrite,
+            DefaultValue : 418.0597939461368
+        },
+        'polynomials' : {
+            Type : str,
+            Description : 'polynomial factors',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : '1074.28569845, -0.000865526898686, 1.68808503408e-10'
+        },
+        'amplitudes' : {
+            Type : str,
+            Description : 'amplitudes',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : '31.59466847240000000 25.33828834800000000 12.92291016760000000 -2.60000435980000000 5.62300918241000000 -23.32303143910000000 148.49535194600000000 6.22915605381000000 -17.24367677390000000 0.60843513032300000'
+        },
+        'frequencies' : {
+            Type : str,
+            Description : 'frequencies',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : '0.00000429173850425 0.00000535377109201 0.00003771785082810 0.00009176016823240 0.00007098244748240 0.00005848232526060 0.00001967372194620 0.00006394964256620 0.00001133551638280 0.00029402883062200'
+        },
+        'phases' : {
+            Type : str,
+            Description : 'frequencies',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : '0.98456925250500000 7.57729621054000000 -8.64132917249000000 4.08645541884000000 8.77004121150000000 0.94163867557300000 -1.21582957911000000 1.50920490820000000 3.05628113377000000 1.43572736488000000'
+        },
+    }
+    axis_attributes.update(BL29EnergyMono.axis_attributes)
+
+    def __init__(self, inst, props, *args, **kwargs):
+        """
+        Do the default init
+        @param inst instance name of the controller
+        @param properties of the controller
+        @param *args extra arguments
+        @param **kwargs keyword arguments
+        """
+        #for some reason setting default values doesn't seem to work if value never set (maybe a sardana bug?)
+        self.enc_to_axis_factor = 0.606697
+        self.factor = 67.9905256862177
+        self.offset = 418.0597939461368
+        self.polynomials = [1074.28569845, -0.000865526898686, 1.68808503408e-10]
+        self.amplitudes = [31.59466847240000000,25.33828834800000000,12.92291016760000000,-2.60000435980000000,5.62300918241000000,-23.32303143910000000, 148.49535194600000000, 6.22915605381000000, -17.24367677390000000, 0.60843513032300000]
+        self.frequencies = [0.00000429173850425,0.00000535377109201,0.00003771785082810,0.00009176016823240,0.00007098244748240, 0.00005848232526060, 0.00001967372194620, 0.00006394964256620, 0.00001133551638280, 0.00029402883062200]
+        self.phases = [0.98456925250500000,7.57729621054000000,-8.64132917249000000,4.08645541884000000,8.77004121150000000, 0.94163867557300000, -1.21582957911000000, 1.50920490820000000, 3.05628113377000000, 1.43572736488000000]
+        BL29EnergyMono.__init__(self, inst, props, *args, **kwargs)
+        self.gr_pitch_motor = None
+
+    def CalcPhysical(self, axis, pseudo_pos, current_physical):
+        """
+        Given the motor number (gr-pitch) and the desired energy it
+        returns the correct motor position for that motor and energy.
+        @param[in] axis - motor number
+        @param[in] pseudo_pos (sequence<float>) - a sequence containing pseudo motor positions (only target energy in our case)
+        @param[in] current_physical (sequence<float>) - a sequence containing the current physical motor positions
+        @return the correct motor position
+        @throws exception
+        """
+        if self.gr_pitch_motor == None: #this cannot be initialize in __init__
+            self.gr_pitch_motor = self.GetMotor(self.motor_roles[0])
+        gr_pitch = BL29EnergyMono.CalcPhysical(self, axis, pseudo_pos, current_physical)
+        return fsolve(self.resolve_pitch, gr_pitch, args=gr_pitch)[0]
+
+    def resolve_pitch(self, x, gr_pitch):
+        """
+        this function is the one that needs to be solved (find a 0) to go from
+        gr_pitch_corrected to the real gr_pitch
+        """
+        return self.correct_gr_pitch(x) - gr_pitch
+
+    def CalcPseudo(self, axis, physical_pos, current_pseudo):
+        """
+        Given the physical motor positions, it computes the energy pseudomotor.
+        @param[in] axis: (expected always 1, since we provide only 1 pseudo motor)
+        @param[in] physical_pos: physical positions of all the motors involved in the computation
+        @param[in] current_pseudo: current value of the energy pseudo motor itself
+        @return the energy pseudo motor value
+        @throws exception
+        """
+        if self.gr_pitch_motor == None: #this cannot be initialize in __init__
+            self.gr_pitch_motor = self.GetMotor(self.motor_roles[0])
+        try:
+            #get currently selected grating and spherical mirror
+            sm_selected = int(self.sm_selected.position)
+            gr_selected = int(self.gr_selected.position)
+            gr_pitch = physical_pos[0]
+        except:
+            msg = 'Unable to determine SM and/or GR selected and/or GR pitch'
+            self._log.error(msg)
+            raise Exception(msg)
+
+        gr_pitch = physical_pos[0]
+        gr_pitch_corrected = self.correct_gr_pitch(gr_pitch)
+        return Energy.get_energy(sm_selected,gr_selected,gr_pitch_corrected)
+
+    def correct_gr_pitch(self, gr_pitch):
+        """
+        This functions converts corrects the position of gr_pitch (in user units)
+        to a new value which is much more closed to the actual value which would
+        be necessary for computing a more realistic energy value.
+        This new value is due to the fact that a movement in the gr_pitch motor
+        does not really correspond to the computed value of energy. This error
+        is due to the fact that gr_pitch pitch makes a linear movement which
+        does not linearly match the real energy value.
+        The correction is computed taking into account the axis position of the
+        grating pitch motor (gr_pitch), not the user position.
+        """
+        total_offsets = self.offset + Energy.offset0
+        gr_pitch_offset = self.gr_pitch_motor.get_offset().get_value()
+        gr_pitch_axis = (gr_pitch_offset - gr_pitch) * self.gr_pitch_motor.step_per_unit
+        axis_increment = self.compute_pitch(gr_pitch_axis)
+        gr_pitch_corrected = total_offsets - axis_increment / self.factor
+        return gr_pitch_corrected
+
+    def compute_pitch(self, gr_pitch_axis):
+        """
+        This function computes the conversion between real axis counts to
+        corrected axis counts. This value is a factor conversion between encoder
+        counts and axis counts
+        """
+        #first the polynomial part is computed
+        correction = 0.0
+        for idx, polynomial in enumerate(self.polynomials):
+            correction += (polynomial * math.pow(gr_pitch_axis,idx))
+
+        #then the sinusoidal part is added
+        if len(self.amplitudes)!=len(self.frequencies) or len(self.frequencies)!=len(self.phases):
+            raise Exception('Amplitudes, frequencies and phases must be the same length')
+        for amplitude, frequency, phase in zip(self.amplitudes,self.frequencies,self.phases):
+            correction += (amplitude * math.sin(frequency*gr_pitch_axis + phase))
+
+        #the new axis values are finally computed
+        #the correction factor is necessary as the first computation was done using the encoder as driving value
+        gr_corrected = gr_pitch_axis + correction / self.enc_to_axis_factor
+        return gr_corrected
+
+    def GetAxisExtraPar(self, axis, name):
+        if name == 'enc_to_axis_factor':
+            return self.enc_to_axis_factor
+        elif name == 'factor':
+            return self.factor
+        elif name == 'offset':
+            return self.offset
+        elif name == 'polynomials':
+            return str(self.polynomials).strip('[]').replace(',','')
+        elif name == 'amplitudes':
+            return str(self.amplitudes).strip('[]').replace(',','')
+        elif name == 'frequencies':
+            return str(self.frequencies).strip('[]').replace(',','')
+        elif name == 'phases':
+            return str(self.phases).strip('[]').replace(',','')
+        else:
+            return BL29EnergyMono.GetAxisExtraPar(self, axis, name)
+
+    def SetAxisExtraPar(self, axis, name, value):
+        if name == 'enc_to_axis_factor':
+            if value==0:
+                raise Exception('%s cannot be 0' % name)
+            self.enc_to_axis_factor = value
+        elif name == 'factor':
+            if value==0:
+                raise Exception('%s cannot be 0' % name)
+            self.factor = value
+        elif name == 'offset':
+            self.offset = value
+        elif name == 'polynomials':
+            self.polynomials = [float(val) for val in value.split()]
+        elif name == 'amplitudes':
+            self.amplitudes = [float(val) for val in value.split()]
+        elif name == 'frequencies':
+            self.frequencies = [float(val) for val in value.split()]
+        elif name == 'phases':
+            self.phases = [float(val) for val in value.split()]
+        else:
+            return BL29EnergyMono.SetAxisExtraPar(self, axis, name, value)
+
+
 class BL29Energy(PseudoMotorController):
     """
     Energy pseudo motor controller for handling BL29-Boreas energy coming out of
     the monochromator, given the energies reported both by the insertion device
     and the monochromator.
     This pseudo motor will give the real energy being delivered by the beamline,
-    since it reads both the insertion device and the monochromator theoric energies
+    since it reads both the insertion device and the monochromator theoretical
+    energies.
     When setting an energy, it will write that energy to both the insertion
     device and the monochromator
     """
@@ -607,7 +822,7 @@ class BL29MaresDetector(PseudoMotorController):
 
     #internal variables
     FIRST_DETECTOR = 2 #first axis number that corresponds to a detector
-    MAX_DETECTORS = 7 #maximum number of detectors
+    MAX_DETECTORS = 10 #maximum number of detectors
     detectors_nominal_offsets = []
     detectors_offsets = []
     detectors_user_names = []
@@ -751,14 +966,26 @@ class BL29MaresDetector(PseudoMotorController):
         elif name == 'detector_in_use':
             return self.detectors_user_names[self.detector_used]
         elif name == 'nominal_offset':
-            if not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+            if axis==1:
+                return self.detectors_nominal_offsets[self.detector_used]
+            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
                 msg = 'Axis %d does not have property nominal_offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+            else:
+                msg = 'Unknown axis %d' % axis
                 self._log.error(msg)
                 raise Exception(msg)
             return self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR]
         elif name == 'offset':
-            if not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+            if axis==1:
+                return self.detectors_offsets[self.detector_used]
+            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
                 msg = 'Axis %d does not have property offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+            else:
+                msg = 'Unknown axis %d' % axis
                 self._log.error(msg)
                 raise Exception(msg)
             return self.detectors_offsets[axis-self.FIRST_DETECTOR]
@@ -791,15 +1018,27 @@ class BL29MaresDetector(PseudoMotorController):
                 self._log.error(msg)
                 raise Exception(msg)
         elif name == 'nominal_offset':
-            if not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+            if axis==1:
+                self.detectors_nominal_offsets[self.detector_used] = value
+            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
                 msg = 'Axis %d does not have property nominal_offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+            else:
+                msg = 'Unknown axis %d' % axis
                 self._log.error(msg)
                 raise Exception(msg)
             self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR] = value
             BL29MaresReflectivity.detector_nominal_offset = self.detectors_nominal_offsets[self.detector_used]
         elif name == 'offset':
-            if not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+            if axis==1:
+                return self.detectors_offsets[self.detector_used]
+            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
                 msg = 'Axis %d does not have property offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+            else:
+                msg = 'Unknown axis %d' % axis
                 self._log.error(msg)
                 raise Exception(msg)
             self.detectors_offsets[axis-self.FIRST_DETECTOR] = value
