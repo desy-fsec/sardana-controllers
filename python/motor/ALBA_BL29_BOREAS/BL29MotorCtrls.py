@@ -25,9 +25,10 @@
 
 import time
 
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+from sardana.pool import PoolUtil 
 from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Description, Memorize, NotMemorized
+from sardana.pool.controller import Type, Description, Access, Memorize, NotMemorized, DefaultValue
 from sardana.tango.core.util import State, from_tango_state_to_state
 
 import PyTango
@@ -46,6 +47,15 @@ class BL29MaresMagnet(IcepapController):
             Description : 'The attribute from which to read/write brake status'
         }})
 
+    axis_attributes = dict(IcepapController.axis_attributes) #copy dictionary
+    axis_attributes.update({
+        'timeout' : {
+            Type : float,
+            Description : 'Time in seconds to wait before assuming that magnet brake was not engaged/disengaged',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : False
+        }})
+
     gender = 'Motor'
     model  = 'BL29_MARES_MagnetBrake'
     organization = 'ALBA'
@@ -59,13 +69,18 @@ class BL29MaresMagnet(IcepapController):
         """Do the default init"""
         IcepapController.__init__(self, inst, props, *args, **kwargs)
         self.disengaged = PyTango.AttributeProxy(self.BrakeAttribute)
+        self.timeout = 3 #default time to wait for brake to disengage
 
     def StartAll(self):
         """Disengage and check before moving motors"""
         try:
             self.disengaged.write(True)
-            if self.disengaged.read().value != True: #brake was not disengaged
-                raise Exception('')
+            start = time.time()
+            while self.disengaged.read().value != True:
+                if time.time() - start < self.timeout:
+                    time.sleep(0.3)
+                else:
+                    raise Exception('unable to check if motor was correctly disengaged')
         except Exception, e:
             raise Exception('Unable to disengage magnet brake. Details:%s' % str(e))
         super(BL29MaresMagnet,self).StartAll()
@@ -76,7 +91,7 @@ class BL29MaresMagnet(IcepapController):
         try:
             self.disengaged.write(False)
             if self.disengaged.read().value != False: #brake was not engaged
-                raise Exception('')
+                raise Exception('unable to check if motor was correctly engaged')
         except Exception, e:
             raise Exception('Failed to check if magnet brake was engaged, please check!')
 
@@ -85,10 +100,43 @@ class BL29MaresMagnet(IcepapController):
         super(BL29MaresMagnet,self).AbortOne(axis)
         try:
             self.disengaged.write(False)
-            if self.disengaged.read().value != False: #brake was not engaged
-                raise Exception('')
+            while self.disengaged.read().value != False:
+                if time.time() - start < self.timeout:
+                    time.sleep(0.3)
+                else:
+                    raise Exception('unable to check if motor was correctly engaged')
         except Exception, e:
             raise Exception('Failed to check if magnet brake was engaged, please check!')
+
+    def GetAxisExtraPar(self, axis, name):
+        """
+        Get extra controller parameters. These parameters should actually be
+        controller parameters, but users asked to use them as axis parameters
+        in order to directly use the motor name instead of the controller name
+        to set/get these parameters
+        @param axis to get (always one)
+        @param name of the parameter to retrieve
+        @return the value of the parameter
+        """
+        if name.lower() == 'timeout':
+            return self.timeout
+        else:
+            return super(BL29MaresMagnet,self).GetAxisExtraPar(axis,name)
+
+    def SetAxisExtraPar(self, axis, name, value):
+        """
+        Set extra axis parameters. These parameters should actually be
+        controller parameters, but users asked to use them as axis parameters
+        in order to directly use the motor name instead of the controller name
+        to set/get these parameters
+        @param axis to set (always one)
+        @param name of the parameter to set
+        @param value to be set
+        """
+        if name.lower() == 'timeout':
+            self.timeout = value
+        else:
+            super(BL29MaresMagnet,self).SetAxisExtraPar(axis,name,value)
 
 
 class BL29XMCDVectorMagnet(MotorController):
