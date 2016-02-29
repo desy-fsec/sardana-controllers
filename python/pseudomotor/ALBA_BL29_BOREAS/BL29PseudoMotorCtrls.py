@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import math
+import numpy
 from scipy.optimize import fsolve
 
 from BL29Energy import Energy
@@ -370,7 +371,15 @@ class BL29EnergyMonoCorrected(BL29EnergyMono):
         if self.gr_pitch_motor == None: #this cannot be initialize in __init__
             self.gr_pitch_motor = self.GetMotor(self.motor_roles[0])
         gr_pitch = BL29EnergyMono.CalcPhysical(self, axis, pseudo_pos, current_physical)
-        return fsolve(self.resolve_pitch, gr_pitch, args=gr_pitch)[0]
+        result, info, rc, mesg = fsolve(self.resolve_pitch, gr_pitch, args=gr_pitch, full_output=True)
+        if rc != 1:
+            msg = 'Unable to find a solution for %s: %s' % (str(self.motor_roles[0]), str(mesg))
+            self._log.error(msg)
+            raise Exception(msg)
+        if type(result) != numpy.ndarray: #in old versions result was a float
+            return result
+        else:
+            return result[0]
 
     def resolve_pitch(self, x, gr_pitch):
         """
