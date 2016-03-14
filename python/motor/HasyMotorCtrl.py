@@ -92,19 +92,8 @@ class HasyMotorCtrl(MotorController):
         self.attrName_Acceleration = []
         self.cmdName_Abort = []
         self.conversion_included = []
-        for name in self.devices.value_string:
-            self.tango_device.append(name)
-            self.proxy.append(None)
-            self.device_available.append(0)
-            self.attrName_UnitLimitMax.append(None)
-            self.attrName_UnitLimitMin.append(None)
-            self.attrName_CwLimit.append(None)
-            self.attrName_CcwLimit.append(None)
-            self.attrName_Velocity.append(None)
-            self.attrName_Acceleration.append(None)
-            self.cmdName_Abort.append(None)
-            self.conversion_included.append(False)
-            self.max_device = self.max_device + 1
+        
+            
         self.dft_UnitLimitMax = 0
         self.UnitLimitMax = []
         self.dft_UnitLimitMin = 0
@@ -117,6 +106,28 @@ class HasyMotorCtrl(MotorController):
         self.poolmotor_proxy = []
         self.set_for_memorized_min = []
         self.set_for_memorized_max = []
+        
+        for name in self.devices.value_string:
+            self.tango_device.append(name)
+            self.proxy.append(None)
+            self.device_available.append(0)
+            self.attrName_UnitLimitMax.append(None)
+            self.attrName_UnitLimitMin.append(None)
+            self.attrName_CwLimit.append(None)
+            self.attrName_CcwLimit.append(None)
+            self.attrName_Velocity.append(None)
+            self.attrName_Acceleration.append(None)
+            self.cmdName_Abort.append(None)
+            self.conversion_included.append(False)
+            self.UnitLimitMax.append(self.dft_UnitLimitMax)
+            self.UnitLimitMin.append(self.dft_UnitLimitMin)
+            self.PositionSim.append(self.dft_PositionSim)
+            self.ResultSim.append(self.dft_ResultSim)
+            self.poolmotor_proxy.append(None) #  Can not be created in AddDevice because the pool motor device does not exist
+            self.set_for_memorized_min.append(1)
+            self.set_for_memorized_max.append(1)
+        
+            self.max_device = self.max_device + 1
         
 
     def AddDevice(self, ind):
@@ -133,13 +144,6 @@ class HasyMotorCtrl(MotorController):
             print "HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind)
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        self.UnitLimitMax.append(self.dft_UnitLimitMax)
-        self.UnitLimitMin.append(self.dft_UnitLimitMin)
-        self.PositionSim.append(self.dft_PositionSim)
-        self.ResultSim.append(self.dft_ResultSim)
-        self.poolmotor_proxy.append(None) #  Can not be created in AddDevice because the pool motor device does not exist
-        self.set_for_memorized_min.append(1)
-        self.set_for_memorized_max.append(1)
         
         attrs = self.proxy[ind-1].get_attribute_list()
         cmds = [cmd.cmd_name for cmd in self.proxy[ind-1].command_list_query()]
@@ -226,15 +230,12 @@ class HasyMotorCtrl(MotorController):
                 if self.poolmotor_proxy[ind -1 ] == None:
                     self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
                 value = float(self.proxy[ind-1].read_attribute(self.attrName_UnitLimitMax[ind-1]).value)
-
-                print "Teresa: GetExtraAttributePar UnitLimitMax"
                 cfg = []
                 config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
                 print config
                 config.max_value = str(value)
                 cfg.append(config)
                 self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
-                print "Teresa: GetExtraAttributePar UnitLimitMax end"
                 
             elif name == "UnitLimitMin":
                 if self.poolmotor_proxy[ind -1 ] == None:
