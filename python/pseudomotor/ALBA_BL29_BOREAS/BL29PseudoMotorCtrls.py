@@ -977,27 +977,21 @@ class BL29MaresDetector(PseudoMotorController):
         elif name == 'nominal_offset':
             if axis==1:
                 return self.detectors_nominal_offsets[self.detector_used]
-            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                return self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR]
+            else:
                 msg = 'Axis %d does not have property nominal_offset' % axis
                 self._log.error(msg)
                 raise Exception(msg)
-            else:
-                msg = 'Unknown axis %d' % axis
-                self._log.error(msg)
-                raise Exception(msg)
-            return self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR]
         elif name == 'offset':
             if axis==1:
                 return self.detectors_offsets[self.detector_used]
-            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                return self.detectors_offsets[axis-self.FIRST_DETECTOR]
+            else:
                 msg = 'Axis %d does not have property offset' % axis
                 self._log.error(msg)
                 raise Exception(msg)
-            else:
-                msg = 'Unknown axis %d' % axis
-                self._log.error(msg)
-                raise Exception(msg)
-            return self.detectors_offsets[axis-self.FIRST_DETECTOR]
 
     def SetAxisExtraPar(self, axis, name, value):
         """
@@ -1029,28 +1023,22 @@ class BL29MaresDetector(PseudoMotorController):
         elif name == 'nominal_offset':
             if axis==1:
                 self.detectors_nominal_offsets[self.detector_used] = value
-            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR] = value
+            else:
                 msg = 'Axis %d does not have property nominal_offset' % axis
                 self._log.error(msg)
                 raise Exception(msg)
-            else:
-                msg = 'Unknown axis %d' % axis
-                self._log.error(msg)
-                raise Exception(msg)
-            self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR] = value
             BL29MaresReflectivity.detector_nominal_offset = self.detectors_nominal_offsets[self.detector_used]
         elif name == 'offset':
             if axis==1:
-                return self.detectors_offsets[self.detector_used]
-            elif not axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                self.detectors_offsets[self.detector_used] = value
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                self.detectors_offsets[axis-self.FIRST_DETECTOR] = value
+            else:
                 msg = 'Axis %d does not have property offset' % axis
                 self._log.error(msg)
                 raise Exception(msg)
-            else:
-                msg = 'Unknown axis %d' % axis
-                self._log.error(msg)
-                raise Exception(msg)
-            self.detectors_offsets[axis-self.FIRST_DETECTOR] = value
             BL29MaresReflectivity.detector_offset = self.detectors_offsets[self.detector_used]
 
 
