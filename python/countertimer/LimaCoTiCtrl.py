@@ -4,7 +4,7 @@ import PyTango
 import time
 from sardana import State
 from sardana.pool.controller import CounterTimerController
-from sardana.pool.controller import Type, MaxDimSize
+from sardana.pool.controller import Type, Access, Description, DefaultValue, MaxDimSize
 
 class LimaCoTiCtrl(CounterTimerController):
     """This class is a Tango Sardana Counter Timer Controller for any
@@ -29,7 +29,7 @@ class LimaCoTiCtrl(CounterTimerController):
 
     axis_attributes = {
         'ExposureTime': {
-            Type: float,
+            'Type': float,
             'R/W Type': 'READ_WRITE',
             'Description': 'Exposure time',
             'Defaultvalue': 1.0},
@@ -80,9 +80,8 @@ class LimaCoTiCtrl(CounterTimerController):
         }
 
     ctrl_properties = {
-        'LimaDeviceName': {'type': str,
-                           'description': 'Detector device name',
-                           'defaultvalue': ''
+        'LimaDeviceName': {Type: str,
+                           Description: 'Detector device name'
                            }
         }
 
