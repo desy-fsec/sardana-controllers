@@ -470,13 +470,22 @@ class BraggController(PseudoMotorController):
             #self._log.debug('mz: {0}.'.format(self.mz))
             #self._log.debug('oz: {0}.'.format(self.oz))
 
+        
+
+        #Calc new bender:
+        elif index in [7,8]:
+            rc = 2 * self.R *((math.sin(theta_rad))**2)
+            ret = (math.asin(40/rc)) * 180/math.pi 
+            
+        # old version of calculating the bender pos
         # b1: B1
-        elif index == 7:
-            ret = 2*math.sin(theta_rad)*ya/2.0
+        #elif index == 7:
+        #    ret = 2*math.sin(theta_rad)*ya/2.0
+
 
         # b2: B2
-        elif index ==8:
-            ret = 2*math.sin(theta_rad)*ya/2.0
+        #elif index ==8:
+        #    ret = 2*math.sin(theta_rad)*ya/2.0
         
         else:
             pass
