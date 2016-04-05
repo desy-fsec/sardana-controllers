@@ -91,26 +91,34 @@ class EnergyOutController(PseudoMotorController):
             the position of the IORegister managing the change of crystal. 
             0.5430710nm is specific for the Silicon and 0.56579nm is specific
             for the Germanium."""
-        if self.crystal.Position == 0: #Silicon crystal
-            self.a = 0.0000005430710 
-            self.h = 1.0
-            self.k = 1.0
-            self.l = 1.0
-        elif self.crystal.Position == 1: #Silicon crystal
-            self.a = 0.0000005430710 
-            self.h = 2.0
-            self.k = 2.0
-            self.l = 0.0
-        elif self.crystal.Position == 2: #Silicon crystal
-            self.a = 0.0000005430710 
-            self.h = 4.0
-            self.k = 0.0
-            self.l = 0.0
-        elif self.crystal.Position == 3: #Germanium crystal
-            self.a = 0.000000565791 
-            self.h = 1.0
-            self.k = 1.0
-            self.l = 1.0
+        # if self.crystal.Position == 0: #Silicon crystal
+#             self.a = 0.0000005430710 
+#             self.h = 1.0
+#             self.k = 1.0
+#             self.l = 1.0
+#         elif self.crystal.Position == 1: #Silicon crystal
+#             self.a = 0.0000005430710 
+#             self.h = 2.0
+#             self.k = 2.0
+#             self.l = 0.0
+#         elif self.crystal.Position == 2: #Silicon crystal
+#             self.a = 0.0000005430710 
+#             self.h = 4.0
+#             self.k = 0.0
+#             self.l = 0.0
+#         elif self.crystal.Position == 3: #Germanium crystal
+#             self.a = 0.000000565791 
+#             self.h = 1.0
+#             self.k = 1.0
+#             self.l = 1.0
+
+        
+        # TODO : Use the real crystal, we use only the Si111 for the moment
+        self.a = 0.0000005430710 
+        self.h = 1.0
+        self.k = 1.0
+        self.l = 1.0
+
 
         energy = pseudo_pos[0]
         lambdas = self.hc / energy 
@@ -142,26 +150,31 @@ class EnergyOutController(PseudoMotorController):
            'd' is the distance between planes of crystalline structure."""
 
 
-        if self.crystal.Position == 0: #Silicon crystal
-            self.a = 0.0000005430710 
-            self.h = 1
-            self.k = 1
-            self.l = 1
-        elif self.crystal.Position == 1: #Silicon crystal
-            self.a = 0.0000005430710 
-            self.h = 2
-            self.k = 2
-            self.l = 0
-        elif self.crystal.Position == 2: #Silicon crystal
-            self.a = 0.0000005430710 
-            self.h = 4
-            self.k = 0
-            self.l = 0 
-        elif self.crystal.Position == 3: #Germanium crystal
-            self.a = 0.000000565791 
-            self.h = 1
-            self.k = 1
-            self.l = 1
+ #        if self.crystal.Position == 0: #Silicon crystal
+#             self.a = 0.0000005430710 
+#             self.h = 1
+#             self.k = 1
+#             self.l = 1
+#         elif self.crystal.Position == 1: #Silicon crystal
+#             self.a = 0.0000005430710 
+#             self.h = 2
+#             self.k = 2
+#             self.l = 0
+#         elif self.crystal.Position == 2: #Silicon crystal
+#             self.a = 0.0000005430710 
+#             self.h = 4
+#             self.k = 0
+#             self.l = 0 
+#         elif self.crystal.Position == 3: #Germanium crystal
+#             self.a = 0.000000565791 
+#             self.h = 1
+#             self.k = 1
+#             self.l = 1
+
+        self.a = 0.0000005430710 
+        self.h = 1.0
+        self.k = 1.0
+        self.l = 1.0
 
         bragg = physical_pos[0]
         theta = bragg #theta is in degrees here.
