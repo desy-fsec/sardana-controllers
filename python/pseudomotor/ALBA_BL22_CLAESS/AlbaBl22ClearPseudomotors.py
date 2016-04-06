@@ -321,7 +321,11 @@ class BraggController(PseudoMotorController):
                         'lastPos' : {Type : float, 
                                  Access : DataAccess.ReadWrite,
                                  Description : 'last position set ' 
-                                 },}
+                                 },
+                        'bender_on': {Type: bool,
+                                      Access: DataAccess.ReadWrite,
+                                      Description:'Use bender on the movement'},}
+
 
     """ Konstantin said: Limit angles: from 35 to 80 degrees. 
         From papers: the most interesting is from 55 and 80 degrees because for
@@ -344,6 +348,7 @@ class BraggController(PseudoMotorController):
          Correction coefficients introduced by scientist for the detector
          position correction : my, mz, oy, oz. Used as attributes. """
         
+        self.bender_index = [7,8]
         if not hasattr(self, 'my'):
             self.my = 0.0
         if not hasattr(self, 'oy'):
@@ -354,7 +359,7 @@ class BraggController(PseudoMotorController):
             self.oz = 0.0 
         if not hasattr(self, 'offset_sample_clear'):
             self.offset_sample_clear = 350.0
-
+            
 
     def CalcAllPhysical(self, pseudo_pos, curr_physical_pos):
             
@@ -391,6 +396,8 @@ class BraggController(PseudoMotorController):
         revise = []
                 
         for i in range(len(self.motor_roles)):
+            if (i+1 in self.bender_index) and (self.bender_on is False):
+                continue
             virtualPos = self.CalcPhysical(i+1, [self.lastPos], curr_physical_pos, True)
             #revise.append(pos)
             #name= self.motor_roles[i]
@@ -406,7 +413,10 @@ class BraggController(PseudoMotorController):
 
         ret = []
         for i in range(len(self.motor_roles)):
-            pos = self.CalcPhysical(i+1, pseudo_pos, curr_physical_pos)
+            if (i+1 in self.bender_index) and (self.bender_on is True): 
+                pos = self.CalcPhysical(i+1, pseudo_pos, curr_physical_pos)
+            else:
+                pos = curr_physical_pos[i]
             ret.append(pos)
             
         self.lastPos = pseudo_pos[0]
@@ -473,7 +483,8 @@ class BraggController(PseudoMotorController):
         
 
         #Calc new bender:
-        elif index in [7,8]:
+        elif index in self.bender_index:
+            
             rc = 2 * self.R *((math.sin(theta_rad))**2)
             ret = (math.asin(40/rc)) * 180/math.pi 
             
@@ -522,6 +533,8 @@ class BraggController(PseudoMotorController):
             self.offset_sample_clear = value
         elif (parameter == 'lastPos'):
             self.lastPos = value
+        elif (parameter == 'bender_on'):
+            self.bender_on = value
       
     # Introduce here attribute getter.
     def GetAxisExtraPar(self, axis, parameter):
@@ -537,6 +550,8 @@ class BraggController(PseudoMotorController):
             return self.offset_sample_clear
         elif (parameter == 'lastPos'):
             return self.lastPos
+        elif (parameter == 'bender_on'):
+            return self.bender_on
         else:
             return 1
 
