@@ -384,7 +384,7 @@ class BraggController(PseudoMotorController):
          Correction coefficients introduced by scientist for the detector
          position correction : my, mz, oy, oz. Used as attributes. """
         
-        self.bender_index = 7
+        self.bender_index = [7]
         if not hasattr(self, 'my'):
             self.my = 0.0
         if not hasattr(self, 'oy'):
@@ -449,10 +449,10 @@ class BraggController(PseudoMotorController):
 
         ret = []
         for i in range(len(self.motor_roles)):
-            if (i+1 in self.bender_index) and (self.bender_on is True): 
-                pos = self.CalcPhysical(i+1, pseudo_pos, curr_physical_pos)
-            else:
+            if (i+1 in self.bender_index) and (self.bender_on is False): 
                 pos = curr_physical_pos[i]
+            else:
+                pos = self.CalcPhysical(i+1, pseudo_pos, curr_physical_pos)
             ret.append(pos)
             
         self.lastPos = pseudo_pos[0]
