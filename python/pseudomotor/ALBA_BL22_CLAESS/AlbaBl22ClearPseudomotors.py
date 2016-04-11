@@ -262,8 +262,44 @@ class LinearRotController(PseudoMotorController):
 
 
 
+class BenderController(PseudoMotorController):
+    """
+    The bender controller is the reposible to conver from the RC to angle. 
+    """
+    
+    gender = "bender"
+    model  = "Default bragg"
+    organization = "Sardana team"
+    
+    # theta = bragg
+    pseudo_motor_roles = ["bender"]
+    motor_roles = ["motor_up", "motor_down"]
+    
+    # Introduce controller properties here.
+    ctrl_properties = {}
+                                                                            
+    # Introduce attributes in here.
+    axis_attributes = {}
 
+    dm = 80.0 # Distance between motor in mm
+    def CalcAllPhysical(self, pseudo_pos, curr_physical_pos):
+        rs = pseudo_pos[0]
+        #angle = (math.asin(40/rc)) * 180/math.pi
+ 
+        #Angle of the motor in degree
+        angle = (math.atan(self.dm/(2*rs))) * 180/math.pi
+        return [angle, angle]
 
+       
+        
+    # Calculation of output PseudoMotor values.
+    def CalcPseudo(self, index, physical_pos, curr_pseudo_pos):
+        # use bender up as reference for the calculation
+        angle = physical_pos[0]
+        #rc = 40/math.sin((angle * math.pi/180))
+        #Sagital Radius in mm
+        rs = self.dm/(2*math.tan((max(angle, 0.0001) * math.pi / 180)))
+        return rs 
 
 
     
@@ -277,7 +313,7 @@ class BraggController(PseudoMotorController):
     
     # theta = bragg
     pseudo_motor_roles = ["theta"]
-    motor_roles = ["rota", "rots", "rotd", "ya", "yd", "zd", "b1", "b2"]
+    motor_roles = ["rota", "rots", "rotd", "ya", "yd", "zd", "bender"]
     
     # Introduce controller properties here.
     ctrl_properties = { 'bragg_tolerance' : {'Type':'PyTango.DevFloat', 
@@ -348,7 +384,7 @@ class BraggController(PseudoMotorController):
          Correction coefficients introduced by scientist for the detector
          position correction : my, mz, oy, oz. Used as attributes. """
         
-        self.bender_index = [7,8]
+        self.bender_index = 7
         if not hasattr(self, 'my'):
             self.my = 0.0
         if not hasattr(self, 'oy'):
@@ -484,19 +520,12 @@ class BraggController(PseudoMotorController):
 
         #Calc new bender:
         elif index in self.bender_index:
-            
-            rc = 2 * self.R *((math.sin(theta_rad))**2)
-            ret = (math.asin(40/rc)) * 180/math.pi 
-            
-        # old version of calculating the bender pos
-        # b1: B1
-        #elif index == 7:
-        #    ret = 2*math.sin(theta_rad)*ya/2.0
 
-
-        # b2: B2
-        #elif index ==8:
-        #    ret = 2*math.sin(theta_rad)*ya/2.0
+            #Sagital Radius 
+            rs = 2 * self.R *((math.sin(theta_rad))**2)
+            ret = rs 
+            # devide the bender in two parts
+            #ret = (math.asin(40/rc)) * 180/math.pi 
         
         else:
             pass
