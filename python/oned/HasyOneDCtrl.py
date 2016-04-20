@@ -54,7 +54,7 @@ class HasyOneDCtrl(OneDController):
         self.proxy = []
         self.flagIsMCA8715 = []
         self.flagIsXIA = []
-        self.flagIsSIS3320 = []
+        self.flagIsSIS3302 = []
         self.device_available = []
         self.RoIs_start = []
         self.RoIs_end = []
@@ -64,7 +64,7 @@ class HasyOneDCtrl(OneDController):
             self.proxy.append(None)
             self.flagIsMCA8715.append( False)
             self.flagIsXIA.append( False)
-            self.flagIsSIS3320.append(False)
+            self.flagIsSIS3302.append(False)
             self.device_available.append(False)
             self.max_device =  self.max_device + 1
         self.started = False
@@ -87,7 +87,7 @@ class HasyOneDCtrl(OneDController):
         if hasattr(self.proxy[ind-1], 'Spectrum') and hasattr(self.proxy[ind-1], 'McaLength'):
             self.flagIsXIA[ind-1] = True
         if hasattr(self.proxy[ind-1], 'ADCxInputInvert') or hasattr(self.proxy[ind-1], 'TriggerPeakingTime'):
-            self.flagIsSIS3320[ind-1] = True
+            self.flagIsSIS3302[ind-1] = True
         if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1]
         self.RoIs_start.append(0)
         self.RoIs_end.append(0)
@@ -105,7 +105,7 @@ class HasyOneDCtrl(OneDController):
         #if self.debugFlag: print "HasyOneDCtrl.StatOne",self.inst_name,"index",ind
         if  self.device_available[ind-1] == 1: 
             sta = self.proxy[ind-1].command_inout("State")
-            if self.flagIsSIS3320[ind-1]:
+            if self.flagIsSIS3302[ind-1]:
                 if sta == PyTango.DevState.ON:
                     tup = (sta,"The MCA is ready")
                 elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
@@ -129,6 +129,8 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.LoadOne",self.inst_name,"axis", axis
         idx = axis - 1
         if value > 0:
+            if self.flagIsSIS3302[axis-1] == 1:
+                self.proxy[axis - 1].write_attribute("ExposureTime", value)
             self.integ_time = value
             self.monitor_count = None
         else:
@@ -142,7 +144,7 @@ class HasyOneDCtrl(OneDController):
 
     def PreReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
-        if self.flagIsXIA[ind-1] == 0:
+        if self.flagIsXIA[ind-1] == 0 and self.flagIsSIS3302[ind-1] == 0:
             self.proxy[ind-1].command_inout("Stop")
             self.proxy[ind-1].command_inout("Read")
         else:
@@ -153,6 +155,7 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.ReadAll",self.inst_name
 
     def ReadOne(self,ind):
+        print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
         if self.debugFlag: print "HasyOneDCtrl.ReadOne",self.inst_name,"index",ind
         if self.flagIsXIA[ind-1]:
             data = self.proxy[ind-1].Spectrum

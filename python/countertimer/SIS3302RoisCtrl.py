@@ -66,7 +66,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         if sta == PyTango.DevState.ON:
             status_string = "MCA is in ON state"
         elif sta == PyTango.DevState.MOVING:
-            sta = PyTango.DevState.ON
+            sta = PyTango.DevState.MOVING
             status_string = "MCA is busy"
         elif sta == PyTango.DevState.OFF:
             sta = PyTango.DevState.FAULT
