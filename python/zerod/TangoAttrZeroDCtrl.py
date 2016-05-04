@@ -1,9 +1,10 @@
 import math
 import PyTango
-from PyTango import DevState
-from pool import CounterTimerController
-from pool import ZeroDController
-from pool import PoolUtil
+
+from sardana import State, DataAccess
+from sardana.pool.controller import ZeroDController
+from sardana.pool.controller import Type, Access, Description
+from sardana.pool import PoolUtil
 
 TANGO_ATTR = 'TangoAttribute'
 FORMULA = 'Formula'
@@ -18,15 +19,15 @@ class ReadTangoAttributes():
     Each device has a tango attribute and a formula and the 'hardware' tango calls
     are optimized in the sense that only one call per tango device is issued.
     """
-    ctrl_extra_attributes ={TANGO_ATTR:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The first Tango Attribute to read (e.g. my/tango/dev/attr)'
-                             ,'R/W Type':'PyTango.READ_WRITE'},
-                            FORMULA:
-                            {'Type':'PyTango.DevString'
-                             ,'Description':'The Formula to get the desired value.\ne.g. "math.sqrt(VALUE)"'
-                             ,'R/W Type':'PyTango.READ_WRITE'}
-                            }
+    axis_attributes = {TANGO_ATTR:
+                        {Type : str
+                         ,Description : 'The first Tango Attribute to read (e.g. my/tango/dev/attr)'
+                         ,Access : DataAccess.ReadWrite},
+                       FORMULA:
+                        {Type : str
+                         ,Description : 'The Formula to get the desired value.\ne.g. "math.sqrt(VALUE)"'
+                         ,Access : DataAccess.ReadWrite}
+                      }
     
     def __init__(self):
         self.devsExtraAttributes = {}
@@ -46,7 +47,7 @@ class ReadTangoAttributes():
         del self.devsExtraAttributes[axis]
 
     def state_one(self, axis):
-        return (DevState.ON, 'Always ON, just reading external Tango Attribute')
+        return (State.On, 'Always ON, just reading external Tango Attribute')
 
 
     def pre_read_all(self):
@@ -92,11 +93,11 @@ class ReadTangoAttributes():
             raise value
         return value
 
-    def get_extra_attribute_par(self, axis, name):
+    def get_axis_extra_par(self, axis, name):
         return self.devsExtraAttributes[axis][name]
 
-    def set_extra_attribute_par(self,axis, name, value):
-        self._log.debug('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
+    def set_axis_extra_par(self,axis, name, value):
+        self._log.debug('set_axis_extra_par [%d] %s = %s' % (axis, name, value))
         self.devsExtraAttributes[axis][name] = value
         if name == TANGO_ATTR:
             idx = value.rfind("/")
@@ -130,8 +131,10 @@ class TangoAttrZeroDController(ZeroDController, ReadTangoAttributes):
                      
     MaxDevice = 1024
 
-    def __init__(self, inst, props):
-        ZeroDController.__init__(self, inst, props)
+    axis_attributes = ReadTangoAttributes.axis_attributes
+
+    def __init__(self, inst, props, *args, **kwargs):
+        ZeroDController.__init__(self, inst, props, *args, **kwargs)
         ReadTangoAttributes.__init__(self)
 
     def AddDevice(self, axis):
@@ -155,11 +158,11 @@ class TangoAttrZeroDController(ZeroDController, ReadTangoAttributes):
     def ReadOne(self, axis):
         return self.read_one(axis)
 
-    def GetExtraAttributePar(self, axis, name):
-        return self.get_extra_attribute_par(axis, name)
+    def GetAxisExtraPar(self, axis, name):
+        return self.get_axis_extra_par(axis, name)
 
-    def SetExtraAttributePar(self,axis, name, value):
-        self.set_extra_attribute_par(axis, name, value)
+    def SetAxisExtraPar(self,axis, name, value):
+        self.set_axis_extra_par(axis, name, value)
         
     def SendToCtrl(self,in_data):
         return ""
