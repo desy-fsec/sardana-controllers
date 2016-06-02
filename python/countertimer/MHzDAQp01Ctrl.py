@@ -21,7 +21,7 @@ class MHzDAQp01Ctrl(CounterTimerController):
                        'FileNum':{Type:'PyTango.DevLong',Access:ReadWrite},
                        }
 		     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Mythenrois Tango devices'},
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the MHzDAQp01 Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
                        }
 
