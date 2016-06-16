@@ -102,7 +102,7 @@ class SIS3610Ctrl(IORegisterController):
         self.device_available[ind-1] = 1
 
     def DeleteDevice(self, ind):
-        MotorController.DeleteDevice(self,ind)
+        IORegisterController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
 
