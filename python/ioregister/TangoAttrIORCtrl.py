@@ -31,8 +31,11 @@
 ###########################################################################
 
 from PyTango import DevState,DevFailed
-from pool import IORegisterController
-from pool import PoolUtil
+from sardana import State, DataAccess
+from sardana.pool import PoolUtil
+from sardana.pool.controller import IORegisterController
+from sardana.pool.controller import Type, Access, Description
+from sardana.tango.core.util import from_tango_state_to_state
 
 import json
 
@@ -100,23 +103,29 @@ class TangoAttrIORController(IORegisterController):
     icon = ""
     logo = "ALBA_logo.png"
 
-    ctrl_extra_attributes ={TANGO_ATTR:
-                            {'Type':'PyTango.DevString',
-                             'Description':'The first Tango Attribute to read (e.g. my/tango/dev/attr)',
-                             'R/W Type':'PyTango.READ_WRITE'},
-                            CALIBRATION:#type hackish until arrays supported
-                            {'Type':'PyTango.DevString',#{'Type':'PyTango.DevVarDoubleArray',
-                             'Description':'Flatten list of a list of triples and [min,cal,max]',
-                             'R/W Type':'PyTango.READ_WRITE'},
-                            LABELS:#type hackish until arrays supported
-                            {'Type':'PyTango.DevString',#{'Type':'PyTango.DevVarStringArray',
-                             'Description':'String list with the meaning of each discrete position',
-                             'R/W Type':'PyTango.READ_WRITE'},
-                           }
+    axis_attributes ={TANGO_ATTR:
+                        {Type : str,
+                         Description : 'The first Tango Attribute to read (e.g. my/tango/dev/attr)',
+                         Access : DataAccess.ReadWrite,
+                         'fget' : 'get%s' % TANGO_ATTR,
+                         'fset' : 'set%s' % TANGO_ATTR},
+                      CALIBRATION:#type hackish until arrays supported
+                        {Type : str,
+                         Description : 'Flatten list of a list of triples and [min,cal,max]',
+                         Access : DataAccess.ReadWrite,
+                         'fget' : 'get%s' % CALIBRATION,
+                         'fset' : 'set%s' % CALIBRATION},
+                      LABELS:#type hackish until arrays supported
+                        {Type : str,
+                         Description : 'String list with the meaning of each discrete position',
+                         Access : DataAccess.ReadWrite,
+                         'fget' : 'get%s' % LABELS,
+                         'fset' : 'set%s' % LABELS}
+                      }
     MaxDevice = 1024
 
-    def __init__(self, inst, props):
-        IORegisterController.__init__(self, inst, props)
+    def __init__(self, inst, props, *args, **kwargs):
+        IORegisterController.__init__(self, inst, props, *args, **kwargs)
         self.devsExtraAttributes = {}
 
     def AddDevice(self, axis):
@@ -136,27 +145,29 @@ class TangoAttrIORController(IORegisterController):
     def StateOne(self, axis):
         tango_attr = self.devsExtraAttributes[axis][TANGO_ATTR]
         try: dev_proxy = self.devsExtraAttributes[axis][DPROXY] or self._buildProxy(axis)
-        except Exception,e: return (DevState.INIT,str(e))
+        except Exception,e: return (State.Init,str(e))
         llabels = len(self.devsExtraAttributes[axis][LABELS])
         lcalibration = len(self.devsExtraAttributes[axis][CALIBRATION])
         readFailed = self.devsExtraAttributes[axis][READFAILED]
         if tango_attr == None or dev_proxy == None:
-            return (DevState.DISABLE,
+            return (State.Disable,
                     "Not yet configured the Tango Attribute, or cannot proxy it")
         if not lcalibration == 0 and not llabels == lcalibration:
-            return(DevState.DISABLE,
+            return(State.Disable,
                    "Bad configuration of the extra attributes, this cannot be operated")
         else:
             dev_state = dev_proxy.state()
             if readFailed and not dev_state == DevState.MOVING:
-                return (DevState.ALARM,
+                return (State.Alarm,
                         "Fault on read attibute.\nThe tango device status says: %s"%dev_proxy.status())
             # IF PROXY DEVICE IS IN FAULT, MASK IT AS 'ALARM' AND INFORM IN STATUS
             state = dev_proxy.state()
             status = dev_proxy.status()
-            if state in [DevState.FAULT, DevState.UNKNOWN]:
+            if state in (DevState.FAULT, DevState.UNKNOWN):
                 status = 'Masked ALARM state, tango device is in %s state with status: %s' % (state, status)
-                state = DevState.ALARM
+                state = State.Alarm
+            else:
+                state = from_tango_state_to_state(state)
             return (state, status)
 
     def ReadOne(self, axis):
@@ -228,33 +239,14 @@ class TangoAttrIORController(IORegisterController):
             self._log.error('Exception writing attribute:%s.%s'
                             %(self.devsExtraAttributes[axis][DEVICE],attr))
 
-    def GetExtraAttributePar(self, axis, name):
-        #case to apply the correspondant method per each extra attr
-        return {TANGO_ATTR:self.getTangoAttr,
-                LABELS:self.getLabels,
-                CALIBRATION:self.getCalibration,
-               }[name](axis,name)
-        
-
-    def SetExtraAttributePar(self,axis, name, value):
-        self._log.debug('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
-        #case to apply the correspondant method per each extra attr
-        {TANGO_ATTR:self.setTangoAttr,
-         LABELS:self.setLabels,
-         CALIBRATION:self.setCalibration,
-        }[name](axis,name,value)
-
-    def SendToCtrl(self,in_data):
-        return ""
-
     ####
     # Auxiliar methods for the extra attributes
 
-    def getTangoAttr(self,axis,name):
-        return self.devsExtraAttributes[axis][name]
+    def getTangoAttribute(self,axis):
+        return self.devsExtraAttributes[axis][TANGO_ATTR]
 
-    def setTangoAttr(self,axis,name,value):
-        self.devsExtraAttributes[axis][name] = value
+    def setTangoAttribute(self,axis,value):
+        self.devsExtraAttributes[axis][TANGO_ATTR] = value
         idx = value.rfind("/")
         dev = value[:idx]
         attr = value[idx+1:]
@@ -272,7 +264,7 @@ class TangoAttrIORController(IORegisterController):
             self._log.warn(msg)
             raise DevFailed(msg)
 
-    def getLabels(self,axis,name):
+    def getLabels(self,axis):
         #hackish until we support DevVarDoubleArray in extra attrs
         labels = self.devsExtraAttributes[axis][LABELS]
         positions = self.devsExtraAttributes[axis][POSITIONS]
@@ -281,7 +273,7 @@ class TangoAttrIORController(IORegisterController):
             labels_str += "%s:%d "%(labels[i],positions[i])
         return labels_str[:-1]#remove the final space
 
-    def setLabels(self,axis,name,value):
+    def setLabels(self,axis,value):
         #hackish until we support DevVarStringArray in extra attrs
         labels = []
         positions = []
@@ -295,10 +287,10 @@ class TangoAttrIORController(IORegisterController):
         else:
             raise Exception("Rejecting labels: invalid structure")
 
-    def getCalibration(self,axis,name):
+    def getCalibration(self,axis):
         return json.dumps(self.devsExtraAttributes[axis][CALIBRATION])
 
-    def setCalibration(self,axis,name,value):
+    def setCalibration(self,axis,value):
         try:
             self.devsExtraAttributes[axis][CALIBRATION] = json.loads(value)
         except:
