@@ -47,7 +47,7 @@ class TfgCTController(CounterTimerController):
             Type: int,
             'R/W Type': 'READ_WRITE',
             'Description': 'Drive strength mask (1-terminated)',
-            'Defaultvalue': 0},
+            'Defaultvalue': 15},
         'CCMode': {
             Type: int,
             'R/W Type': 'READ_WRITE',
@@ -63,30 +63,70 @@ class TfgCTController(CounterTimerController):
             'R/W Type': 'READ_WRITE',
             'Description': 'Time Frame output configuration',
             'Defaultvalue': [1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
-        'Groups': {
-            Type: (str,),
+        # 'Groups': {
+        #     Type: (str,),
+        #     'R/W Type': 'READ_WRITE',
+        #     'Description': 'Time Frame groups',
+        #     'Defaultvalue': ['8', '1', '', '',
+        #                      '1 0 0.001 0 8 0 0',
+        #                      '1 0.999 1 0 1 0 0',
+        #                      '-1 0 0 0 0 0 0',
+        #                      ]},
+        'Offset': {
+            Type: float,
             'R/W Type': 'READ_WRITE',
-            'Description': 'Time Frame groups',
-            'Defaultvalue': ['8', '1', '', '',
-                             '1 0 0.001 0 8 0 0',
-                             '1 0.999 1 0 1 0 0',
-                             '-1 0 0 0 0 0 0',
-                             ]},
+            'Description': 'Offset',
+            'defaultvalue': 0.0
+                      },
+        'BufferSize': {
+            Type: int,
+            'R/W Type': 'READ_WRITE',
+            'Description': 'BufferSize',
+            'defaultvalue': 10000
+                      },
+
+        'Nframes': {
+            Type: int,
+            'R/W Type': 'READ_WRITE',
+            'Description': 'Number of Frames',
+            'defaultvalue': 1
+                      },
+
         }
 
     ctrl_properties = {
         'TFGDevice': {'type': str,
                       'description': 'TFG device name',
                       'defaultvalue': ''
-                      }
+                      },
+
         }
 
-    MaxDevice = 8
+
+
+    # Timer + Coutners
+    MaxDevice = 9
 
     def __init__(self, inst, props, *args, **kwargs):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         self._log.debug('TFG device: %s' % self.TFGDevice)
         self.tfg = PyTango.DeviceProxy(self.TFGDevice)
+        self.values = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.groups = ['8', '1', '', '']
+#        self._invertmask = 0
+#        self._drivemask = 15
+#        self._ccmode = 0
+#        self._ccchan = [2, -1, 0, 0, 0]
+#        self._tfout = [1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#        self._buffer_size = 10000
+
+    def AddDevice(self, axis):
+        self._log.debug("AddDevice(%d): Entering...", axis)
+        pass
+
+    def DeleteDevice(self, axis):
+        self._log.debug("DeleteDevice(%d): Entering...", axis)
+        pass
 
     def StateOne(self, axis):
         tfgState = self.tfg.AcqStatus
@@ -102,17 +142,23 @@ class TfgCTController(CounterTimerController):
             return State.Fault, tfgState
 
     def LoadOne(self, axis, value):
+
+        if axis == 1:
+            newgroup = '%d %f %f 0 7 0 0' % (self._nframes, self._offset, value)
+            self.groups.append(newgroup)
         pass
 
     def PreStartOne(self, axis, position=None):
-        try: 
-            self.tfg.SetupPort([self._invertmask, self._drivemask])
-            self.tfg.SetupCCMode(self._ccmode)
-            self.tfg.SetupCCChan(self._ccchan)
-            self.tfg.SetupTFout(self._tfout)
-            self.tfg.Enable()
-            self.tfg.Clear([0,0,0,100,1,100])
-            self.tfg.SetupGroups(self._groups)
+        try:
+            if axis == 1:
+                self.tfg.SetupPort([self._invertmask, self._drivemask])
+                self.tfg.SetupCCMode(self._ccmode)
+                self.tfg.SetupCCChan(self._ccchan)
+                self.tfg.SetupTFout(self._tfout)
+                self.tfg.Enable()
+                self.tfg.Clear([0,0,0,self._buffer_size, 1, 9])
+                self.groups.append('-1 0 0 0 0 0 0')
+                self.tfg.SetupGroups(self.groups)
         except Exception, e:
             self._log.error(e)
 
@@ -128,3 +174,32 @@ class TfgCTController(CounterTimerController):
     def AbortOne(self, axis):
         self.tfg.Stop()
 
+    def PreReadOne(self, axis):
+        self._log.debug("PreReadOne(%d): Entering...", axis)
+        pass
+
+
+    def ReadOne(self, axis):
+        self._log.debug("ReadOne(%d): Entering...", axis)
+        self._log.debug(self.values)
+        
+        return self.values[axis-1]
+
+
+    def ReadAll(self):
+        self._log.debug("ReadAll: Entering...")
+
+        # Read 8 Channels:
+        Nch = 8
+
+        ans = self.tfg.Read([0,0,0,1,1,Nch+1])
+        self._log.debug(ans)
+        #Integrated time in ns
+        time = ((ans[1] << 32) + ans[0]) * 10
+        self.values[0] = time
+
+        # Counts
+        for i in range(Nch):
+            val = (ans[(1+i)*2+1] << 32) + ans[(1+i)*2]
+            self.values[i+1] = val
+        self._log.debug(self.values)
