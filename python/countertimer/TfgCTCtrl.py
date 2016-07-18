@@ -21,9 +21,9 @@
 ##
 ##############################################################################
 
-from sardana import State
+from sardana import State, DataAccess
 from sardana.pool.controller import CounterTimerController
-from sardana.pool.controller import Type
+from sardana.pool.controller import Type, Access, Description, Memorize, NotMemorized, MaxDimSize, DefaultValue
 
 import PyTango
 
@@ -40,56 +40,53 @@ class TfgCTController(CounterTimerController):
     ctrl_attributes = {
         'InvertMask': {
             Type: int,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Invert polarity mask (1-inverted)',
-            'Defaultvalue': 0},
+            Access: DataAccess.ReadWrite,
+            Description: 'Invert polarity mask (1-inverted)',
+            DefaultValue: 0},
         'DriveMask': {
             Type: int,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Drive strength mask (1-terminated)',
-            'Defaultvalue': 15},
+            Access: DataAccess.ReadWrite,
+            Description: 'Drive strength mask (1-terminated)',
+            DefaultValue: 15},
         'CCMode': {
             Type: int,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Calibration Channel mode mask',
-            'Defaultvalue': 2},
+            Access: DataAccess.ReadWrite,
+            Description: 'Calibration Channel mode mask',
+            DefaultValue: 2},
         'CCChan': {
             Type: (int,),
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Calibration Channel configuration',
-            'Defaultvalue': [2, -1, 0, 0, 0]},
+            Access: DataAccess.ReadWrite,
+            Description: 'Calibration Channel configuration',
+            Memorize: Memorize},
         'TFout': {
             Type: (int,),
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Time Frame output configuration',
-            'Defaultvalue': [1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]},
-        # 'Groups': {
-        #     Type: (str,),
-        #     'R/W Type': 'READ_WRITE',
-        #     'Description': 'Time Frame groups',
-        #     'Defaultvalue': ['8', '1', '', '',
-        #                      '1 0 0.001 0 8 0 0',
-        #                      '1 0.999 1 0 1 0 0',
-        #                      '-1 0 0 0 0 0 0',
-        #                      ]},
+            Access: DataAccess.ReadWrite,
+            Description: 'Time Frame output configuration',
+            Memorize: Memorize},
         'Offset': {
             Type: float,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Offset',
-            'defaultvalue': 0.0
+            Access: DataAccess.ReadWrite,
+            Description: 'Offset',
+            DefaultValue: 0.0
                       },
         'BufferSize': {
             Type: int,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'BufferSize',
-            'defaultvalue': 10000
+            Access: DataAccess.ReadWrite,
+            Description: 'BufferSize',
+            DefaultValue: 10000
                       },
+        #'OutputMask': {
+            #Type: int,
+            #Access: DataAccess.ReadWrite,
+            #Description: 'Mask for enabled output channels',
+            #DefaultValue: 7
+                      #},
 
         'Nframes': {
             Type: int,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Number of Frames',
-            'defaultvalue': 1
+            Access: DataAccess.ReadWrite,
+            Description: 'Number of Frames',
+            DefaultValue: 1
                       },
 
         }
@@ -113,12 +110,12 @@ class TfgCTController(CounterTimerController):
         self.tfg = PyTango.DeviceProxy(self.TFGDevice)
         self.values = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         self.groups = ['8', '1', '', '']
-#        self._invertmask = 0
-#        self._drivemask = 15
-#        self._ccmode = 0
-#        self._ccchan = [2, -1, 0, 0, 0]
-#        self._tfout = [1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#        self._buffer_size = 10000
+        #self._invertmask = 0
+        #self._drivemask = 15
+        #self._ccmode = 0
+        self._ccchan = [2, -1, 0, 0, 0]
+        self._tfout = [1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        #self._buffer_size = 10000
 
     def AddDevice(self, axis):
         self._log.debug("AddDevice(%d): Entering...", axis)
@@ -144,23 +141,34 @@ class TfgCTController(CounterTimerController):
     def LoadOne(self, axis, value):
 
         if axis == 1:
-            newgroup = '%d %f %f 0 7 0 0' % (self._nframes, self._offset, value)
-            self.groups.append(newgroup)
+	    #TODO use attribute
+	    self._outputmask = 7
+            newgroup = '%d %f %f 0 %d 0 0' % (self._nframes, self._offset, value, self._outputmask)
+            self.groups = ['8', '1', '', '',newgroup]
+            self.tfg.SetupPort([self._invertmask, self._drivemask])
+            self.tfg.SetupCCMode(self._ccmode)
+            self.tfg.SetupCCChan(self._ccchan)
+            self.tfg.SetupTFout(self._tfout)
+            self.tfg.Enable()
+            self.tfg.Clear([0,0,0,self._buffersize, 1, 9])
+            self.groups.append('-1 0 0 0 0 0 0')
+            self.tfg.SetupGroups(self.groups)
         pass
 
     def PreStartOne(self, axis, position=None):
-        try:
-            if axis == 1:
-                self.tfg.SetupPort([self._invertmask, self._drivemask])
-                self.tfg.SetupCCMode(self._ccmode)
-                self.tfg.SetupCCChan(self._ccchan)
-                self.tfg.SetupTFout(self._tfout)
-                self.tfg.Enable()
-                self.tfg.Clear([0,0,0,self._buffer_size, 1, 9])
-                self.groups.append('-1 0 0 0 0 0 0')
-                self.tfg.SetupGroups(self.groups)
-        except Exception, e:
-            self._log.error(e)
+
+        #try:
+            #if axis == 1:
+                #self.tfg.SetupPort([self._invertmask, self._drivemask])
+                #self.tfg.SetupCCMode(self._ccmode)
+                #self.tfg.SetupCCChan(self._ccchan)
+                #self.tfg.SetupTFout(self._tfout)
+                #self.tfg.Enable()
+                #self.tfg.Clear([0,0,0,self._buffer_size, 1, 9])
+                #self.groups.append('-1 0 0 0 0 0 0')
+                #self.tfg.SetupGroups(self.groups)
+        #except Exception, e:
+            #self._log.error(e)
 
         return True
 
@@ -196,10 +204,60 @@ class TfgCTController(CounterTimerController):
         self._log.debug(ans)
         #Integrated time in ns
         time = ((ans[1] << 32) + ans[0]) * 10
-        self.values[0] = time
+
+	# To convert nanoseconds to seconds
+        self.values[0] = time/1e9
 
         # Counts
         for i in range(Nch):
             val = (ans[(1+i)*2+1] << 32) + ans[(1+i)*2]
             self.values[i+1] = val
         self._log.debug(self.values)
+
+    
+    def SetCtrlPar(self, parameter, value):
+        param = parameter.lower()
+        if param == 'invertmask':
+            self._invertmask = value
+        elif param == 'drivemask':
+            self._drivemask = value
+        elif param == 'ccmode':
+            self._ccmode = value
+        elif param == 'ccchan':
+            self._ccchan = value
+	    print 'cccchan %s'%str(self._ccchan)
+        elif param == 'tfout':
+            self._tfout = value
+        elif param == 'offset':
+            self._offset = value
+        elif param == 'buffersize':
+            self._buffersize = value
+        elif param == 'nframes':
+            self._nframes = value
+        else:
+            super(TfgCTController, self).SetCtrlPar(parameter, value)
+
+
+
+
+    def GetCtrlPar(self, parameter):
+        param = parameter.lower()
+        if param == 'invertmask':
+            value = self._invertmask
+        elif param == 'drivemask':
+            value = self._drivemask
+        elif param == 'ccmode':
+            value = self._ccmode
+        elif param == 'ccchan':
+            value = self._ccchan
+        elif param == 'tfout':
+            value = self._tfout
+        elif param == 'offset':
+            value = self._offset
+        elif param == 'buffersize':
+            value = self._buffersize
+        elif param == 'nframes':
+            value = self._nframes
+        else:
+            value = super(TfgCTController, self).GetCtrlPar(parameter)
+        return value 
