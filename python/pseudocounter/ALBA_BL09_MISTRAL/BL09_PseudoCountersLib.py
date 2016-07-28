@@ -175,6 +175,8 @@ class EnergyFromIK220(PseudoCounterController):
         self.grSign = -1
         self.mSign = 1
         
+        self.offsetEnergyDP = PyTango.DeviceProxy('pm/energycff_ctrl/1')
+        
     def calc(self,index,counter_values):
         """
         Return the energy and the Cff
@@ -195,6 +197,9 @@ class EnergyFromIK220(PseudoCounterController):
         #if self.FixedM2Pit: 
         Cff = math.cos(beta)/math.cos(alpha)
         if energy < 0 : energy = energy *(-1) #warning: wavelength se vuelve negativo ... ??????
+        
+        offsetEnergy=self.offsetEnergyDP.offsetEnergy
+        energy = energy + offsetEnergy
         
         if index == 1:
             return energy
