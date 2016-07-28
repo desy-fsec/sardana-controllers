@@ -283,7 +283,7 @@ class IK220_channels(PseudoCounterController):
         try:
             angles = self.ik220_dev.read_attribute('Angles').value
             if index == 9:
-                return sum(angles[:4])/4.0
+                return sum(angles[:3])/3.0
             elif index == 10:
                 return sum(angles[4:8])/4.0
             else:
