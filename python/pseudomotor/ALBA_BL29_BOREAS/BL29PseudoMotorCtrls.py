@@ -731,7 +731,7 @@ class BL29MaresReflectivity(object):
     """
 
     THETA, THETA2 = range(1,3) #physical motors
-    SAMPLE, SPECULAR, DETECTOR = range(1,4) #pseudo motors
+    SAMPLE, SPECULAR, DETECTOR, BOTH = range(1,5) #pseudo motors
 
     #static variables (common to all subclasses and instances)
     detector_nominal_offset=0.0 #detector nominal position offset
@@ -749,13 +749,18 @@ class BL29MaresReflectivity(object):
         #1) if we just want to move the sample then the theta2 motor must keep its current value
         if pseudo_motor == self.SAMPLE:
             target_theta2 = current_theta2
-            target_theta = current_theta2 - target_pseudo_pos + current_polar + self.sample_offset
+            target_theta = current_theta2 - target_pseudo_pos[0] + current_polar + self.sample_offset
         elif pseudo_motor == self.SPECULAR:
-            target_theta2 = 2*target_pseudo_pos - self.detector_nominal_offset - self.detector_offset
-            target_theta = target_pseudo_pos - self.detector_nominal_offset - self.detector_offset + current_polar + self.sample_offset
+            target_theta2 = 2*target_pseudo_pos[0] - self.detector_nominal_offset - self.detector_offset
+            target_theta = target_pseudo_pos[0] - self.detector_nominal_offset - self.detector_offset + current_polar + self.sample_offset
         elif pseudo_motor == self.DETECTOR:
-            target_theta2 = target_pseudo_pos - self.detector_nominal_offset - self.detector_offset
+            target_theta2 = target_pseudo_pos[0] - self.detector_nominal_offset - self.detector_offset
             target_theta = current_theta - (current_theta2 - target_theta2)
+        elif pseudo_motor == self.BOTH: #compute th and th2 for a given sample and detector positions
+            target_sample = target_pseudo_pos[0]
+            target_detector = target_pseudo_pos[1]
+            target_theta2 = target_detector - self.detector_nominal_offset - self.detector_offset
+            target_theta = target_theta2 - target_sample + current_polar + self.sample_offset
         else:
             msg = 'Invalid pseudo_motor %s in compute_physical()' % str(pseudo_motor)
             self._log.error(msg)
@@ -764,7 +769,7 @@ class BL29MaresReflectivity(object):
         return target_theta, target_theta2
 
     @classmethod
-    def compute_pseudo(self, pseudo_axis, physical_pos, current_pseudo, tolerance=0.0):
+    def compute_pseudo(self, pseudo_axis, physical_pos, tolerance=0.0):
         """
         Given the physical motor positions, it computes the pseudo motor
         specified by pseudo_axis.
@@ -787,6 +792,7 @@ class BL29MaresReflectivity(object):
 
 class BL29MaresDetector(PseudoMotorController):
     """
+    @deprecated: BL29MaresSampleDetector now implements this controller
     PseudoMotorController that provides the detectors angular position pseudo motors.
     See BL29MaresReflectivity documentation for more details on the system
     This motor provides the following pseudo motors:
@@ -812,10 +818,10 @@ class BL29MaresDetector(PseudoMotorController):
 
     There are several axis properties:
     - correct_sample (should be ctrl property, but we made like this for user
-      simpliciry): whether or not to automatically correct the sample position
+      simplicity): whether or not to automatically correct the sample position
       when moving the detector.
     - detector_in_use (should be ctrl property, but we made like this for user
-      simpliciry): this is a pointer to which of the different detectors is
+      simplicity): this is a pointer to which of the different detectors is
       currently been used
     - nominal_offset: this is the nominal position in which the detector is
       positioned when the 2theta plate is at 0 degrees
@@ -927,7 +933,7 @@ class BL29MaresDetector(PseudoMotorController):
             physical = current_physical[:]
             physical.insert(0,self.theta.position)
             physical.append(self.polar.position)
-            th, th2 = BL29MaresReflectivity.compute_physical(pseudo_pos[0], physical, BL29MaresReflectivity.DETECTOR)
+            th, th2 = BL29MaresReflectivity.compute_physical(pseudo_pos, physical, BL29MaresReflectivity.DETECTOR)
             #if automatic sample position correction is enable then move theta to necessary position
             if self.correct_sample:
                 self.theta.position = th
@@ -1044,6 +1050,7 @@ class BL29MaresDetector(PseudoMotorController):
 
 class BL29MaresSample(PseudoMotorController):
     """
+    @deprecated: BL29MaresSampleDetector now implements this controller
     PseudoMotorController that provides the sample angular position pseudo motor.
     See BL29MaresReflectivity documentation for more details on the system
     """
@@ -1106,7 +1113,7 @@ class BL29MaresSample(PseudoMotorController):
         physical = current_physical[:]
         physical.append(self.theta2.position)
         physical.append(self.polar.position)
-        th, th2 = BL29MaresReflectivity.compute_physical(pseudo_pos[0], physical, BL29MaresReflectivity.SAMPLE)
+        th, th2 = BL29MaresReflectivity.compute_physical(pseudo_pos, physical, BL29MaresReflectivity.SAMPLE)
         return th
 
     def CalcPseudo(self, axis, physical_pos, current_pseudo):
@@ -1118,9 +1125,10 @@ class BL29MaresSample(PseudoMotorController):
         @return the corresponding pseudo
         @throws exception
         """
-        physical_pos.append(self.theta2.position)
-        physical_pos.append(self.polar.position)
-        return BL29MaresReflectivity.compute_pseudo(BL29MaresReflectivity.SAMPLE, physical_pos, current_pseudo)
+        physical = physical_pos[:]
+        physical.append(self.theta2.position)
+        physical.append(self.polar.position)
+        return BL29MaresReflectivity.compute_pseudo(BL29MaresReflectivity.SAMPLE, physical)
 
     def GetAxisExtraPar(self, axis, name):
         """
@@ -1174,9 +1182,10 @@ class BL29MaresSpecular(PseudoMotorController):
 
     #axis attributes
     axis_attributes = {
-        #tolerance should actually be a controller property but since it may be necessary to
-        #be modified by user it is defined like this for user convenience:
-        #users know the motor names, but don't care at all about controller names
+        #tolerance should actually be a controller property but since it may be
+        #necessary to be modified by user it is defined like this for user
+        #convenience: users know the motor names, but don't care at all about
+        #controller names
         'tolerance' : {
             Type : float,
             Description : 'Tolerance to consider that theta and 2theta are properly aligned',
@@ -1199,26 +1208,22 @@ class BL29MaresSpecular(PseudoMotorController):
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         self.polar = PoolUtil.get_device(inst,self.polar_motor)
 
-    def CalcPhysical(self, axis, pseudo_pos, current_physical):
+    def CalcAllPhysical(self, pseudo_pos, current_physical):
         """
         Given the motor number and the desired pseudomotor positions it
         returns the correct motor position for that motor and pseudomotor position.
-        @param[in] axis - motor number
-        @param[in] pseudo_pos (sequence<float>) - a sequence containing target pseudo motor positions
-        @param[in] current_physical (sequence<float>) - a sequence containing the current physical motor positions
-        @return the correct motor position
-        @throws exception
+        :param sequence<float> pseudo_pos: a sequence containing pseudo motor
+        positions
+        :param sequence<float> curr_physical_pos: a sequence containing the
+        current physical motor positions
+        :return: a sequece of motor positions (one for each motor role)
+        :rtype: sequence<float>
         """
         #it looks like the controller reuses current_physical between calls, so create a copy to avoid modifying it
         physical = current_physical[:]
         physical.append(self.polar.position)
-        if axis in range(1,len(self.motor_roles)+1):
-            targets = BL29MaresReflectivity.compute_physical(pseudo_pos[0], physical, BL29MaresReflectivity.SPECULAR)
-            return targets[axis-1]
-        else:
-            msg = 'Unexpected physical axis %d' % axis
-            self._log.error(msg)
-            raise Exception(msg)
+        targets = BL29MaresReflectivity.compute_physical(pseudo_pos, physical, BL29MaresReflectivity.SPECULAR)
+        return targets
 
     def CalcPseudo(self, axis, physical_pos, current_pseudo):
         """
@@ -1229,9 +1234,10 @@ class BL29MaresSpecular(PseudoMotorController):
         @return the corresponding pseudo
         @throws exception
         """
-        physical_pos.append(self.polar.position)
+        physical = physical_pos[:]
+        physical.append(self.polar.position)
         if axis==1: #specular
-            return BL29MaresReflectivity.compute_pseudo(BL29MaresReflectivity.SPECULAR, physical_pos, current_pseudo, self.tolerance)
+            return BL29MaresReflectivity.compute_pseudo(BL29MaresReflectivity.SPECULAR, physical, self.tolerance)
         else:
             msg = '%d is not valid axis' % axis, physical_pos, current_pseudo
             self._log.error(msg)
@@ -1262,3 +1268,244 @@ class BL29MaresSpecular(PseudoMotorController):
         """
         if name == 'tolerance':
             self.tolerance = value
+
+
+class BL29MaresSampleDetector(PseudoMotorController):
+    """
+    PseudoMotorController that provides angular position pseudo motors for the
+    sample and all detectors.
+    See BL29MaresReflectivity documentation for more details on the system
+    This motor provides the following pseudo motors:
+        - sample
+        - detector
+        - detector01
+        - detector02
+        ...
+        - detector(MAX_DETECTORS)
+
+    Note that unfortunately MAX_DETECTORS needs to be hardcoded. Ideally we
+    should be able to dynamically add detectorXX just with the sardana API (e.g.
+    defelem in spock) but this is not currently supported by sardana, and hence
+    we have to define before hand which are the total number of detectors.
+    *detector* is just a pointer to any of the *detectorXX*, which is considered
+    to be the one in use. Note that when moving it will always be assumed that
+    we want to move the detector in use (even if you try to move detectorXX)
+
+    It requires the theta, 2theta and polar  angular positions in order to
+    compute the sample position, but only the 2theta position in order to
+    compute the detectors positions
+
+    There are several axis properties:
+    - detector_in_use (should be ctrl property, but we made it like this for
+      user simplicity): this is a pointer to which of the different detectors is
+      currently been used
+    - nominal_offset: this is the nominal position in which the detector is
+      positioned when the 2theta plate is at 0 degrees
+    - offset: this is a fine grain offset for small user adjustments both for
+      sample and detector positions
+    """
+
+    gender = 'XRayReflectivity'
+    model  = 'MARES (RSXS) end station of BL29-Boreas sample and detector positions'
+    organization = 'CELLS - ALBA'
+    image = 'rsxs.png'
+    logo = 'ALBA_logo.png'
+
+    #internal variables
+    FIRST_DETECTOR = 3 #first axis number that corresponds to a detector
+    MAX_DETECTORS = 10 #maximum number of detectors
+    detectors_nominal_offsets = []
+    detectors_offsets = []
+    detectors_user_names = []
+
+    pseudo_motor_roles = tuple(['sample','detector'] + ['detector%d' % i for i in range(MAX_DETECTORS)])
+    motor_roles = ('theta','2theta',)
+
+    #controller properties
+    ctrl_properties = {
+        'polar_motor' : {
+            Type : str,
+            Description : 'The name of the polar motor (which is necessary to compute pseudo, but we should never move it)'
+        }
+    }
+
+    #axis attributes
+    axis_attributes = {
+        'detector_in_use' : {
+            Type : str,
+            Description : 'Detector in use',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : ''
+        },
+        'nominal_offset' : {
+            Type : float,
+            Description : 'Nominal offset of detector arm with respect to 0 alignment (in degrees)',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : 0.0
+        },
+        'offset' : {
+            Type : float,
+            Description : 'Sample offset or fine grain offset of detector with respect to detector\'s arm (in degrees)',
+            Access : DataAccess.ReadWrite,
+            DefaultValue : 0.0
+        },
+    }
+
+    def __init__(self, inst, props, *args, **kwargs):
+        """
+        Do the default init
+        @param inst instance name of the controller
+        @param properties of the controller
+        @param *args extra arguments
+        @param **kwargs keyword arguments
+        """
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
+        self.polar = PoolUtil.get_device(inst,self.polar_motor)
+        self.detector_used = None
+
+    def get_detectors_info(self):
+        """
+        Get detectors information (offsets and names)
+        """
+        i=self.FIRST_DETECTOR
+        while True:
+            try:
+                motor_name = self.GetAxisName(i)
+                if motor_name != str(i): #GetAxisName returns str(i) if not found
+                    self.detectors_offsets.append(0.0)
+                    self.detectors_nominal_offsets.append(0.0)
+                    self.detectors_user_names.append(motor_name.lower())
+                    i+=1
+                else:
+                    break
+            except:
+                break
+
+    def CalcAllPhysical(self, pseudo_pos, current_physical):
+        """
+        Given the desired pseudomotor positions it returns the correct motor
+        position for all motors that would provide those pseudomotor positions.
+        :param sequence<float> pseudo_pos: a sequence containing pseudo motor
+        positions
+        :param sequence<float> curr_physical_pos: a sequence containing the
+        current physical motor positions
+        :return: a sequece of motor positions (one for each motor role)
+        :rtype: sequence<float>
+        """
+        physical = current_physical[:]
+        physical.append(self.polar.position)
+        th, th2 = BL29MaresReflectivity.compute_physical(pseudo_pos, physical, BL29MaresReflectivity.BOTH)
+        return (th, th2)
+
+    def CalcPseudo(self, axis, physical_pos, current_pseudo):
+        """
+        Given the physical motor positions, it computes the pseudomotor specified by axis.
+        @param[in] axis: the pseudo motor to be computed
+        @param[in] physical_pos: physical positions of all the motors involved in the computation
+        @param[in] current_pseudo: current value of all the pseudo motors
+        @return the corresponding pseudo
+        @throws exception
+        """
+        #since pseudomotors are not available during __init__ this must be filled on first call to any method
+        num_detectors = len(self.detectors_user_names)
+        if num_detectors== 0:
+            self.get_detectors_info()
+        physical = physical_pos[:]
+        physical.append(self.polar.position)
+        if axis==1: #sample
+            return BL29MaresReflectivity.compute_pseudo(BL29MaresReflectivity.SAMPLE, physical)
+        elif axis==2: #detector in use
+            return physical_pos[1] + self.detectors_nominal_offsets[self.detector_used] + self.detectors_offsets[self.detector_used]
+        elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors): #a given detector
+            return physical_pos[1] + self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR] + self.detectors_offsets[axis-self.FIRST_DETECTOR]
+
+    def GetAxisExtraPar(self, axis, name):
+        """
+        Get extra controller parameters. These parameters should actually be
+        controller parameters, but users asked to use them as axis parameters
+        in order to directly use the motor name instead of the controller name
+        to set/get these parameters
+        @param axis to get
+        @param name of the parameter to retrieve
+        @return the value of the parameter
+        """
+        #since pseudomotors are not available during __init__ this must be filled on first call to any method
+        num_detectors = len(self.detectors_user_names)
+        if num_detectors== 0:
+            self.get_detectors_info()
+            num_detectors = len(self.detectors_user_names)
+        if name == 'detector_in_use':
+            return self.detectors_user_names[self.detector_used]
+        elif name == 'nominal_offset':
+            if axis==2:
+                return self.detectors_nominal_offsets[self.detector_used]
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                return self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR]
+            else:
+                msg = 'Axis %d does not have property nominal_offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+        elif name == 'offset':
+            if axis==1:
+                return BL29MaresReflectivity.sample_offset
+            if axis==2:
+                return self.detectors_offsets[self.detector_used]
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                return self.detectors_offsets[axis-self.FIRST_DETECTOR]
+            else:
+                msg = 'Axis %d does not have property offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+
+    def SetAxisExtraPar(self, axis, name, value):
+        """
+        Set extra axis parameters. These parameters should actually be
+        controller parameters, but users asked to use them as axis parameters
+        in order to directly use the motor name instead of the controller name
+        to set/get these parameters
+        @param axis to set
+        @param name of the parameter to set
+        @param value to be set
+        """
+        #since pseudomotors are not available during __init__ this must be filled on first call to any method
+        num_detectors = len(self.detectors_user_names)
+        if num_detectors== 0:
+            self.get_detectors_info()
+            num_detectors = len(self.detectors_user_names)
+        if name == 'detector_in_use':
+            #we asume that it is not possible to have repeated user motor names
+            try:
+                self.detector_used = self.detectors_user_names.index(value.lower())
+            except ValueError:
+                msg = '%s is not valid detector name' % value
+                self._log.error(msg)
+                raise Exception(msg)
+        elif name == 'nominal_offset':
+            if axis==2:
+                self.detectors_nominal_offsets[self.detector_used] = value
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                self.detectors_nominal_offsets[axis-self.FIRST_DETECTOR] = value
+            else:
+                msg = 'Axis %d does not have property nominal_offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+        elif name == 'offset':
+            if axis==1:
+                BL29MaresReflectivity.sample_offset = value
+            elif axis==2:
+                if self.detector_used != None: #only if detector_used was already initialized
+                    self.detectors_offsets[self.detector_used] = value
+            elif axis in range(self.FIRST_DETECTOR,self.FIRST_DETECTOR+num_detectors):
+                self.detectors_offsets[axis-self.FIRST_DETECTOR] = value
+            else:
+                msg = 'Axis %d does not have property offset' % axis
+                self._log.error(msg)
+                raise Exception(msg)
+        #this is necessary since we don't know the order in which parameters
+        #will be set when initializing the controller
+        self.update_info()
+
+    def update_info(self):
+        if self.detector_used != None:
+            BL29MaresReflectivity.detector_offset = self.detectors_offsets[self.detector_used]
+            BL29MaresReflectivity.detector_nominal_offset = self.detectors_nominal_offsets[self.detector_used]
