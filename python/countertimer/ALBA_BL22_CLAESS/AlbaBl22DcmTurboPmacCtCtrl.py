@@ -16,8 +16,8 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
        It is used to """
     
     MaxDevice = 1
-    START_INDEX = 4080
-
+    #START_INDEX = 4080 change to register 4076
+    
     class_prop = {'TurboPmacDeviceName':{'Description' : 'TurboPmac controller Tango device', 'Type' : 'PyTango.DevString'},
                   'EnergyDeviceName':{'Description' : 'Energy pseudomotor Tango device', 'Type' : 'PyTango.DevString'},
                   'BraggDeviceName':{'Description' : 'Bragg motor Tango device', 'Type' : 'PyTango.DevString'}}
@@ -81,7 +81,8 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             self.energy = None
             self.state = State.Fault
             self.status = msg
-        
+        self.START_INDEX = int(self.pmac.GetPVariable(4076))
+ 
     def AddDevice(self, axis):  
         self._log.debug("AddDevice(%d): Entering...", axis)
         
@@ -149,7 +150,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         if name.lower() == "triggermode":
             return "gate"
         if name.lower() == "nroftriggers":
-            nrOfTriggers = self.pmac.command_inout("GetPVariable", 4078) - self.START_INDEX
+            nrOfTriggers = self.pmac.command_inout("GetPVariable", 4078) #- self.START_INDEX
             return long(nrOfTriggers)
         if name.lower() == "acquisitiontime":
             return float("nan")
@@ -166,7 +167,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             pass
         if name.lower() == "nroftriggers":
             self.nrOfTriggers = value
-            self.pmac.SetPVariable([4078, self.START_INDEX + self.nrOfTriggers])            
+            self.pmac.SetPVariable([4078, self.nrOfTriggers]) # self.START_INDEX + self.nrOfTriggers])            
         if name.lower() == "acquisitiontime":
             pass
 
