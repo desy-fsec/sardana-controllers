@@ -425,7 +425,8 @@ class BraggController(PseudoMotorController):
         print("\n")
         print("Calculating if the motors are in correct position")
         print("\n")
-        position_tolerance = 0.03
+        pos_tolerance = 0.03
+        bender_tolerance = 1000000000
         #print self.motor_roles
         print curr_physical_pos
         msg = ''
@@ -438,8 +439,13 @@ class BraggController(PseudoMotorController):
             #revise.append(pos)
             #name= self.motor_roles[i]
             name= self.GetMotor(self.motor_roles[i])
+            print '\n\n\n\n Motor=%s' % self.motor_roles[i], name
             current = curr_physical_pos[i]
             print "%s, current %f, should be %f, last position of bragg pseudo %f" %(name,current,virtualPos,self.lastPos)
+            if (i+1 in self.bender_index):
+                position_tolerance = bender_tolerance
+            else:
+                position_tolerance = pos_tolerance
             if (abs(virtualPos - current) > position_tolerance):
                 msg +='The physical motor for the role %s is in a wrong position, current : %f, should be: %f\n' %(name, current, virtualPos)
         if msg != '':          
