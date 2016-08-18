@@ -110,11 +110,14 @@ class MythenRoisCtrl(CounterTimerController):
         pass
 	
     def StartAllCT(self):
-        if self.proxy.ConnectionToDoor == 0:
-            try:
-                self.proxy.ConnectToDoor()
-            except:
-                pass
+        try:
+            if self.proxy.ConnectionToDoor == 0:
+                try:
+                    self.proxy.ConnectToDoor()
+                except:
+                    pass
+        except:
+            pass
         self.proxy.command_inout("StartAcquisition")
 		     	
     def LoadOne(self,ind,value):
