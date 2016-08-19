@@ -66,6 +66,9 @@ class HasyOneDCtrl(OneDController):
             self.flagIsXIA.append( False)
             self.flagIsSIS3302.append(False)
             self.device_available.append(False)
+            self.RoIs_start.append(0)
+            self.RoIs_end.append(0)
+            self.Counts_RoI.append(0)
             self.max_device =  self.max_device + 1
         self.started = False
 
@@ -89,9 +92,6 @@ class HasyOneDCtrl(OneDController):
         if hasattr(self.proxy[ind-1], 'ADCxInputInvert') or hasattr(self.proxy[ind-1], 'TriggerPeakingTime'):
             self.flagIsSIS3302[ind-1] = True
         if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1]
-        self.RoIs_start.append(0)
-        self.RoIs_end.append(0)
-        self.Counts_RoI.append(0)
 
        
     def DeleteDevice(self,ind):
