@@ -89,9 +89,15 @@ class HasyOneDCtrl(OneDController):
             self.flagIsMCA8715[ind-1] = True
         if hasattr(self.proxy[ind-1], 'Spectrum') and hasattr(self.proxy[ind-1], 'McaLength'):
             self.flagIsXIA[ind-1] = True
-        if hasattr(self.proxy[ind-1], 'ADCxInputInvert') or hasattr(self.proxy[ind-1], 'TriggerPeakingTime'):
+        if hasattr(self.proxy[ind-1], 'ADCxInputInvert'):
+            print "ADCxInputInvert"
+        if hasattr(self.proxy[ind-1], 'TriggerPeakingTime'):
+            print 'TriggerPeakingTime'
+        if hasattr(self.proxy[ind-1], 'ADCxInputInvert'):
             self.flagIsSIS3302[ind-1] = True
-        if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1]
+        if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1], "isSIS3302", self.flagIsSIS3302[ind-1]
+        print "Flag"
+        print self.flagIsSIS3302[ind-1]
 
        
     def DeleteDevice(self,ind):
