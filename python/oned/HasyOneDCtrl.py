@@ -111,7 +111,7 @@ class HasyOneDCtrl(OneDController):
         #if self.debugFlag: print "HasyOneDCtrl.StatOne",self.inst_name,"index",ind
         if  self.device_available[ind-1] == 1: 
             sta = self.proxy[ind-1].command_inout("State")
-            if self.flagIsSIS3302[ind-1]:
+            if self.flagIsSIS3302[ind-1] == True or self.flagIsXIA[ind - 1] == True: # Use this for the mca if they need to be stopped
                 if sta == PyTango.DevState.ON:
                     tup = (sta,"The MCA is ready")
                 elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
@@ -135,8 +135,6 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.LoadOne",self.inst_name,"axis", axis
         idx = axis - 1
         if value > 0:
-            if self.flagIsSIS3302[axis-1] == 1:
-                self.proxy[axis - 1].write_attribute("ExposureTime", value)
             self.integ_time = value
             self.monitor_count = None
         else:
@@ -150,12 +148,9 @@ class HasyOneDCtrl(OneDController):
 
     def PreReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
-        if self.flagIsXIA[ind-1] == 0 and self.flagIsSIS3302[ind-1] == 0:
-            self.proxy[ind-1].command_inout("Stop")
+        self.proxy[ind-1].command_inout("Stop")
+        if self.flagIsXIA[ind-1] == 0:
             self.proxy[ind-1].command_inout("Read")
-        else:
-            if self.proxy[ind-1].state() != PyTango.DevState.ON:
-                self.proxy[ind-1].command_inout("Stop")  
 
     def ReadAll(self):
         if self.debugFlag: print "HasyOneDCtrl.ReadAll",self.inst_name
