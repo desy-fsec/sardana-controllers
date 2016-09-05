@@ -1,11 +1,12 @@
-from sardana import pool
-from sardana.pool import PoolUtil
 from sardana.pool.controller import PseudoMotorController
-import taurus
 import math
 
+
 class BL13EHSampleOAVYController(PseudoMotorController):
-    """ This controller provides the sample OAV Y pseudomotor as a function of centx,centy."""
+    """
+    This controller provides the sample OAV Y pseudomotor as a function of
+    centx,centy.
+    """
 
     pseudo_motor_roles = ('sampleoavy',)
     motor_roles = ('centx','centy','omega')
@@ -21,8 +22,8 @@ class BL13EHSampleOAVYController(PseudoMotorController):
         sampleoavy_init = self.CalcPseudo(1, curr_physicals, [])
 
         omega_rad = (math.pi/180.)*omega_init
-	centx = centx_init - (sampleoavy-sampleoavy_init)*math.cos(omega_rad)
-	centy = centy_init - (sampleoavy-sampleoavy_init)*math.sin(omega_rad)
+        centx = centx_init - (sampleoavy-sampleoavy_init)*math.cos(omega_rad)
+        centy = centy_init - (sampleoavy-sampleoavy_init)*math.sin(omega_rad)
 
         motor_role = self.motor_roles[index - 1]
         if 'centx' == motor_role:
