@@ -107,7 +107,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
 		     	
     def LoadOne(self,ind,value):
-        self.exp_time = value
+        self.proxy.write_attribute("ExposureTime", value)
 	
     def GetExtraAttributePar(self,ind,name):
         if name == "TangoDevice":
