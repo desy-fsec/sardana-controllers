@@ -406,6 +406,14 @@ class BL29SmarActSDCController(MotorController):
             Access: DataAccess.ReadWrite,
             Memorize: Memorized
         },
+        'command': {
+            Type: str,
+            Access: DataAccess.ReadWrite
+        },
+        'EncEncIn': {
+            Type: float,
+            Access: DataAccess.ReadOnly
+        },
     }
 
     SERIAL_NAME, AXIS_POSITION, STEP_PER_UNIT = range(3)
@@ -414,6 +422,7 @@ class BL29SmarActSDCController(MotorController):
         MotorController.__init__(self, inst, props, *args, **kwargs)
         self.axis_param = {}
         self.write_lock = threading.Lock()
+        self.command_answer = ''
 
     def AddDevice(self, axis):
         if axis in self.axis_param.keys():
@@ -445,7 +454,7 @@ class BL29SmarActSDCController(MotorController):
         # check if axis is accessible
         try:
             serial = PyTango.DeviceProxy(
-                self.axis_param[axis][self.SERIAL_NAME])
+                self.axis_param[int(axis)][self.SERIAL_NAME])
             serial.command_inout('DevSerFlush', 2)
             # read version just to check that we can communicate with the SDC
             serial.command_inout('DevSerWriteString', ':GIV')
@@ -461,10 +470,12 @@ class BL29SmarActSDCController(MotorController):
         # move
         try:
             axis_now = self.GetAxisExtraPar(axis, 'axis_position')
+            if axis_now != axis_now:  # if NaN then motor has never been moved
+                axis_now = 0
             axis_target = dial_pos * self.axis_param[axis][self.STEP_PER_UNIT]
             axis_steps = axis_target - axis_now
             # send move command to SmarAct controller
-            cmd = ':MST0,%d,%d,%d' % (axis_steps, self.Voltage, self.Frequency)
+            cmd = ':MST0,%d,%d,%d' % (int(axis_steps), self.Voltage, self.Frequency)
             serial.command_inout('DevSerWriteString', cmd)
             serial.command_inout('DevSerWriteChar', [self.LineFeed])
             rc = serial.command_inout('DevSerReadLine')
@@ -510,6 +521,22 @@ class BL29SmarActSDCController(MotorController):
             value = self.axis_param[axis][self.SERIAL_NAME]
         elif name.lower() == 'axis_position':
             value = self.axis_param[axis][self.AXIS_POSITION]
+        elif name.lower() == 'command':
+            return self.command_answer
+        elif name.lower() == 'encencin':
+            try:
+                serial = PyTango.DeviceProxy(
+                    self.axis_param[axis][self.SERIAL_NAME])
+                cmd = ':GP0'
+                serial.command_inout('DevSerWriteString', cmd)
+                serial.command_inout('DevSerWriteChar', [self.LineFeed])
+                answer = serial.command_inout('DevSerReadLine')
+                self._log.debug('GP0 answer: %s' % str(answer))
+                value = float(answer.strip().split(',')[1])
+            except Exception, e:
+                msg = 'Exception reading axis (%d) encoder' % axis
+                self._log.error('%s: %s' % (msg, str(e)))
+                raise Exception(msg)
         else:
             msg = 'Unknown parameter %s' % name
             self._log.error(msg)
@@ -519,6 +546,20 @@ class BL29SmarActSDCController(MotorController):
     def SetAxisExtraPar(self, axis, name, value):
         if name.lower() == 'serial_name':
             self.axis_param[axis][self.SERIAL_NAME] = value
+        elif name.lower() == 'command':
+            try:
+                serial = PyTango.DeviceProxy(
+                    self.axis_param[int(axis)][self.SERIAL_NAME])
+                serial.command_inout('DevSerFlush', 2)
+                serial.command_inout('DevSerWriteString', value)
+                serial.command_inout('DevSerWriteChar', [self.LineFeed])
+                self.command_answer = serial.command_inout('DevSerReadLine')
+                if len(self.command_answer) == 0:
+                    raise Exception('message got from hardware is empty')
+            except Exception, e:
+                msg = 'Error excuting command. Details:\n\n'
+                self._log.error('%s %s' % (msg, str(e)))
+                raise Exception(msg)
         elif name.lower() == 'axis_position':
             self.axis_param[axis][self.AXIS_POSITION] = value
             # dirty hack to memorize last written position.
