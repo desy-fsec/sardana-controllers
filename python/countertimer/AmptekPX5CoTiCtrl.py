@@ -49,6 +49,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self.sta = State.On
         self.acq = False
         self.timeout = 0 #not need for now
+        self.t1 = time.time()
 
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("SetAxisExtraPar() entering...")
