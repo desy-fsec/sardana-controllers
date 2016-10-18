@@ -50,6 +50,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self.acq = False
         self.timeout = 0 #not need for now
         self.t1 = time.time()
+        self.sca_values = [0] * 16
 
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("SetAxisExtraPar() entering...")
@@ -142,7 +143,6 @@ class AmptekPX5CounterTimerController(CounterTimerController):
     def PreStartAllCT(self):
         self.amptekPX5.ClearSpectrum()
         self.amptekPX5.LatchGetClearSCA()
-        self.sca_values = [0] * 16
 
     def PreStartOneCT(self, ind):
         return True
