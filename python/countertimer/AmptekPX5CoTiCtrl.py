@@ -51,7 +51,8 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self.timeout = 0 #not need for now
         self.t1 = time.time()
         self.sca_values = [0] * 16
-
+        self.error_amptek = 0
+        
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("SetAxisExtraPar() entering...")
         if axis == 1:
@@ -136,14 +137,24 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         if ind == 1:
             val = self.acqTime
         else:
-            val = self.sca_values[ind-2]
+            try:
+                if self.error_amptek:
+                    val = -1
+                else:
+                    val = self.sca_values[ind-2]
+            except:
+                val = -1
+        self.error_amptek = 0
         self._log.debug("ReadOne(%d): returning %d" % (ind,val))
         return val
 
     def PreStartAllCT(self):
-        self.amptekPX5.ClearSpectrum()
-        self.amptekPX5.LatchGetClearSCA()
-
+        try:
+            self.amptekPX5.ClearSpectrum()
+            self.amptekPX5.LatchGetClearSCA()
+        except:
+            self.error_amptek = 1
+            
     def PreStartOneCT(self, ind):
         return True
 
@@ -152,13 +163,19 @@ class AmptekPX5CounterTimerController(CounterTimerController):
 
     def StartAllCT(self):
         self._log.debug("StartAllCT(): entering...")
-        self.amptekPX5.Enable()
+        try:
+            self.amptekPX5.Enable()
+        except:
+            self.error_amptek = 1
         self.acq = True
 
     def LoadOne(self, ind, value):
         self._log.debug("LoadOne(): entering...")
         self.acqTime = value
-        self.amptekPX5.SetTextConfiguration(['PRET=%f'%value])
+        try:
+            self.amptekPX5.SetTextConfiguration(['PRET=%f'%value])
+        except:
+            self.error_amptek = 1
 
     def AbortOne(self, ind):
         self.amptekPX5.Disable()
