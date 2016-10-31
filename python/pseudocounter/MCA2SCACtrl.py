@@ -54,5 +54,5 @@ class MCA2SCACtrl(PseudoCounterController):
     def calc(self,index,counter_values):
         sum = 0
         for i in range(self.counterExtraAttributes[1]['RoI1'],self.counterExtraAttributes[1]['RoI2']):
-            sum = sum + counter_values[0][0][i]
+            sum = sum + counter_values[0][i]
         return float(sum)
