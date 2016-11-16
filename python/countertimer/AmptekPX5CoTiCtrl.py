@@ -54,7 +54,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self.error_amptek = 0
         
     def GetAxisExtraPar(self, axis, name):
-        self._log.debug("SetAxisExtraPar() entering...")
+        #self._log.debug("SetAxisExtraPar() entering...")
         if axis == 1:
             raise Exception("Axis parameters are not allowed for axis 1.")
         name = name.lower()
@@ -69,7 +69,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         return v
 
     def SetAxisExtraPar(self, axis, name, value):
-        self._log.debug("SetAxisExtraPar() entering...")
+        #self._log.debug("SetAxisExtraPar() entering...")
         if axis == 1:
             raise Exception("Axis parameters are not allowed for axis 1.")
         name = name.lower()
@@ -80,7 +80,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             scah = long(ret[1].split("=")[1])
             conf = ["SCAI=%d"%scai, "SCAL=%d"%value, "SCAH=%d"%scah]
             for c in conf:
-                self._log.debug("conf: %s" % repr(c))
+                #self._log.debug("conf: %s" % repr(c))
                 self.amptekPX5.SetTextConfiguration([c])
         elif name == "highthreshold":
             conf = ["SCAI=%d"%scai, "SCAL"]
@@ -88,7 +88,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             scal = long(ret[1].split("=")[1])
             conf = ["SCAI=%d"%scai, "SCAL=%d"%scal, "SCAH=%d"%value]
             for c in conf:
-                self._log.debug("conf: %s" % repr(c))
+                #self._log.debug("conf: %s" % repr(c))
                 self.amptekPX5.SetTextConfiguration([c])
 
     def AddDevice(self,ind):
@@ -104,7 +104,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         pass
 
     def StateAll(self):
-        self._log.debug("StateAll(): entering...")
+        #self._log.debug("StateAll(): entering...")
         #to fixed the callback error
         dt = time.time() - self.t1
 
@@ -112,7 +112,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             return
         sta = self.amptekPX5.State()
         self.status = self.amptekPX5.Status()
-        self._log.info("AmptekPX5CounterTimerController StateOne - state = %s" % repr(sta))
+        #self._log.info("AmptekPX5CounterTimerController StateOne - state = %s" % repr(sta))
         if self.sta == State.Moving and sta != State.Moving:
             self.acq = False
             self.sca_values = self.amptekPX5.LatchGetClearSCA()
@@ -133,7 +133,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         pass
 
     def ReadOne(self, ind):
-        self._log.debug("ReadOne(%d): entering..." % ind)
+        #self._log.debug("ReadOne(%d): entering..." % ind)
         if ind == 1:
             val = self.acqTime
         else:
@@ -145,7 +145,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             except:
                 val = -1
         self.error_amptek = 0
-        self._log.debug("ReadOne(%d): returning %d" % (ind,val))
+        #self._log.debug("ReadOne(%d): returning %d" % (ind,val))
         return val
 
     def PreStartAllCT(self):
@@ -162,7 +162,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         pass
 
     def StartAllCT(self):
-        self._log.debug("StartAllCT(): entering...")
+        #self._log.debug("StartAllCT(): entering...")
         try:
             self.amptekPX5.Enable()
         except:
@@ -170,7 +170,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self.acq = True
 
     def LoadOne(self, ind, value):
-        self._log.debug("LoadOne(): entering...")
+        #self._log.debug("LoadOne(): entering...")
         self.acqTime = value
         try:
             self.amptekPX5.SetTextConfiguration(['PRET=%f'%value])

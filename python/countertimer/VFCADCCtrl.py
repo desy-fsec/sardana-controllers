@@ -141,6 +141,9 @@ class VFCADCCtrl(CounterTimerController):
 		     	
     def LoadOne(self,ind,value):
 		pass
+            
+    def AbortOne(self,ind):
+		pass
 	
     def GetExtraAttributePar(self,ind,name):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
