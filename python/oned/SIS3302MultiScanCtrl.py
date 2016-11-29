@@ -59,7 +59,7 @@ class SIS3302MultiScanCtrl(OneDController):
             if sta == PyTango.DevState.ON:
                 tup = (sta, "The MCA is ready")
             elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
-                tup = (PyTango.DevState.ON,"Device is acquiring data")
+                tup = (PyTango.DevState.MOVING,"Device is acquiring data")
             else:
                 tup = (sta, "")
         return tup
@@ -73,14 +73,15 @@ class SIS3302MultiScanCtrl(OneDController):
         else:
             self.integ_time = None
             self.monitor_count = -value
-        
+        nb_scans = 11.5*value-1
+        self.proxy.MCAMultiScanNofScansPreset = int(nb_scans)
 
     def PreReadAll(self):
         #print "SIS3302MultiScanCtrl.PreReadAll",self.inst_name
         if self.started == True:
             if self.proxy.MCAScanNofHistogramsPreset == 0:
                 self.proxy.command_inout("MultiScanDisable")
-            self.proxy.command_inout("Read")
+                time.sleep(0.2)
             self.started = False
 
     def PreReadOne(self,ind):
@@ -88,8 +89,6 @@ class SIS3302MultiScanCtrl(OneDController):
         pass
 
     def ReadAll(self):
-        while(self.proxy.command_inout("State") != PyTango.DevState.ON):
-            sleep(0.1)
         self.counts = self.proxy.read_attribute("Count").value
 
     def ReadOne(self,ind):

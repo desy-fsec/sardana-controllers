@@ -24,7 +24,6 @@ class SIS3302Ctrl(OneDController):
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
-        print "Teresa: __init__"
         self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
         if self.TangoHost != None:
@@ -42,7 +41,6 @@ class SIS3302Ctrl(OneDController):
         self.started = False
         
     def AddDevice(self,ind):
-        print "Teresa: AddDevice"
         OneDController.AddDevice(self,ind)
 
        
@@ -58,7 +56,7 @@ class SIS3302Ctrl(OneDController):
         return tup
     
     def LoadOne(self, axis, value):
-        print "SIS3302Ctrl.LoadOne",self.inst_name,"axis", axis
+        #print "SIS3302Ctrl.LoadOne",self.inst_name,"axis", axis
         idx = axis - 1
         if value > 0:
             self.integ_time = value
@@ -69,35 +67,30 @@ class SIS3302Ctrl(OneDController):
         
 
     def PreReadAll(self):
-        print "SIS3302Ctrl.PreReadAll",self.inst_name
+        #print "SIS3302Ctrl.PreReadAll",self.inst_name
         if self.started == True:
             print "SIS3302Ctrl.PreReadAll 1"
             self.proxy.command_inout("Stop")
-            print "SIS3302Ctrl.PreReadAll 2"
-            self.proxy.command_inout("Read")
-            print "SIS3302Ctrl.PreReadAll 3"
             self.started = False
-        print "SIS3302Ctrl.PreReadAll finish"
+            time.sleep(0.2)
+        pass
+        #print "SIS3302Ctrl.PreReadAll finish"
 
     def PreReadOne(self,ind):
-        print "SIS3302Ctrl.PreReadOne",self.inst_name,"index",ind
+        #print "SIS3302Ctrl.PreReadOne",self.inst_name,"index",ind
         pass
 
     def ReadAll(self):
-        print "Teresa: ReadAll"
-        while(self.proxy.command_inout("State") != PyTango.DevState.ON):
-            sleep(0.1)
-        print "Teresa: ReadAll"
+        #while(self.proxy.command_inout("State") != PyTango.DevState.ON):
+        #    sleep(0.1)
         self.counts = self.proxy.read_attribute("Count").value
 
     def ReadOne(self,ind):
-        print "SIS3302Ctrl.ReadOne",self.inst_name,"index",ind
+        #print "SIS3302Ctrl.ReadOne",self.inst_name,"index",ind
         if ind == 1:            
             data = self.proxy.Data
         else:
             data = [self.counts[ind - 2]]
-        print type(data)
-        print data
         return data
 
     def PreStartAll(self):
@@ -106,12 +99,15 @@ class SIS3302Ctrl(OneDController):
     def PreStartOne(self,ind, value):
         return True
         
-    def StartOne(self,ind, value):
+    def StartAll(self):
         if self.started == False:
             self.proxy.command_inout("Stop")
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
             self.started = True
+        
+    def StartOne(self,ind, value):
+        pass
             
     def AbortOne(self,ind):
         #print "SIS3302Ctrl.AbortOne",self.inst_name,"index",ind
