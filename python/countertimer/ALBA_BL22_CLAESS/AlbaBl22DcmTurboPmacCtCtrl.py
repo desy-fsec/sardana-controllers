@@ -222,32 +222,34 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         maxCounts = math.pow(2,23)
         minCounts = -maxCounts
         #correcting the problem with the negative value of the encoder
-        p1 = rawCounts[0]
-        #p2 = rawCounts[1]
-        p2 = rawCounts[2]
-        pEnd = rawCounts[len(rawCounts) - 1]
-        
+        idx_end = len(rawCounts) - 1
+        idx_p1 = (idx_end/2) - 2
+        idx_p2 = (idx_end/2) + 2
+        p1 = rawCounts[idx_p1]
+        p2 = rawCounts[idx_p2]
+        pStart = rawCounts[0]
+        pEnd = rawCounts[idx_end]
+
         overFlow = False
 
-        if (p1 < p2) and (pEnd < p2):
+        if (p1 < p2) and (pEnd < pStart):
             #overFlow Positive
             overFlow = True
-        elif (p1 > p2) and (pEnd > p2):
+        elif (p1 > p2) and (pEnd > pStart):
             #overFlow Negative
             overFlow = True
         
         correctedRawCounts = []
         for count in rawCounts:
            if overFlow and count < 0:
-              print "enter negative\n"
               ccount = maxCounts + abs(-8388606.5 - count)
               correctedRawCounts.append(ccount)
            else:
               correctedRawCounts.append(count)
        
         degrees = [translate(count) for count in correctedRawCounts]
-        #degrees = [translate(count) for count in rawCounts]
-        print ("degrees %s\n, offset %s\n, bragPosCounts %s encRegCounts %s, braggMotorOffsetEncCounts %s\n", str(degrees), str(offset), str(braggPosCounts), str(encRegCounts), str(braggMotorOffsetEncCounts)) 
-        #degrees = rawCounts
+        
+        
+        
         return degrees
     
