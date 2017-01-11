@@ -167,3 +167,29 @@ class Energy(object):
                 raise Exception(msg)
 
         return possible, sm_target, gr_target
+
+    @staticmethod
+    def lib2user(sm_lib, sm_user_offset=0):
+        """sm_selected definition from user point of view is different than
+        the one used by this library. The former uses SM1=0 and SM2=1 (with
+        possibly a user offset to allow idx to start at value !=0), whilst
+        the library assumes SM2=0 AND SM1=1"""
+        if sm_lib not in Energy.SM_VALID:
+            msg = 'Spherical mirrors are not correctly set'
+            raise Exception(msg)
+        sm_user = (sm_lib + 1) % 2
+        sm_selected = sm_user + sm_user_offset
+        return sm_selected
+
+    @staticmethod
+    def user2lib(sm_user, sm_user_offset=0):
+        """sm_selected definition from user point of view is different than
+        the one used by this library. The former uses SM1=0 and SM2=1 (with
+        possible a user offset to allow idx to start at value !=0), whilst
+        the library assumes SM2=0 AND SM1=1"""
+        sm_lib = sm_user - sm_user_offset
+        if sm_lib not in Energy.SM_VALID:
+            msg = 'Spherical mirrors are not correctly set'
+            raise Exception(msg)
+        sm_selected = (sm_lib + 1) % 2
+        return sm_selected
