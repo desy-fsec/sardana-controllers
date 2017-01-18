@@ -1,12 +1,12 @@
 from sardana import State, DataAccess
 from sardana.pool.controller import OneDController, Description, Access, \
-    Type, Memorize, NotMemorized
+    Type, Memorize, NotMemorized, MaxDimSize
 from taurus import Device, Attribute
 import PyTango
 import Queue
 import numpy as np
-from crystal import get_hkla
 from math import sqrt, cos, sin, pi
+import time
 
 DEV_STATE_UNKNOWN = PyTango.DevState.UNKNOWN
 DEV_STATE_FAULT = PyTango.DevState.FAULT
@@ -159,35 +159,42 @@ class MythenController(OneDController):
             Description: 'Read/Write settings mode.',
             Access: DataAccess.ReadWrite,
             Memorize: NotMemorized},
-        'ScaleA': {
-            Type: float,
-            Description: 'A constant of experimental energy scale',
-            Access: DataAccess.ReadWrite,
-            Memorize: Memorize},
-        'ScaleB': {
-            Type: float,
-            Description: 'B constant of experimental energy scale',
-            Access: DataAccess.ReadWrite,
-            Memorize: Memorize},
-        'Crystal': {
-            Type: str,
-            Description: 'crystal used e.g: Si111',
-            Access: DataAccess.ReadWrite,
-            Memorize: Memorize},
-        'CrystalN': {
-            Type: int,
-            Description: 'order of the crystal used on the energy scale',
-            Access: DataAccess.ReadWrite,
-            Memorize: Memorize},
-        'CentralPixel': {
-            Type: int,
-            Description: 'central pixel used on the theoretical energy scale',
-            Access: DataAccess.ReadWrite,
-            Memorize: Memorize},
-
 
         }
-    
+
+    axis_attributes ={
+        "NrOfTriggers":
+                    {Type : long,
+                     Description : 'Nr of triggers',
+                     Access : DataAccess.ReadWrite,
+                     Memorize : NotMemorized
+                    },
+
+        "SamplingFrequency":
+           {Type : float,
+            Description : 'Sampling frequency',
+            Access : DataAccess.ReadWrite,
+            Memorize : NotMemorized},
+        "AcquisitionTime":
+           {Type : float,
+            Description : 'Acquisition time per trigger',
+            Access : DataAccess.ReadWrite,
+            Memorize : NotMemorized
+           },
+        "TriggerMode":
+           {Type : str,
+            Description : 'Trigger mode: soft or gate',
+            Access : DataAccess.ReadWrite,
+            Memorize : NotMemorized
+           },
+        "Data":
+           {Type: [[float]],
+            Description : 'Data buffer',
+            Access : DataAccess.ReadOnly,
+            MaxDimSize : (1280, 1000000)
+           }
+    }
+
     def __init__(self, inst, props, *args, **kwargs):
         super(MythenController, self).__init__(inst, props, *args, **kwargs)
         self.flg_read_hw = False
@@ -195,6 +202,8 @@ class MythenController(OneDController):
         self.axes = {}
         self.mythen = Device(self.MythenDCS)
         self.raw_queue = Queue.Queue()
+        self.ext_trigger = False
+        self.nr_trigger = None
         self.raw_listener = ListenerChangeEvent(self.raw_queue, self.mythen,
                                                 self._log)
         self.listener_id = self.mythen.subscribe_event('RawData',
@@ -204,12 +213,6 @@ class MythenController(OneDController):
         for i in range(1, self.MaxDevice+1):
             self.axes[i] = {'Active': False, 'Data': None}
        
-        #TODO: Analize if it has problem with the memorize values
-        self.scale_a = -0.07
-        self.scale_b = 6427.0
-        self.crystal = 'Si111'
-        self.crystaln = 3.0
-        self.p0 = 700
     @debug
     def AddDevice(self, axis):
         if axis > self.MaxDevice:
@@ -225,6 +228,12 @@ class MythenController(OneDController):
     def StateAll(self):
         mythen_state = self.mythen.state()
         self.status = self.mythen.status()
+
+        if self.ext_trigger:
+            frames_readies = self.mythen.read_attribute('FramesReadies').value
+            if frames_readies < self.nr_trigger:
+                self.state = State.Running
+                return
 
         if mythen_state == DEV_STATE_RUNNING:
             self.state = State.Running
@@ -288,6 +297,80 @@ class MythenController(OneDController):
 
 
 ################################################################################
+#                Axis Extra Attribute Methods
+################################################################################
+    @debug
+    def GetAxisExtraPar(self, axis, name):
+        self._log.debug("GetAxisExtraPar(%d, %s): Entering...", axis, name)
+        name = name.lower()
+        if name == "samplingfrequency":
+            return float("nan")
+        if name == "triggermode":
+            trigger = self.mythen.read_attribute('TriggerMode').value
+            if trigger:
+                return "gate"
+            else:
+                return "soft"
+        if name == "nroftriggers":
+            nrOfTriggers = self.mythen.read_attribute('Frames').value
+            return long(nrOfTriggers)
+        if name == "acquisitiontime":
+            acqTime = self.mythen.read_attribute('IntTime').value
+            return acqTime
+        if name.lower() == "data":
+            rep = 0
+            while True:
+                self._log.debug('Waiting to extract data on mythen '
+                                    'Repetition: %r' % rep)
+                rep += 1
+                time.sleep(0.01)
+                frames = self.mythen.read_attribute('FramesReadies').value
+                if frames >= self.nr_trigger:
+                    break
+
+            self.mythen.set_timeout_millis(30000)
+            value = self.mythen.read_attribute('ImageData').value
+            self.mythen.set_timeout_millis(3000)
+            return value
+
+    @debug
+    def SetAxisExtraPar(self, axis, name, value):
+        name = name.lower()
+        #attributes used for continuous acquisition
+        if name in ["samplingfrequency", "triggermode", "nroftriggers",
+                      "acquisitiontime"]:
+            # stopping Tango device, otherwise configuration won't be
+            # possible
+            if axis != 1:
+                raise ValueError('The continuous scan is supported only by '
+                                 'the first channel (raw data)')
+            try:
+                state = self.mythen.state()
+                if state in [PyTango.DevState.RUNNING, PyTango.DevState.ON]:
+                    self.mythen.stop()
+            except PyTango.DevFailed, e:
+                raise e
+            if name == "samplingfrequency":
+                pass
+            elif name == "triggermode":
+                if value == "soft":
+                    self.ext_trigger = False
+                if value == "gate":
+                    self.ext_trigger = True
+
+                self.mythen.write_attribute('TriggerMode', self.ext_trigger)
+                self.mythen.write_attribute('ContinuousTrigger',
+                                            self.ext_trigger)
+
+            elif name == "nroftriggers":
+                self.nr_trigger = value
+                self.mythen.write_attribute('Frames', value)
+            elif name == "acquisitiontime":
+                self.mythen.write_attribute('IntTime', value)
+
+
+
+################################################################################
 #                Controller Extra Attribute Methods
 ################################################################################
     @debug
@@ -295,17 +378,7 @@ class MythenController(OneDController):
         param_list = self.mythen.get_attribute_list()
         param_list = map(str.lower, param_list)
         param = parameter.lower()
-        if param == 'scalea':
-            self.scale_a = value
-        elif param == 'scaleb':
-            self.scale_b = value
-        elif param == 'crystaln':
-            self.n = value
-        elif param == 'crystal':
-            self.crystal = value
-        elif param == 'centralpixel':
-            self.p0 = value
-        elif param in param_list:
+        if param in param_list:
             self.mythen.write_attribute(parameter, value)
         else:
             super(MythenController, self).SetCtrlPar(parameter, value)
@@ -315,22 +388,33 @@ class MythenController(OneDController):
         param_list = self.mythen.get_attribute_list()
         param_list = map(str.lower, param_list)
         param = parameter.lower()
-        if param == 'scalea':
-            value = self.scale_a
-        elif param == 'scaleb':
-            value = self.scale_b
-        elif param == 'crystaln':
-            value = self.n
-        elif param == 'crystal':
-            value = self.crystal
-        elif param == 'centralpixel':
-            value = self.p0
-        elif param in param_list:
+        if param in param_list:
             value = self.mythen.read_attribute(parameter).value
         else:
             value = super(MythenController, self).GetCtrlPar(parameter)
         return value
 
+    def SendToCtrl(self, cmd):
+        cmd = cmd.lower()
+        words = cmd.split(" ")
+        ret = "Unknown command"
+        if len(words) == 2:
+            action = words[0]
+            axis = int(words[1])
+            if action == "pre-start":
+                self._log.debug("SendToCtrl(%s): pre-starting channel %d", cmd, axis)
+                ret = "Channel %d appended to contAcqChannels" % axis
+            elif action == "start":
+                self._log.debug("SendToCtrl(%s): starting channel %d", cmd, axis)
+                self.mythen.start()
+                ret = "Acquisition started"
+            elif action == "pre-stop":
+                self._log.debug("SendToCtrl(%s): pre-stopping channel %d", cmd, axis)
+                ret = "Channel %d appended to contAcqChannels" % axis
+            elif action == "stop":
+                self.mythen.stop()
+                ret = "Acquisition stopped"
+        return ret
 
 ################################################################################
 #                Controller Post Processing Methods
@@ -339,7 +423,7 @@ class MythenController(OneDController):
     @debug
     def postProcessing(self):
         self._calcNorm()
-        self._calcEscale()
+        #self._calcEscale()
         #self._calcTscale()
 
     @debug
@@ -364,35 +448,33 @@ class MythenController(OneDController):
         self.axes[CHN_ENERGY_EXP]['Data'] = e_scale
 
 
-    @debug
-    def _calcTscale(self):
-        """
-        Method to calculate the theoretical energy scale.
-        th: Clear bragg angle
-        p: pixel
-        p0: central pixel
-        n: crystal order
-        a: Lattice constant by materials
-        hkl: Miller values
-        R: 0.5 m Rowland circle
-        hc: 1.23984193e-3 eV/m
-        C(hkl) = (hc/2a)*n*sqrt(h^2 + k^2 + l^2)
-        A = (C(hkl)/4R) * cos(th)/sin^3(th)
-        B = C(hkl)/sin(th)
-        E(th, p) = A(p0-p) + B
-        :return:
-        """
-        R = 0.5
-        hc = 1.23984193e-3
-        pixels = np.array(range(1, 1281))
-        h, k, l, a = get_hkla(self.crystal)
-        C = ((hc/(2*a)) * self.n * sqrt(h**2 + k**2 + l**2))/(2*pi)
-        print 'holaaaaaaaaaaaa' +'\n'*4
-        cbragg = Device(self.ClearBragg)
-        th = cbragg.read_attribute('Position').value
-        print 'holaaaaaaaaaaaa!!!!!!!!!!!!!1' +'\n'*4
-        A = (C/(4*R)) * (cos(th)/(sin(th)**3))
-        B = C/sin(th)
-        t_scale = A*(self.p0 - pixels) + B
-        self.axes[CHN_ENERGY_THEO]['Data'] = t_scale
+    # @debug
+    # def _calcTscale(self):
+    #     """
+    #     Method to calculate the theoretical energy scale.
+    #     th: Clear bragg angle
+    #     p: pixel
+    #     p0: central pixel
+    #     n: crystal order
+    #     a: Lattice constant by materials
+    #     hkl: Miller values
+    #     R: 0.5 m Rowland circle
+    #     hc: 1.23984193e-3 eV/m
+    #     C(hkl) = (hc/2a)*n*sqrt(h^2 + k^2 + l^2)
+    #     A = (C(hkl)/4R) * cos(th)/sin^3(th)
+    #     B = C(hkl)/sin(th)
+    #     E(th, p) = A(p0-p) + B
+    #     :return:
+    #     """
+    #     R = 0.5
+    #     hc = 1.23984193e-3
+    #     pixels = np.array(range(1, 1281))
+    #     h, k, l, a = get_hkla(self.crystal)
+    #     C = ((hc/(2*a)) * self.n * sqrt(h**2 + k**2 + l**2))/(2*pi)
+    #     cbragg = Device(self.ClearBragg)
+    #     th = cbragg.read_attribute('Position').value
+    #     A = (C/(4*R)) * (cos(th)/(sin(th)**3))
+    #     B = C/sin(th)
+    #     t_scale = A*(self.p0 - pixels) + B
+    #     self.axes[CHN_ENERGY_THEO]['Data'] = t_scale
 
