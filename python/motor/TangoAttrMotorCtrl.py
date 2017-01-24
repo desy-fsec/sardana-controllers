@@ -24,21 +24,29 @@ MOVE_TIMEOUT = 'MoveTimeout'
 
 class TangoAttrMotorController(MotorController):
     """This controller offers as many motors as the user wants.
-    Each channel has three _MUST_HAVE_ extra attributes:
-    +) TangoAttribute - Tango attribute to retrieve the value of the counter
-    +) FormulaRead - Formula evaluate using 'VALUE' as the tango read attribute value
-    +) FormulaWrite - Formula to evaluate using 'VALUE' as the motor position
-    As examples you could have:
-    ch1.TangoExtraAttribute = 'my/tango/device/attribute1'
-    ch1.FormulaRead = '-1 * VALUE'
-    ch2.FormulaWrite = '-1 * VALUE'
-    ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
-    ch2.FormulaRead = 'math.sqrt(VALUE)'
-    ch2.FormulaWrite = 'math.pow(VALUE,2)'
 
-    +) TangoAttributeEncoder - Used in case you have another attribute as encoder
+    Each motor has three _MUST_HAVE_ extra attributes:
+    +) TangoAttribute - Tango attribute used to simulate the motor's position
+        (moving the motor writes this attribute)
+    +) FormulaRead - Formula evaluate using 'VALUE' as the Tango read attribute
+        value
+    +) FormulaWrite - Formula to evaluate using 'VALUE' as the motor position
+
+    As examples you could have:
+        ch1.TangoAttribute = 'my/tango/device/attribute1'
+        ch1.FormulaRead = '-1 * VALUE'
+        ch2.FormulaWrite = '-1 * VALUE'
+        ch2.TangoAttribute = 'my/tango/device/attribute2'
+        ch2.FormulaRead = 'math.sqrt(VALUE)'
+        ch2.FormulaWrite = 'math.pow(VALUE,2)'
+
+    Each motor could use the following optional extra attributes:
+    +) TangoAttributeEncoder - Used in case you want to use another attribute
+        (different than the TangoAttribute) when the motor's position is to be
+        read.
     +) TangoAttributeEncoderThreshold - Threshold used for the 'MOVING' state.
-    +) TangoAttributeEncoderSpeed - Speed in units/second of the encoder so 'MOVING' state is computed (sec).
+    +) TangoAttributeEncoderSpeed - Speed in units/second of the encoder so
+        'MOVING' state is computed (sec).
     """
 
     gender = ""
@@ -50,25 +58,43 @@ class TangoAttrMotorController(MotorController):
 
     MaxDevice = 1024
 
-    axis_attributes = {TANGO_ATTR:
-                       {Type: str,
-                           Description: 'The first Tango Attribute to read (e.g. my/tango/dev/attr)', Access: DataAccess.ReadWrite},
-                       FORMULA_READ:
-                       {Type: str,
-                           Description: 'The Formula to get the desired position from attribute value.\ne.g. "math.sqrt(VALUE)"', Access: DataAccess.ReadWrite},
-                       FORMULA_WRITE:
-                       {Type: str,
-                           Description: 'The Formula to set the desired value from motor position.\ne.g. "math.pow(VALUE,2)"', Access: DataAccess.ReadWrite},
-                       TANGO_ATTR_ENC:
-                       {Type: str, Description: 'The Tango Attribute used as encoder"',
-                           Access: DataAccess.ReadWrite},
-                       TANGO_ATTR_ENC_THRESHOLD:
-                       {Type: float, Description: 'Maximum difference for considering the motor stopped"',
-                           Access: DataAccess.ReadWrite},
-                       TANGO_ATTR_ENC_SPEED:
-                       {Type: float, Description: 'Units per second used to wait encoder value within threshold after a movement."',
-                           Access: DataAccess.ReadWrite}
-                       }
+    axis_attributes = {
+        TANGO_ATTR: {
+            Type: str,
+            Description: 'The first Tango Attribute to read'\
+                ' (e.g. my/tango/dev/attr)',
+            Access: DataAccess.ReadWrite
+        },
+        FORMULA_READ: {
+            Type: str,
+            Description: 'The Formula to get the desired position from'\
+                ' attribute value.\ne.g. "math.sqrt(VALUE)"',
+            Access: DataAccess.ReadWrite
+        },
+        FORMULA_WRITE: {
+            Type: str,
+            Description: 'The Formula to set the desired value from motor'\
+                ' position.\ne.g. "math.pow(VALUE,2)"',
+            Access: DataAccess.ReadWrite
+        },
+        TANGO_ATTR_ENC: {
+            Type: str,
+            Description: 'The Tango Attribute used as encoder"',
+            Access: DataAccess.ReadWrite
+        },
+        TANGO_ATTR_ENC_THRESHOLD: {
+            Type: float,
+            Description: 'Maximum difference for considering the motor'\
+                ' stopped"',
+            Access: DataAccess.ReadWrite
+        },
+        TANGO_ATTR_ENC_SPEED: {
+            Type: float,
+            Description: 'Units per second used to wait encoder value within'\
+                ' threshold after a movement."',
+            Access: DataAccess.ReadWrite
+        }
+    }
 
     def __init__(self, inst, props, *args, **kwargs):
         MotorController.__init__(self, inst, props, *args, **kwargs)
@@ -118,8 +144,10 @@ class TangoAttrMotorController(MotorController):
                     state = State.Moving
                 else:
                     state = State.Alarm
-                    status = 'Motor did not reach the desired position. %f not in [%f,%f]' % (
-                        current_pos, move_to - enc_threshold, move_to + enc_threshold)
+                    status = ('Motor did not reach the desired position. %f not'
+                              ' in [%f,%f]' % (current_pos,
+                                               move_to - enc_threshold,
+                                               move_to + enc_threshold))
 
             # SHOULD DEAL ALSO ABOUT LIMITS
             switch_state = 0
