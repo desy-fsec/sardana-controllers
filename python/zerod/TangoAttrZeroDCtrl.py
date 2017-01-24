@@ -16,19 +16,25 @@ INDEX_READ_ALL = 'Index_read_all'
 
 class ReadTangoAttributes():
     """ Generic class that has as many devices as the user wants.
-    Each device has a tango attribute and a formula and the 'hardware' tango calls
-    are optimized in the sense that only one call per tango device is issued.
+    Each device has a Tango attribute and a formula and the 'hardware' Tango
+    calls are optimized in the sense that only one call per Tango device is
+    issued.
     """
-    axis_attributes = {TANGO_ATTR:
-                        {Type : str
-                         ,Description : 'The first Tango Attribute to read (e.g. my/tango/dev/attr)'
-                         ,Access : DataAccess.ReadWrite},
-                       FORMULA:
-                        {Type : str
-                         ,Description : 'The Formula to get the desired value.\ne.g. "math.sqrt(VALUE)"'
-                         ,Access : DataAccess.ReadWrite}
-                      }
-    
+    axis_attributes = {
+        TANGO_ATTR: {
+            Type: str,
+            Description: 'The first Tango Attribute to read'\
+                ' (e.g. my/tango/dev/attr)',
+            Access: DataAccess.ReadWrite
+        },
+        FORMULA:{
+            Type: str,
+            Description: 'The Formula to get the desired value.\n'\
+                ' e.g. "math.sqrt(VALUE)"',
+            Access: DataAccess.ReadWrite
+        }
+    }
+
     def __init__(self):
         self.devsExtraAttributes = {}
         self.axis_by_tango_attribute = {}
@@ -48,7 +54,6 @@ class ReadTangoAttributes():
 
     def state_one(self, axis):
         return (State.On, 'Always ON, just reading external Tango Attribute')
-
 
     def pre_read_all(self):
         self.devices_to_read = {}
@@ -70,12 +75,13 @@ class ReadTangoAttributes():
                 values = dev_proxy.read_attributes(attributes)
             except PyTango.DevFailed, e:
                 for attr in attributes:
-                    axis = self.axis_by_tango_attribute[dev+'/'+attr]
+                    axis = self.axis_by_tango_attribute[dev + '/' + attr]
                     self.devsExtraAttributes[axis][EVALUATED_VALUE] = e
-            except Exception,e:
-                self._log.error('Exception reading attributes:%s.%s' % (dev,str(attributes)))
+            except Exception, e:
+                self._log.error('Exception reading attributes:%s.%s' %
+                                (dev, str(attributes)))
             for attr in attributes:
-                axis = self.axis_by_tango_attribute[dev+'/'+attr]
+                axis = self.axis_by_tango_attribute[dev + '/' + attr]
                 formula = self.devsExtraAttributes[axis][FORMULA]
                 index = attributes.index(attr)
                 dev_attr_value = values[index]
@@ -84,8 +90,10 @@ class ReadTangoAttributes():
                     self.devsExtraAttributes[axis][EVALUATED_VALUE] = VALUE
                 else:
                     VALUE = float(dev_attr_value.value)
-                    value = VALUE # just in case 'VALUE' has been written in lowercase...
-                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = eval(formula)
+                    # just in case 'VALUE' has been written in lowercase...
+                    value = VALUE
+                    self.devsExtraAttributes[axis][
+                        EVALUATED_VALUE] = eval(formula)
 
     def read_one(self, axis):
         value = self.devsExtraAttributes[axis][EVALUATED_VALUE]
@@ -96,13 +104,14 @@ class ReadTangoAttributes():
     def get_axis_extra_par(self, axis, name):
         return self.devsExtraAttributes[axis][name]
 
-    def set_axis_extra_par(self,axis, name, value):
-        self._log.debug('set_axis_extra_par [%d] %s = %s' % (axis, name, value))
+    def set_axis_extra_par(self, axis, name, value):
+        self._log.debug(
+            'set_axis_extra_par [%d] %s = %s' % (axis, name, value))
         self.devsExtraAttributes[axis][name] = value
         if name == TANGO_ATTR:
             idx = value.rfind("/")
             dev = value[:idx]
-            attr = value[idx+1:]
+            attr = value[idx + 1:]
             self.devsExtraAttributes[axis][DEVICE] = dev
             self.devsExtraAttributes[axis][ATTRIBUTE] = attr
             self.axis_by_tango_attribute[value] = axis
@@ -110,25 +119,27 @@ class ReadTangoAttributes():
 
 class TangoAttrZeroDController(ZeroDController, ReadTangoAttributes):
     """This controller offers as many channels as the user wants.
+
     Each channel has two _MUST_HAVE_ extra attributes:
-    +) TangoAttribute - Tango attribute to retrieve the value of the counter
-    +) Formula - Formula to evaluate using 'VALUE' as the tango attribute value
+    +) TangoAttribute - Tango attribute to retrieve the value of the 0D
+    +) Formula - Formula to evaluate using 'VALUE' as the Tango attribute value
+
     As examples you could have:
-    ch1.TangoExtraAttribute = 'my/tango/device/attribute1'
-    ch1.Formula = '-1 * VALUE'
-    ch2.TangoExtraAttribute = 'my/tango/device/attribute2'
-    ch2.Formula = 'math.sqrt(VALUE)'
-    ch3.TangoExtraAttribute = 'my_other/tango/device/attribute1'
-    ch3.Formula = 'math.cos(VALUE)'
+        ch1.TangoAttribute = 'my/tango/device/attribute1'
+        ch1.Formula = '-1 * VALUE'
+        ch2.TangoAttribute = 'my/tango/device/attribute2'
+        ch2.Formula = 'math.sqrt(VALUE)'
+        ch3.TangoAttribute = 'my_other/tango/device/attribute1'
+        ch3.Formula = 'math.cos(VALUE)'
     """
-                 
+
     gender = ""
-    model  = ""
+    model = ""
     organization = "CELLS - ALBA"
     image = ""
     icon = ""
     logo = "ALBA_logo.png"
-                     
+
     MaxDevice = 1024
 
     axis_attributes = ReadTangoAttributes.axis_attributes
@@ -148,7 +159,7 @@ class TangoAttrZeroDController(ZeroDController, ReadTangoAttributes):
 
     def PreReadAll(self):
         self.pre_read_all()
-        
+
     def PreReadOne(self, axis):
         self.pre_read_one(axis)
 
@@ -161,8 +172,8 @@ class TangoAttrZeroDController(ZeroDController, ReadTangoAttributes):
     def GetAxisExtraPar(self, axis, name):
         return self.get_axis_extra_par(axis, name)
 
-    def SetAxisExtraPar(self,axis, name, value):
+    def SetAxisExtraPar(self, axis, name, value):
         self.set_axis_extra_par(axis, name, value)
-        
-    def SendToCtrl(self,in_data):
+
+    def SendToCtrl(self, in_data):
         return ""
