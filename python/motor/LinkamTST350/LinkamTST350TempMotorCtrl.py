@@ -2,7 +2,7 @@
 
 #############################################################################
 ##
-## file :    LinkamTST350MotorCtrl.py
+## file :    LinkamTST350TempMotorCtrl.py
 ##
 ## developers : ctbeamlines@cells.es
 ##
@@ -27,31 +27,31 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-
 import PyTango
-import time
 from sardana.pool.controller import MotorController
-
 from sardana import State
 
 
-
-class LinkamTST350MotorCtrl(MotorController):
+class LinkamTST350TempMotorCtrl(MotorController):
     """This class is the Sardana motor controller for the Linkam TST350
-    motor controller device. It is designed to work linked to the TangoDS
-    XXXX.
-    The axes order is:
-    1: X
-    2: Y
-    3: Z
+    temperature controller device.
+
+    Requires the PyLinkam TangoDS.
+
+    The controller contains a single axis corresponding to the temperature.
+    Only the velocity and position concepts has sense for this controller and
+    any other axis parameter (acceleration, deceleration and baserate) has no
+    sense.
+
+    Position units: degrees.
+    Velocity units: degrees/second
     """
 
-    MaxDevice = 3
-
-    AXIS_ATTR = ['PositionX', 'PositionY', 'PositionZ']
+    MaxDevice = 1
+    AXIS_ATTR = 'Temperature'
     class_prop = {'DeviceName':
                       {'Type': 'PyTango.DevString',
-                       'Description': 'Device name of the Smaract MCS DS'}}
+                       'Description': 'Device name of the Linkam TST350'}}
 
     ctrl_extra_attributes = {}
 
@@ -60,8 +60,6 @@ class LinkamTST350MotorCtrl(MotorController):
         try:
             MotorController.__init__(self, inst, props, *args, **kwargs)
             self.device = PyTango.DeviceProxy(self.DeviceName)
-            self.startMultiple = {}
-            self.positionMultiple = {}
             self.attributes = {}
 
         except Exception as e:
@@ -69,7 +67,7 @@ class LinkamTST350MotorCtrl(MotorController):
             raise
 
     def AddDevice(self, axis):
-        self._log.debug('AddDevice entering...')
+        self._log.debug('Adding device...')
         self.attributes[axis] = {'step_per_unit': 1.0,
                                  'base_rate': 0,
                                  'acceleration': 0,
@@ -78,62 +76,37 @@ class LinkamTST350MotorCtrl(MotorController):
     def DeleteDevice(self, axis):
         self.attributes[axis] = None
 
-    def StateAll(self):
-        """
-        Get State of all axes
-        """
-        self.idle = None
+    def StateOne(self, axis):
         try:
-            self.idle = self.device.read_attribute('Idle').value
+            state = self.device.read_attibute('Program').value
         except Exception as e:
-            self._log.error('StateAll error: %s' % e)
+            self._log.error('StateOne error: %s' % e)
             self.state = State.Fault
             self.status = 'DS communication problem'
             return
 
-    def StateOne(self, axis):
-        if self.idle != None:
-            axis_idle = self.idle[axis-1]
-            if axis_idle:
-                self.state = State.On
-                self.status = 'ON'
-            else:
-                self.state = State.Moving
-                self.status = 'Moving'
-
+        if state.lower() == 'cooling' or state.lower() == 'heating':
+            self.state = State.Moving
+        elif state.lower() == 'Stopped':
+            self.state = State.Alarm
+        else:
+            self.state = State.On
+        self.status = state
         return self.state, self.status
 
-    def ReadAll(self):
-        self.positionMultiple = {}
-        for axis in self.attributes.keys():
-            attr = self.AXIS_ATTR[axis-1]
-            value = self.device.read_attribute(attr).value
-            pos = value / self.attributes[axis]['step_per_unit']
-            self.positionMultiple[axis] = pos
-
     def ReadOne(self, axis):
-        return self.positionMultiple[axis]
+        attr = self.AXIS_ATTR
+        value = self.device.read_attibute(attr).value
+        temp = value / self.attributes[axis]['step_per_unit']
+        return temp
 
-    def PreStartAll(self):
-        self.startMultiple = {}
+    def StartOne(self, axis, temperature):
+        temperature = temperature * self.attributes[axis]['step_per_unit']
+        velocity = self.attributes[axis]['velocity']
+        self.device.command_inout('StartRamp', velocity, temperature)
 
-    def StartOne(self, axis, position):
-
-        position = position * self.attributes[axis]['step_per_unit']
-        self.startMultiple[axis] = position
-
-    def StartAll(self):
-        positions_list = []
-
-        for i in range(3):
-            if self.startMultiple.has_key(i+1):
-                pos = self.startMultiple[i+1]
-            else:
-                attr = self.AXIS_ATTR[i]
-                pos = self.device.read_attribute(attr).value
-            positions_list.append(int(pos))
-        print 'RH###: ', positions_list
-        self.device.command_inout('MoveAbsolute', positions_list)
+    def AbortOne(self, axis):
+        self.device.command_inout('HoldTemp')
 
     def SetAxisPar(self, axis, name, value):
         """ Set the standard pool motor parameters.
@@ -143,16 +116,10 @@ class LinkamTST350MotorCtrl(MotorController):
         """
         name = name.lower()
         if name == 'velocity':
-            velocity = int(value * self.attributes[axis]['step_per_unit'])
-            if axis in [0, 1]:
-                cmd = 'SetSpeedXY'
-            else:
-                cmd = 'SetSpeedZ'
-            self.attributes[axis]['velocity'] = velocity
-            self.device.command_inout(cmd, velocity)
+            self.attributes[axis]['velocity'] = float(value)
 
         elif name in ['acceleration', 'deceleration']:
-            self.attributes[axis]['acceleration'] = value
+            self.attributes[axis]['acceleration'] = float(value)
 
         elif name == "step_per_unit":
             self.attributes[axis]["step_per_unit"] = float(value)
@@ -166,11 +133,9 @@ class LinkamTST350MotorCtrl(MotorController):
         @param name of the parameter to get the value
         @return the value of the parameter
         """
-
         name = name.lower()
         if name == 'velocity':
-            value = self.attributes[axis]['velocity'] / self.attributes[
-                axis]['step_per_unit']
+            value = self.attributes[axis]['velocity']
 
         elif name in ['acceleration', 'deceleration']:
             value = self.attributes[axis]['acceleration']
@@ -183,11 +148,4 @@ class LinkamTST350MotorCtrl(MotorController):
 
         return value
 
-    def AbortOne(self, axis):
-        if axis in [0, 1]:
-            cmd = 'StopXY'
-        else:
-            cmd = 'StopZ'
-
-        self.device.command_inout(cmd)
 
