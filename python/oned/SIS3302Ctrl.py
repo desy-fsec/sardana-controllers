@@ -69,12 +69,9 @@ class SIS3302Ctrl(OneDController):
     def PreReadAll(self):
         #print "SIS3302Ctrl.PreReadAll",self.inst_name
         if self.started == True:
-            print "SIS3302Ctrl.PreReadAll 1"
             self.proxy.command_inout("Stop")
             self.started = False
             time.sleep(0.2)
-        pass
-        #print "SIS3302Ctrl.PreReadAll finish"
 
     def PreReadOne(self,ind):
         #print "SIS3302Ctrl.PreReadOne",self.inst_name,"index",ind
