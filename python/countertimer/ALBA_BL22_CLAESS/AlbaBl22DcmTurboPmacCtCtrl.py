@@ -6,6 +6,11 @@ from sardana import State, DataAccess
 from sardana.pool.controller import CounterTimerController, MaxDimSize
 from sardana.pool.controller import Type, Access, Description
 
+PMAC_REGISTERS = {'MotorDir': 4080, 'StartBuffer': 4081, 'RunProgram': 4082,
+                  'NrTriggers': 4083, 'Index': 4084, 'StartPos': 4085,
+                  'PulseWidth': 4086, 'AutoInc': 4087}
+
+
 def __braggCountToDegree(count):
     offset = 2683367
     stepPerUnit = 200000
@@ -16,7 +21,6 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
        It is used to """
     
     MaxDevice = 1
-    #START_INDEX = 4080 change to register 4076
     
     class_prop = {'TurboPmacDeviceName':{'Description' : 'TurboPmac controller Tango device', 'Type' : 'PyTango.DevString'},
                   'EnergyDeviceName':{'Description' : 'Energy pseudomotor Tango device', 'Type' : 'PyTango.DevString'},
@@ -81,7 +85,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             self.energy = None
             self.state = State.Fault
             self.status = msg
-        self.START_INDEX = int(self.pmac.GetPVariable(4076))
+        self.START_INDEX = int(self.pmac.GetPVariable(PMAC_REGISTERS['StartBuffer']))
  
     def AddDevice(self, axis):  
         self._log.debug("AddDevice(%d): Entering...", axis)
@@ -150,7 +154,8 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         if name.lower() == "triggermode":
             return "gate"
         if name.lower() == "nroftriggers":
-            nrOfTriggers = self.pmac.command_inout("GetPVariable", 4078) #- self.START_INDEX
+            nrOfTriggers = self.pmac.command_inout("GetPVariable",
+                                                   PMAC_REGISTERS['NrTriggers'])
             return long(nrOfTriggers)
         if name.lower() == "acquisitiontime":
             return float("nan")
@@ -167,7 +172,8 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             pass
         if name.lower() == "nroftriggers":
             self.nrOfTriggers = value
-            self.pmac.SetPVariable([4078, self.nrOfTriggers]) # self.START_INDEX + self.nrOfTriggers])            
+            self.pmac.SetPVariable([PMAC_REGISTERS['NrTriggers'],
+                                    self.nrOfTriggers])
         if name.lower() == "acquisitiontime":
             pass
 
