@@ -139,7 +139,7 @@ class EnergyCff(PseudoMotorController):
         self.theta = theta
 
         offsetG,offsetM = self.checkOffset()
-        m = ((math.pi/2.0) - theta + offsetM)*1000 #angle*1000 to have it in mrad
+        m = ((math.pi/2.0) - theta - offsetM)*1000 #angle*1000 to have it in mrad
         g = (beta + (math.pi/2.0) + offsetG)*1000
         #self._log.debug('!!!!!!!!calc_all_physical(): returning (%f, %f)' % (m,g))
         return (m,g)
@@ -147,11 +147,20 @@ class EnergyCff(PseudoMotorController):
     def calc_all_pseudo(self, physical_pos, param=None):
         """From the real motor positions, we calculate the pseudomotors positions."""
 
+
+        #print("-----CTGENSOFT---MOTORSMONO: %f, %f" % (physical_pos[0], physical_pos[1]))
+
         #self._log.debug('!!!!!!!!calc_all_pseudo(%s): entering...' % repr(physical_pos))
         offsetG,offsetM = self.checkOffset()
+
+
+        #print("-----CTGENSOFT---OFFSETGMENERGY: %f, %f" % (offsetG, offsetM))
+
+
+
         beta = (physical_pos[1]/1000) - (math.pi/2.0) - offsetG
         self.beta = beta
-        theta = (math.pi/2.0) - (physical_pos[0]/1000) + offsetM
+        theta = (math.pi/2.0) - (physical_pos[0]/1000) - offsetM
         self.theta = theta
         alpha = (2.0*theta) + beta
         self.alpha = alpha
@@ -167,6 +176,8 @@ class EnergyCff(PseudoMotorController):
         
         energy = energy + self.offsetEnergy
 
+
+        #print("--CTGENSOFT---MOTORSMONO: %f, %f, %f, %f, %f, %f, %f, %f:" %(energy, Cff, wavelength, alpha, beta, theta, offsetG, offsetM))
         return (energy,Cff)
 
     def GetExtraAttributePar(self, axis, name):
@@ -234,15 +245,19 @@ class EnergyCff(PseudoMotorController):
 
     def checkOffset(self):
         offsetGrating,offsetMirror = 0.0,0.0
+        print("out")
         if self.iorDP['Value'].value == 0:
             offsetGrating = self.offsetGrxLE/1000.0
+            print("if iorDP==0 %f:"% offsetGrating)
         elif self.iorDP['Value'].value == 2:
             offsetGrating = self.offsetGrxHE/1000.0
-        
+            print("if iorDP==2 %f:"% offsetGrating)
         if self.iorDP2['Value'].value == 0:
             offsetMirror = self.offsetMxLE/1000.0
+            print("if iorDP2==0 %f:"% offsetMirror)
         elif self.iorDP2['Value'].value == 2:
             offsetMirror = self.offsetMxHE/1000.0
+            print("if iorDP2==2 %f:"% offsetMirror)
 
         return offsetGrating, offsetMirror
 
@@ -712,7 +727,7 @@ class EnergyCffFixed(PseudoMotorController):
         self.theta = (self.alpha - self.beta) * 0.5
 
         offsetG,offsetM = self.checkOffset()
-        m = ((math.pi/2.0) - self.theta + offsetM)*1000 #angle*1000 to have it in mrad
+        m = ((math.pi/2.0) - self.theta - offsetM)*1000 #angle*1000 to have it in mrad
         g = (self.beta + (math.pi/2.0) + offsetG)*1000
         return (m,g)
 
@@ -721,7 +736,7 @@ class EnergyCffFixed(PseudoMotorController):
 
         offsetG,offsetM = self.checkOffset()
         beta = (physical_pos[1]/1000) - (math.pi/2.0) - offsetG
-        theta = (math.pi/2.0) - (physical_pos[0]/1000) + offsetM
+        theta = (math.pi/2.0) - (physical_pos[0]/1000) - offsetM
         alpha = (2.0*theta) + beta
         wavelength = (math.sin(alpha) + math.sin(beta)) / (self.DiffrOrder * self.lineDensity)
         
