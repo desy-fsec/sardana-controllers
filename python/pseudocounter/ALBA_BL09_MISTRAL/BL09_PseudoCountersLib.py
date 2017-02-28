@@ -44,14 +44,14 @@ class PseudoCoTwoTangoAtt(PseudoCounterController):
         
         PseudoCounterController.__init__(self,inst,props,*args,**kwargs)
         self.counterExtraAttributes = {}
-        self.counterExtraAttributes[0] = {self.FORMULA:"VALUE1/VALUE2"
-                                          ,self.EXTERNALATTRIBUTE1:"",self.ATTRIBUTE1:""
-                                          ,self.EXTERNALATTRIBUTE2:"",self.ATTRIBUTE2:""}
+        self.counterExtraAttributes[0] = {self.FORMULA:"VALUE1/VALUE2",
+                                self.EXTERNALATTRIBUTE1:"",self.ATTRIBUTE1:"",
+                                self.EXTERNALATTRIBUTE2:"",self.ATTRIBUTE2:""}
         self.device_proxy1 = None
         self.device_proxy2 = None
 
     def calc(self,counter_values):
-        """ Ignore the counter values and return the evaluation of the formula"""
+        """ Ignore counter values and return the evaluation of the formula"""
         try:
             attribute1 = self.counterExtraAttributes[0][self.ATTRIBUTE1]
             attribute2 = self.counterExtraAttributes[0][self.ATTRIBUTE2]
@@ -162,8 +162,6 @@ class EnergyFromIK220(PseudoCounterController):
         
         self.grPitch = PyTango.DeviceProxy(self.ik220_grPitch)
         self.mPitch = PyTango.DeviceProxy(self.ik220_mPitch)
-        #self.offsetGr = 0.0 #2.42#mrad
-        #self.offsetM3 = 0.0 #1.4406#mrad
 
         self.iorDP = PyTango.DeviceProxy(self.gr_ior)
         self.iorDP2 = PyTango.DeviceProxy(self.m3_ior)
@@ -175,7 +173,7 @@ class EnergyFromIK220(PseudoCounterController):
         self.grSign = -1
         self.mSign = 1
         
-        self.offsetEnergyDP = PyTango.DeviceProxy('pm/energycff_ctrl/1')
+        self.EnergyDP = PyTango.DeviceProxy('pm/energycff_ctrl/1')
         
     def calc(self,index,counter_values):
         """
@@ -188,18 +186,31 @@ class EnergyFromIK220(PseudoCounterController):
         beta = self.toRadians(gr) - (math.pi/2.0) - offsetG
         theta = (math.pi/2.0) - (self.toRadians(m)) - offsetM
         alpha = (2.0*theta) + beta
-        wavelength = (math.sin(alpha) + math.sin(beta)) / (self.DiffrOrder * self.look_at_grx())
+        numerator = (math.sin(alpha) + math.sin(beta))
+        denominator = (self.DiffrOrder * self.look_at_grx())
+        wavelength = numerator / denominator
         
         if wavelength == 0.0:
-            energy = 0.0
+            energy_physicalmot = 0.0
         else:
-            energy = self.hc / wavelength
+            energy_physicalmot = self.hc / wavelength
         #if self.FixedM2Pit: 
         Cff = math.cos(beta)/math.cos(alpha)
-        if energy < 0 : energy = energy *(-1) #warning: wavelength se vuelve negativo ... ??????
+        if energy_physicalmot < 0 :
+            #warning: wavelength se vuelve negativo ... ??????
+            energy_physicalmot = energy_physicalmot *(-1) 
         
-        offsetEnergy=self.offsetEnergyDP.offsetEnergy
-        energy = energy + offsetEnergy
+        # Real Energy is equal to the energy calculated by the encoders
+        # minus an offset that depends on the same energy calculated by the 
+        # encoders:
+        # E_physicalmot = Ereal + offset
+        # with offset = a*Ereal + b
+        # This implies that: Ereal = (Ephysicalmot - b)/(1+a) 
+        a_coeff = self.EnergyDP.a_offset_coeff
+        b_coeff = self.EnergyDP.b_offset_coeff
+        numerator = energy_physicalmot - b_coeff
+        denominator = 1 + a_coeff
+        energy = numerator / denominator
         
         if index == 1:
             return energy
