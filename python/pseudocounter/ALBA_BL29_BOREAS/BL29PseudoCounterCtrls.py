@@ -99,6 +99,11 @@ class BL29EnergyPCCtrl(PseudoCounterController):
             gr_selected = int(self.gr_selected.position)
             gr_pitch_dev_class = self.gr_pitch[index-1].info().dev_class.lower()
 
+            # sm_selected definition was changed on user request, but we have to
+            # work with the library's definition
+            sm_selected = Energy.user2lib(sm_selected,
+                                          self.sm_selected.user_idx_offset)
+
             #get the value of the gr pitch depending on the type of its source 
             if gr_pitch_dev_class == 'motor':
                 gr_pitch = self.gr_pitch[index-1].encencin
