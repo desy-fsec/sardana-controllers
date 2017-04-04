@@ -101,8 +101,8 @@ class PyCATSMotorCtrl(MotorController):
             self.powered = self.device.read_attribute('Powered').value
             # Try to power on the robot if necessary
             if self.auto_poweron and not self.powered:
-            self.device.poweron()
-            time.sleep(2)
+                self.device.poweron()
+                time.sleep(2)
             # check if robot is idle
             self.idle = self.device.read_attribute('do_PRO5_idl').value
             # check if power is powered
