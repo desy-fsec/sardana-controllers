@@ -77,6 +77,7 @@ class PyCATSMotorCtrl(MotorController):
             self.powered = None
             self.auto_poweron = False
             self.t0 = time.time()
+            self.ri2 = None
 
         except Exception as e:
             self._log.error('Error when init: %s' % e)
@@ -108,6 +109,9 @@ class PyCATSMotorCtrl(MotorController):
             self.powered = self.device.read_attribute('Powered').value
             # check if the tool installed is allowed
             self.tool = self.device.read_attribute('Tool').value.upper()
+            # check if the robot is on the region of movement
+            self.ri2 = self.device.read_attribute('do_PRO8_RI2').value
+
         except Exception as e:
             msg = "Cannot access robot attributes to update controller status"
             self._log.error('StateAll error: %s\n%s' % (msg, str(e)))
@@ -125,6 +129,9 @@ class PyCATSMotorCtrl(MotorController):
             self.state = State.Fault
             self.status = 'Wrong Tool Installed, use %r' \
                           %self.CATS_ALLOWED_TOOLS.keys()
+        elif not self.ri2:
+            self.state = State.Fault
+            self.status = 'The robot is not on the Region of movement'
 
         elif time.time() - self.t0 < self.DELTA_STATE:
             pass
