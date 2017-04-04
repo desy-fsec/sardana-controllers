@@ -76,7 +76,7 @@ class PyCATSMotorCtrl(MotorController):
             self.idle = None
             self.powered = None
             self.auto_poweron = False
-	    self.t0 = time.time()
+            self.t0 = time.time()
 
         except Exception as e:
             self._log.error('Error when init: %s' % e)
@@ -100,8 +100,8 @@ class PyCATSMotorCtrl(MotorController):
             self.powered = self.device.read_attribute('Powered').value
             # Try to power on the robot if necessary
             if self.auto_poweron and not self.powered:
-		self.device.poweron()
-                time.sleep(2) 
+            self.device.poweron()
+            time.sleep(2)
             # check if robot is idle
             self.idle = self.device.read_attribute('do_PRO5_idl').value
             # check if power is powered
@@ -153,7 +153,7 @@ class PyCATSMotorCtrl(MotorController):
     def StartOne(self, axis, position):
 
 
-	# TODO: The controllers does not allow to move multiple axes
+        # TODO: The controllers does not allow to move multiple axes
         # at the same time.
         # CATS axes z,x can be move together by using a single command adjust.
         #
@@ -259,17 +259,21 @@ class PyCATSMotorCtrl(MotorController):
         self._log.debug("aborting movement")
         self.device.command_inout('abort')
 
-
     def SetCtrlPar(self, parameter, value):
-	self._log.debug("Entering SetCtrlPar, parameter = %s, value = %s" % (parameter, value))
-	if parameter.lower() == 'autopoweron':
+        self._log.debug("Entering SetCtrlPar, parameter = %s, value = %s" %
+                        (parameter, value))
+        if parameter.lower() == 'autopoweron':
             self.auto_poweron = value
+        else:
+            MotorController.SetCtrlPar(self, parameter, value)
 
     def GetCtrlPar(self, parameter):
-	self._log.debug("Entering GetCtrlPar, parameter = %s" % parameter )
+        self._log.debug("Entering GetCtrlPar, parameter = %s" % parameter )
         if parameter.lower()== 'autopoweron':
-	    self._log.debug("auto_poweron = %s" % self.auto_poweron)
+            self._log.debug("auto_poweron = %s" % self.auto_poweron)
             return self.auto_poweron
+        else:
+            return MotorController.GetCtrlPar(self, parameter)
 
 
 
