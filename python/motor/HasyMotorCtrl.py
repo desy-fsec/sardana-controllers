@@ -232,7 +232,6 @@ class HasyMotorCtrl(MotorController):
                 value = float(self.proxy[ind-1].read_attribute(self.attrName_UnitLimitMax[ind-1]).value)
                 cfg = []
                 config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
-                print config
                 config.max_value = str(value)
                 cfg.append(config)
                 self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
