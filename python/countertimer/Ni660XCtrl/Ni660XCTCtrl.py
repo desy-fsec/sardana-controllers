@@ -52,7 +52,9 @@ def getPFINameFromFriendlyWords(counter):
     Can be used with /dev1/PFI34 format or /dev1/ctr1/gate
     """
     # Convert from friendly words
-    if not 'pfi' in counter.lower():
+    if 'rtsi'in counter.lower():
+        pass
+    elif not 'pfi' in counter.lower():
         term = counter.rsplit('/',1)
         ctr = term[0]
         signal = term[1]
