@@ -111,6 +111,7 @@ class PyCATSMotorCtrl(MotorController):
             self.tool = self.device.read_attribute('Tool').value.upper()
             # check if the robot is on the region of movement
             self.ri2 = self.device.read_attribute('do_PRO8_RI2').value
+            self.ri1 = self.device.read_attribute('do_PRO7_RI1').value
 
         except Exception as e:
             msg = "Cannot access robot attributes to update controller status"
@@ -129,9 +130,9 @@ class PyCATSMotorCtrl(MotorController):
             self.state = State.Fault
             self.status = 'Wrong Tool Installed, use %r' \
                           %self.CATS_ALLOWED_TOOLS.keys()
-        elif not self.ri2:
+        elif not (self.ri2 or self.ri1):
             self.state = State.Fault
-            self.status = 'The robot is not on the Region of movement'
+            self.status = 'The robot is not on the Region of movement(RI1 and RI2)'
 
         elif time.time() - self.t0 < self.DELTA_STATE:
             pass
