@@ -215,7 +215,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
     def ReadAll(self):
         if self._synchronization == AcqSynch.HardwareTrigger:
-            self._log.debug("ReadAll: Synchronization=HardwareTrigger")
             for axis in self.dataBuff.keys():
                 if axis == 1:
                     continue
@@ -229,31 +228,31 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self.dataBuff[1]['value'] = [self.intTime] * len_follow
 
     def ReadOne(self, axis):
-        self._log.debug("ReadOne(%d): Entering...", axis)
         state = self.getDeviceState()
         if self._synchronization == AcqSynch.SoftwareTrigger:
             if state == PyTango.DevState.ON:
                 if axis == 1:
                     return self.intTime
-                self._log.debug("ReadOne(%d): Synchronization=SoftwareTrigger",
-                                axis)
                 mean = self.AIDevice["C0%s_MeanLast" % (axis - 2)].value
                 std = self.AIDevice["C0%s_StdDevLast" % (axis - 2)].value
                 self.sd[axis] = std
                 value = mean
                 mean = eval(self.formulas[axis])
                 return_value = SardanaValue(mean)
-                self._log.debug("ReadOne(%d): mean=%f, sd=%f",
-                                axis, mean, std)
             else:
                 self._log.error("ReadOne(%d): wrong state (%r) after"\
                     "acquisition" % (axis, state))
                 raise Exception("Acquisition did not finish correctly.")
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
-            self._log.debug("ReadOne(%d): Synchronization=HardwareTrigger",
-                            axis)
-            return_value = self.dataBuff[axis]['value']
+            values = self.dataBuff[axis]['value']
+
+            # Check if is necessary apply formula
+            formula = self.formulas[axis].lower()
+            if formula != 'value' or formula != '(value)':
+                values= [eval(formula, {'value': x}) for x in values]
+
+            return_value = values
             if len(return_value) > 0:
                 self.dataBuff[axis]['counter'] += len(return_value)
                 self.dataBuff[axis]['value'] = []
@@ -261,7 +260,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self.unsubscribeEvent(axis)
         else:
             raise Exception("Unknown synchronization mode.")
-        self._log.debug("ReadOne(%d): values=%r" % (axis, return_value))
         return return_value
 
     def AbortOne(self, axis):
@@ -273,7 +271,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self.unsubscribeEvent(axis)
 
     def PreStartAllCT(self):
-        self._log.debug("PreStartAllCT(): Entering...")
         for axis in self.dataBuff.keys():
             self.dataBuff[axis]['counter'] = 0
             self.dataBuff[axis]['value'] = []
@@ -295,7 +292,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         Here we are counting which axes are going to be start, so later we
         can distinguish if we are starting only the master channel.
         """
-        self._log.debug("PreStartOneCT(%d): Entering...", axis)
         if self._synchronization == AcqSynch.HardwareTrigger:
             if axis != 1:
                 self.dataBuff[1]['follow_chn'] = axis
@@ -308,7 +304,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 try:
                     id = dev.subscribe_event(attr_name, event_type, cb)
                     self.dataBuff[axis]['id'] = id
-                    self._log.debug('Subscribe event axis: %d' % axis)
                 except Exception, e:
                     self._log.debug('Event subscription error: %s' % e)
                     raise
@@ -325,15 +320,9 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         # * Start command changes state to RUNNING after a while
         # For these reasons we either wait or retry 3 times the Start command.
         for i in range(1, 4):
-            self._log.debug(
-                'StartAllCT: trying to start for the %d time' % i)
             state = self.AIDevice.state()
-            self._log.debug('StartAllCT: AIDevice state before start is %s'
-                        % repr(state))
             self.AIDevice.start()
             state = self.AIDevice.state()
-            self._log.debug('StartAllCT: AIDevice state after start '
-                            'is %s' % repr(state))
             if state == PyTango.DevState.RUNNING:
                 break
             time.sleep(0.05)
@@ -353,17 +342,14 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         StartAll() we can distinguish if we are starting only the master
         channel.
         """
-        self._log.debug("PreLoadOne(%d, %f): Entering...", axis, value)
         return True
 
     def LoadOne(self, axis, value, repetitions):
-        self._log.debug("LoadOne(%d, %f): Entering...", axis, value)
         self.intTime = value
         try:
             self.state = self.AIDevice.state()
             if self.state != PyTango.DevState.STANDBY:
-                self._log.debug('LoadOne(%d): state = %s' %
-                                (axis, repr(self.state)))
+
                 # Randomly device may take more than 3 seconds to stop.
                 # The probability raises when acquisitions are done frequently
                 # step scan, frequent executions of ct, etc.
@@ -381,12 +367,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         sampRate = self.AIDevice['SampleRate'].value
         chnSampPerTrigger = int(self.intTime * sampRate)
         if self._synchronization == AcqSynch.SoftwareTrigger:
-            self._log.debug("SetCtrlPar(): setting synchronization "
-                            "to SoftwareTrigger")
             source = "SOFT"
         elif self._synchronization == AcqSynch.HardwareTrigger:
-            self._log.debug("SetCtrlPar(): setting synchronization "
-                            "to HardwareTrigger")
             source = "ExtD:+"
         else:
             raise Exception("Adlink daq2005 allows only Software or "
@@ -409,10 +391,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self._log.error("LoadOne(%d, %f): Could not configure device: "
                             "%s.\nException: %s", self.AdlinkAIDeviceName, e)
             raise
-        self._log.debug("LoadOne(%d, %f): Finished...", axis, value)
 
     def GetAxisExtraPar(self, axis, name):
-        self._log.debug("GetAxisExtraPar(%d, %s): Entering...", axis, name)
         if name.lower() == "sd":
             return self.sd[axis]
         if name.lower() == "formula":
