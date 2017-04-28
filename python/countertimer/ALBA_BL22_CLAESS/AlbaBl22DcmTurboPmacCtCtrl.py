@@ -14,6 +14,7 @@ PMAC_REGISTERS = {'MotorDir': 4080, 'StartBuffer': 4081, 'RunProgram': 4082,
                   'NrTriggers': 4083, 'Index': 4084, 'StartPos': 4085,
                   'PulseWidth': 4086, 'AutoInc': 4087}
 
+
 class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     """This class is the Sardana CounterTimer controller for TurboPmac controller.
        It is used to """
@@ -46,8 +47,6 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     def __init__(self, inst, props, *args, **kwargs):
         #        self._log.setLevel(logging.DEBUG)
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
-        # self._log.debug("__init__(%s, %s): Entering...", repr(inst),
-        #                 repr(props))
         self.nrOfTriggers = 4000
 
         msg = None
@@ -69,7 +68,6 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         self._log.debug("DeleteDevice(%d): Entering...", axis)
     
     def StateAll(self):
-        self._log.debug("StateAll(): Entering...")
         try:
             m = int(self.pmac.GetMVariable(3300))
         except PyTango.DevFailed, e:
@@ -90,13 +88,10 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
 
 
     def StateOne(self, axis):
-        self._log.debug("StateOne(%d): Entering...", axis)
         self._log.debug("StateOne(%d): Leaving...%s %s", axis, self.state, self.status)
         return (self.state, self.status)
     
     def ReadOne(self, axis):
-        self._log.debug("ReadOne(%d): Entering...", axis)        
-        
         if self._synchronization in [AcqSynch.SoftwareTrigger,
                                      AcqSynch.SoftwareGate]:
             energy = self.energy.read_attribute('position').value
@@ -123,66 +118,22 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
                     start_register = endOfRange + 1
                 else:
                     register_ranges.append([start_register, end_register])
-                print '!'*40, register_ranges    
                 rawCounts = numpy.array([])
-                print '%r' % register_ranges
                 for r in register_ranges:
-                    self._log.debug("Range: %s" % repr(r))
                     rawCounts = numpy.append(rawCounts,
                                              self.pmac.GetPVariableRange(r))
                 self.start_idx = current_idx
                
                 rawCounts = rawCounts.astype(long)
-                
-                #TODO check cython implementation
 
-                # return_value = enegies4encoders(rawCounts, self.vcm_pitch_rad, self.xtal_d,
-                #                                 self.xtal_offset, self.bragg_spu,
-                #                                 self.bragg_offset, self.bragg_pos, 
-                #                                self.bragg_enc)
+                return_value = enegies4encoders(rawCounts, self.vcm_pitch_rad, self.xtal_d,
+                                                self.xtal_offset, self.bragg_spu,
+                                                self.bragg_offset, self.bragg_pos, 
+                                               self.bragg_enc).tolist()
 
-                stepPerUnit = self.bragg.read_attribute('step_per_unit').value
-                braggMotorOffset = self.bragg.read_attribute('offset').value
-                braggMotorOffsetEncCounts = braggMotorOffset*stepPerUnit
-                braggPosCounts = float(self.pmac.SendCtrlChar("P").split()[0])
-                encRegCounts = float(self.pmac.GetMVariable(101))
-                offset = braggPosCounts - encRegCounts + braggMotorOffsetEncCounts
-     
-                translate = lambda count: (count + offset) / stepPerUnit
-                maxCounts = 8388608
-                minCounts = -maxCounts
-                #correcting the problem with the negative value of the encoder
-                idx_end = len(rawCounts) - 1
-                idx_p1 = (idx_end/2) - 2
-                idx_p2 = (idx_end/2) + 2
-                p1 = rawCounts[idx_p1]
-                p2 = rawCounts[idx_p2]
-                pStart = rawCounts[0]
-                pEnd = rawCounts[idx_end]
-
-                overFlow = False
-
-                if (p1 < p2) and (pEnd < pStart):
-                    #overFlow Positive
-                    overFlow = True
-                elif (p1 > p2) and (pEnd > pStart):
-                    #overFlow Negative
-                    overFlow = True
-
-                correctedRawCounts = []
-                for count in rawCounts:
-                   if overFlow and count < 0:
-                      ccount = maxCounts + abs(-8388606.5 - count)
-                      correctedRawCounts.append(ccount)
-                   else:
-                      correctedRawCounts.append(count)
-
-                degrees = [translate(count) for count in correctedRawCounts]
-                return_value = [self.energy.calcPseudo([d, float("nan")]) for d in degrees]
 
             except Exception as e:
-                print e, '\n\n\n'
-            return_value = return_value
+                self._log.error('PmacCT %r' % e)
         return return_value
         
     def AbortOne(self, axis):
@@ -203,7 +154,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             self.start_idx = 0 
             self.bragg_spu = self.bragg.read_attribute('step_per_unit').value
             self.bragg_offset = self.bragg.read_attribute('offset').value
-            self.bragg_pos = self.bragg.read_attribute('position').value
+            self.bragg_pos = float(self.pmac.SendCtrlChar("P").split()[0])
             self.bragg_enc = float(self.pmac.GetMVariable(101))
             self.vcm_pitch_rad = self.vcm_pitch.read_attribute('position').value/1000.0
             xtal_value = self.xtal.read_attribute('value').value
@@ -230,7 +181,6 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             self.pmac.EnablePLC(0)
             
     def LoadOne(self, axis, value, repetitions):
-        self._log.debug("LoadOne(%d, %f, %r): Entering...", axis, value, repetitions)
         try:
             self.repetitions = repetitions
             self.pmac.SetPVariable([PMAC_REGISTERS['NrTriggers'], repetitions])
@@ -238,7 +188,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             self._log.error("LoadOne(%d, %f): Could not configure device.\n"
                             "Exception: %s", axis, value, e)
             raise
-        self._log.debug("LoadOne(%d, %f): Finished...", axis, value)
+
 
 
     def GetAxisExtraPar(self, axis, name):
