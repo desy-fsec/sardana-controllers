@@ -78,7 +78,8 @@ class LabeledIORController(IORegisterController):
 
     def WriteOne(self, axis, value):
         if value not in self._labels.keys():
-            raise ValueError('The value is not defined in Labels.')
+            raise ValueError('The value %s is not defined in Labels. %r' %
+                             (value, self._labels.keys()))
         self.SetValue(value)
 
     def GetAxisExtraPar(self, axis, name):
@@ -100,13 +101,15 @@ class LabeledIORController(IORegisterController):
         self._log.debug("SetAxisExtraPar(%d, %s, %s) entering..." %
                         (axis, name, value))
         name = name.lower()
+        value = value.lower()
         if name == "label":
             try:
-                idx = self._labels.values().index(value)
+                labels = [label.lower() for label in self._labels.values()]
+                idx = labels.index(value)
                 self.SetValue(self._labels.keys()[idx])
             except ValueError:
-                raise ValueError('The label %s is not defined in Labels.' %
-                                 value)
+                raise ValueError('The label %s is not defined in Labels %r' %
+                                 (value, labels))
         else:
             raise ValueError('Wrong parameter.')
 
@@ -116,3 +119,14 @@ class LabeledIORController(IORegisterController):
     def GetValue(self):
         raise NotImplementedError("GetValue must be defined in te controller")
 
+
+class TestLabelCtrl(LabeledIORController):
+
+    def StateOne(self, axis):
+        return State.On, 'On'
+
+    def SetValue(self, value):
+        self._value = value
+
+    def GetValue(self):
+        return self._value
