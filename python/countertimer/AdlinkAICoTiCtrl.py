@@ -6,51 +6,31 @@ import PyTango
 from sardana import State, DataAccess
 from sardana.sardanavalue import SardanaValue
 from sardana.pool import AcqSynch
-#from sardana.pool import AcqTriggerType, AcqMode
 from sardana.pool.controller import (CounterTimerController, Type, Access,
                                      Description)
 from sardana.tango.core.util import from_tango_state_to_state
-
-
-def evalState(state):
-    """This function converts Adlink device states into counters state."""
-    if state == PyTango.DevState.RUNNING:
-        return State.Moving
-    elif state == PyTango.DevState.STANDBY:
-        return State.On
-    else:
-        return from_tango_state_to_state(state)
 
 
 class ListenerDataReady(object):
 
     def __init__(self, queue, log=None):
         self.queue = queue
-        self.start_index = 0
         self.log = log
 
     def push_event(self, event):
 
-        if self.log:
-            self.log.debug('Listener DataReadyEvent received')
-
         if not event.err:
             new_index = event.ctr - 1
-            attr_name = event.attr_name.split('/')[-1]
-            device = event.device
-            data = device.getdata(([self.start_index, new_index], [attr_name]))
-            data = data.tolist()
-            self.queue.put(data)
-            self.log.debug(' - getting data from %s to %s - total received: '
-                           '%s' % (self.start_index, new_index, len(data)))
-
-            self.start_index = new_index + 1
+            self.queue.put(new_index)
+            if self.log:
+                self.log.debug('DataReadyEvent number %r received', new_index)
         else:
             e = event.errors[0]
-            msg = ('Event error (reason: %s; '
-                   'description: %s)' % (e.reason, e.desc))
-            self.log.debug(msg)
-            raise Exception('ListenerDataReady event with error')
+            msg = ('Event error (reason: %s; desc: %s)' % (e.reason, e.desc))
+            self.log.error(msg)
+
+            # TODO: analyze if raise an exception could crash the system
+            # raise Exception('ListenerDataReady event with error')
 
 
 class AdlinkAICoTiCtrl(CounterTimerController):
@@ -111,245 +91,63 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         self._log.debug("__init__(%s, %s): Entering...", repr(inst),
                         repr(props))
-        self.sd = {}
-        self.formulas = {}
-        self.sharedFormula = {}
-        self.contAcqChannels = {}
-        self.intTime = 0
-        self.dataBuff = {}
-        self.wrongVersion = False
-        self._synchronization = None
-        self._repetitions = 0
-        self._latency_time = 1e-6 # 1 us
 
         try:
             self.AIDevice = PyTango.DeviceProxy(self.AdlinkAIDeviceName)
             cmdlist = [c.cmd_name for c in self.AIDevice.command_list_query()]
             if 'ClearBuffer' not in cmdlist:
-                self._log.error(
-                    "__init__(): Looks like ADlink device server version is "
+                msg = ("__init__(): Looks like ADlink device server version is "
                     "too old for this controller version. Please upgrade "
                     "Device server\n")
-                self.wrongVersion = True
+                raise RuntimeError(msg)
+
         except PyTango.DevFailed, e:
             self._log.error("__init__(): Could not create a device proxy from "
                             "following device name: %s.\nException: %s",
                             self.AdlinkAIDeviceName, e)
             raise
 
-    def AddDevice(self, axis):
-        self._log.debug("AddDevice(%d): Entering...", axis)
-        self.sd[axis] = 0
-        self.formulas[axis] = 'value'
-        self.sharedFormula[axis] = False
-        # buffer for the continuous scan
-        self.dataBuff[axis] = {}
-        if axis != 1:
-            self.dataBuff[axis]['queue'] = Queue.Queue()
-            self.dataBuff[axis]['value'] = []
-            self.dataBuff[axis]['id'] = None
-            self.dataBuff[axis]['cb'] = None
-            self.dataBuff[axis]['counter'] = 0
-        else:
-            self.dataBuff[axis]['follow_chn'] = 1
+        # TODO: Change the names of the variables to _name_without_capital_case
+        self.sd = {}
+        self.formulas = {}
+        self.sharedFormula = {}
+        self.intTime = 0
+        self.dataBuff = {}
 
-    def DeleteDevice(self, axis):
-        self._log.debug("DeleteDevice(%d): Entering...", axis)
-        self.sd.pop(axis)
-        self.formulas.pop(axis)
-        self.sharedFormula.pop(axis)
-        if self._synchronization == AcqSynch.HardwareTrigger:
-            self.dataBuff[axis] = {}
+        self._apply_formulas = {}
+        self._master_channel = None
+        self._id_callback = None
+        self._index_queue = Queue.Queue()
+        self._last_index_readed = -1
+        self._hw_state = None
+        self._new_data = False
+        self._state = State.On
+        self._status = 'The Device is in ON.'
+        self._synchronization = None
+        self._repetitions = 0
+        self._latency_time = 1e-6 # 1 us
 
-        id = self.dataBuff[axis].get('id')
 
-        if self._synchronization == AcqSynch.HardwareTrigger and id is not None:
+    def _unsubcribe_data_ready(self):
+        if self._id_callback is not None:
             self.AIDevice.unsubscribe_event(id)
-            self._log.debug('DeleteDevice(%d): Unsubcribe event id:%d', axis,
-                            id)
+            self._id_callback = None
+            self._log.debug('DeleteDevice: Unsubcribe event id:%d', id)
 
-    def getDeviceState(self):
-        if self.wrongVersion:
-            self._log.error(
-                "__init__(): Looks like ADlink device server version is too "
-                "old for this controller version. Please upgrade Device "
-                "server\n")
+    def _clean_acquisition(self):
+        if self._last_index_readed != -1:
+            self._last_index_readed = -1
+            self._repetitions = 0
+            self._unsubcribe_data_ready()
+            self._index_queue.__init__()
+            self._master_channel = None
+            self._new_data = False
+            self.AIDevice.ClearBuffer()
 
-        if self.AIDevice is None or self.wrongVersion:
-            state = PyTango.DevState.FAULT
-        else:
-            state = self.AIDevice.state()
-        return state
-
-    def unsubscribeEvent(self, axis):
-        id = self.dataBuff[axis].get('id')
-        if id is None:
-            return
-        self.AIDevice.unsubscribe_event(id)
-        self._log.debug('Unsubscribe event id: %d for axis: %d' %
-                        (id, axis))
-        self.dataBuff[axis]['id'] = None
-
-    def StateOne(self, axis):
-        self._log.debug("StateOne(%d): Entering...", axis)
+    def _stop_device(self):
         try:
-            self.state = self.getDeviceState()
-            if (self._synchronization == AcqSynch.HardwareTrigger and
-                self.state == PyTango.DevState.ON and
-                self.dataBuff[axis]['counter'] < self._repetitions):
-                    self.state = PyTango.DevState.RUNNING
-            state = evalState(self.state)
-            status = "AI DeviceProxy present."
-        except Exception, e:
-            if self._synchronization == AcqSynch.HardwareTrigger:
-                self.unsubscribeEvent(axis)
-            state = State.Unknown
-            status = "AI DeviceProxy is not responding."
-        self._log.debug("StateOne(%d): state = %r status = %r" %
-                        (axis, state, status))
-        return state, status
-
-    def PreReadOne(self, axis):
-        self._log.debug("PreReadOne(%d): Entering...", axis)
-        self.sd[axis] = 0
-
-    def ReadAll(self):
-        if self._synchronization == AcqSynch.HardwareTrigger:
-            for axis in self.dataBuff.keys():
-                if axis == 1:
-                    continue
-                queue = self.dataBuff[axis]['queue']
-                value = self.dataBuff[axis]['value']
-                while not queue.empty():
-                    value += queue.get()
-
-            follow_chn = self.dataBuff[1]['follow_chn']
-            len_follow = len(self.dataBuff[follow_chn]['value'])
-            self.dataBuff[1]['value'] = [self.intTime] * len_follow
-
-    def ReadOne(self, axis):
-        state = self.getDeviceState()
-        if self._synchronization == AcqSynch.SoftwareTrigger:
-            if state == PyTango.DevState.ON:
-                if axis == 1:
-                    return self.intTime
-                mean = self.AIDevice["C0%s_MeanLast" % (axis - 2)].value
-                std = self.AIDevice["C0%s_StdDevLast" % (axis - 2)].value
-                self.sd[axis] = std
-                value = mean
-                mean = eval(self.formulas[axis])
-                return_value = SardanaValue(mean)
-            else:
-                self._log.error("ReadOne(%d): wrong state (%r) after"\
-                    "acquisition" % (axis, state))
-                raise Exception("Acquisition did not finish correctly.")
-
-        elif self._synchronization == AcqSynch.HardwareTrigger:
-            values = self.dataBuff[axis]['value']
-
-            # Check if is necessary apply formula
-            formula = self.formulas[axis].lower()
-            if formula != 'value' or formula != '(value)':
-                values= [eval(formula, {'value': x}) for x in values]
-
-            return_value = values
-            if len(return_value) > 0:
-                self.dataBuff[axis]['counter'] += len(return_value)
-                self.dataBuff[axis]['value'] = []
-            if self.dataBuff[axis]['counter'] == self._repetitions:
-                self.unsubscribeEvent(axis)
-        else:
-            raise Exception("Unknown synchronization mode.")
-        return return_value
-
-    def AbortOne(self, axis):
-        self._log.debug("AbortOne(%d): Entering...", axis)
-        state = self.getDeviceState()
-        if state != PyTango.DevState.STANDBY:
-            self.AIDevice.stop()
-        if self._synchronization == AcqSynch.HardwareTrigger:
-            self.unsubscribeEvent(axis)
-
-    def PreStartAllCT(self):
-        for axis in self.dataBuff.keys():
-            self.dataBuff[axis]['counter'] = 0
-            self.dataBuff[axis]['value'] = []
-            if axis != 1:
-                self.dataBuff[axis]['queue'].__init__()
-        self.axesToStart = []
-        try:
-            state = self.getDeviceState()
-            if state != PyTango.DevState.STANDBY:
-                self.AIDevice.stop()
-        except Exception, e:
-            self._log.error("PreStartAllCT(): Could not ask about state of "
-                            "the device: %s and/or stop it.\nException: %s",
-                            self.AdlinkAIDeviceName, e)
-            raise
-
-    def PreStartOneCT(self, axis):
-        """
-        Here we are counting which axes are going to be start, so later we
-        can distinguish if we are starting only the master channel.
-        """
-        if self._synchronization == AcqSynch.HardwareTrigger:
-            if axis != 1:
-                self.dataBuff[1]['follow_chn'] = axis
-                attr_name = 'C0%s_MeanValues' % (axis - 2)
-                cb = ListenerDataReady(self.dataBuff[axis]['queue'],
-                                       log=self._log)
-
-                event_type = PyTango.EventType.DATA_READY_EVENT
-                dev = self.AIDevice
-                try:
-                    id = dev.subscribe_event(attr_name, event_type, cb)
-                    self.dataBuff[axis]['id'] = id
-                except Exception, e:
-                    self._log.debug('Event subscription error: %s' % e)
-                    raise
-        return True
-
-    def StartAllCT(self):
-        """
-        Starting the acquisition is done only if before was called
-        PreStartOneCT for master channel.
-        """
-        self._log.debug("StartAllCT(): Entering...")
-        # AdlinkAI Tango device has two aleatory bugs:
-        # * Start command changes state to ON without passing throug RUNNING
-        # * Start command changes state to RUNNING after a while
-        # For these reasons we either wait or retry 3 times the Start command.
-        for i in range(1, 4):
-            state = self.AIDevice.state()
-            self.AIDevice.start()
-            state = self.AIDevice.state()
-            if state == PyTango.DevState.RUNNING:
-                break
-            time.sleep(0.05)
-            state = self.AIDevice.state()
-            self._log.debug('StartAllCT: AIDevice state after wait '
-                            'is %s' % repr(state))
-            if state == PyTango.DevState.RUNNING:
-                break
-            self._log.debug('StartAllCT: stopping AIDevice')
-            self.AIDevice.stop()
-        else:
-            raise Exception('Could not start acquisition')
-
-    def PreLoadOne(self, axis, value):
-        """
-        Here we are keeping a reference to the master channel, so  later in
-        StartAll() we can distinguish if we are starting only the master
-        channel.
-        """
-        return True
-
-    def LoadOne(self, axis, value, repetitions):
-        self.intTime = value
-        try:
-            self.state = self.AIDevice.state()
-            if self.state != PyTango.DevState.STANDBY:
-
+            self.StateAll()
+            if self._hw_state != PyTango.DevState.STANDBY:
                 # Randomly device may take more than 3 seconds to stop.
                 # The probability raises when acquisitions are done frequently
                 # step scan, frequent executions of ct, etc.
@@ -358,59 +156,213 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self.AIDevice.stop()
                 self.AIDevice.set_timeout_millis(3000)
         except PyTango.DevFailed, e:
-            self._log.error("LoadOne(%d, %f): Could not ask about state of "
-                            "the device: %s and/or stop it.\nException: %s",
-                            axis, value, self.AdlinkAIDeviceName, e)
-            raise
+            msg = 'Can not stop the Device: %s. Exception %r' % \
+                   (self.AdlinkAIDeviceName, e)
+            self._log.error(msg)
+            raise RuntimeError(msg)
+
+    def AddDevice(self, axis):
+        self.sd[axis] = 0
+        self.formulas[axis] = 'value'
+        self._apply_formulas[axis] = False
+        self.sharedFormula[axis] = False
+        # buffer for the continuous scan
+        self.dataBuff[axis] = []
+
+
+    def DeleteDevice(self, axis):
+        self.sd.pop(axis)
+        self.formulas.pop(axis)
+        self.sharedFormula.pop(axis)
+        self.dataBuff.pop(axis)
+        self._unsubcribe_data_ready()
+
+    def StateAll(self):
+        self._hw_state = self.AIDevice.state()
+        if self._hw_state == PyTango.DevState.RUNNING:
+            self._state = State.Moving
+            self._status = 'The Adlink is acquiring'
+
+        elif self._hw_state == PyTango.DevState.STANDBY:
+            # Verify if we read all the channels data:
+
+            if self._last_index_readed != (self._repetitions-1) and \
+                    self._synchronization == AcqSynch.HardwareTrigger:
+                self._log.warning('The Adlink finished but the ctrl did not '
+                                  'read all the data yet. Last index readed %r'
+                                  % self._last_index_readed)
+                self._state = State.Moving
+                self._status = 'The Adlink is acquiring'
+            else:
+                self._clean_acquisition()
+                self._state = State.On
+                self._status = 'The Adlink is ready to acquire'
+        else:
+            self._state = from_tango_state_to_state(self._hw_state)
+            self._status = 'The Adlink state is: %s' % self._hw_state
+
+    def StateOne(self, axis):
+        return self._state, self._status
+
+    def LoadOne(self, axis, value, repetitions):
+        self._stop_device()
+        self._clean_acquisition()
+
+        self.intTime = value
         self._repetitions = repetitions
-        self.AIDevice["NumOfTriggers"] = repetitions
-        sampRate = self.AIDevice['SampleRate'].value
-        chnSampPerTrigger = int(self.intTime * sampRate)
+
+        sample_rate = self.AIDevice['SampleRate'].value
+        chn_samp_per_trigger = int(self.intTime * sample_rate)
+
         if self._synchronization == AcqSynch.SoftwareTrigger:
             source = "SOFT"
+            self._repetitions = 1
         elif self._synchronization == AcqSynch.HardwareTrigger:
             source = "ExtD:+"
         else:
-            raise Exception("Adlink daq2005 allows only Software or "
-                            "Trigger triggering")
+            raise ValueError("Adlink daq2005 allows only Software or "
+                             "Hardware triggering")
 
         self.AIDevice["TriggerInfinite"] = 0
         self.AIDevice["TriggerSources"] = source
+        self.AIDevice["NumOfTriggers"] = repetitions
+        self.AIDevice['ChannelSamplesPerTrigger'] = chn_samp_per_trigger
 
-        try:
-            if self._synchronization == AcqSynch.SoftwareTrigger:
-                self.AIDevice['NumOfTriggers'] = 1
-            elif self._synchronization == AcqSynch.HardwareTrigger:
+    def PreStartOne(self, axis, value=None):
+        if axis != 1:
+            self._master_channel = axis
+        return True
+
+    def StartAllCT(self):
+        """
+        Starting the acquisition is done only if before was called
+        PreStartOneCT for master channel.
+        """
+
+        if self._synchronization == AcqSynch.HardwareTrigger:
+            attr_name = 'C0%s_MeanValues' % (self._master_channel - 2)
+            cb = ListenerDataReady(self._index_queue, log=self._log)
+            event_type = PyTango.EventType.DATA_READY_EVENT
+            self._id_callback = self.AIDevice.subscribe_event(attr_name,
+                                                              event_type, cb)
+
+        # AdlinkAI Tango device has two aleatory bugs:
+        # * Start command changes state to ON without passing throug RUNNING
+        # * Start command changes state to RUNNING after a while
+        # For these reasons we either wait or retry 3 times the Start command.
+        for i in range(1, 4):
+            self.AIDevice.start()
+            time.sleep(0.05)
+            self.StateAll()
+            if self._hw_state == PyTango.DevState.RUNNING:
+                break
+            self._log.debug('StartAllCT: stopping AIDevice')
+            self._stop_device()
+
+        if self._hw_state != PyTango.DevState.RUNNING:
+            raise Exception('Could not start acquisition')
+
+    def ReadAll(self):
+        self._new_data = True
+        if self._synchronization == AcqSynch.SoftwareTrigger:
+            if self._hw_state != PyTango.DevState.ON:
+                self._new_data = False
+                return
+
+            for axis in self.dataBuff.keys():
                 if axis == 1:
-                    self.AIDevice.ClearBuffer()
+                    self.dataBuff[axis] = [self.intTime]
+                else:
+                    mean_attr = "C0%s_MeanLast" % (axis - 2)
+                    std_attr = "C0%s_StdDevLast" % (axis - 2)
+                    mean = self.AIDevice[mean_attr].value
+                    self.sd[axis] = self.AIDevice[std_attr].value
+                    if self._apply_formulas[axis]:
+                        formula = self.formulas[axis]
+                        self.dataBuff[axis] = [eval(formula, {'value': mean})]
+
+        elif self._synchronization == AcqSynch.HardwareTrigger:
+            flg_warning = False
+            new_index = self._last_index_readed
+            if self._hw_state == PyTango.DevState.ON:
+                new_index = self._repetitions-1
+                if self._last_index_readed != (self._repetitions-1):
+                    flg_warning = True
             else:
-                raise Exception('Unknown synchronization mode.')
-            self.AIDevice['TriggerInfinite'] = 0
-            self.AIDevice['ChannelSamplesPerTrigger'] = chnSampPerTrigger
-        except PyTango.DevFailed, e:
-            self._log.error("LoadOne(%d, %f): Could not configure device: "
-                            "%s.\nException: %s", self.AdlinkAIDeviceName, e)
-            raise
+                # Read last index received by the data ready event
+                while self._index_queue.not_empty():
+                    data_ready_index = self._index_queue.get()
+                    if data_ready_index > new_index:
+                        new_index = data_ready_index
+
+            if new_index == self._last_index_readed:
+                self._new_data = False
+                return
+
+            for axis in self.dataBuff.keys():
+                new_datas = new_index - self._last_index_readed
+                if axis == 1:
+                    self.dataBuff[axis] = [self.intTime] * new_datas
+                else:
+                    mean_attr = 'C0%s_MeanValues' % (axis - 2)
+
+                    raw_data = self.AIDevice.getData(([self._last_index_readed,
+                                                       new_index], [mean_attr]))
+                    means = raw_data
+                    self._last_index_readed = new_index
+                    if self._apply_formulas[axis]:
+                        formula = self.formulas[axis]
+                        means = eval(formula, {'value': raw_data})
+                    self.dataBuff[axis] = means.tolist()
+
+            if flg_warning:
+                current_values = (self._repetitions-1) - self._last_index_readed
+                chunck_value = self.AIDevice['chuck'].value
+                if (current_values/chunck_value > 1):
+                    msg = "WARNING: Lost DataReady Events"
+                    self._log.warning(msg)
+
+    def ReadOne(self, axis):
+        if self._synchronization == AcqSynch.SoftwareTrigger:
+            if not self._new_data:
+                self._log.error("ReadOne(%d): wrong state (%r) after"\
+                    "acquisition" % (axis, self._hw_state))
+                raise Exception("Acquisition did not finish correctly.")
+
+            return SardanaValue(self.dataBuff[axis][0])
+
+        elif self._synchronization == AcqSynch.HardwareTrigger:
+            if not self._new_data:
+                return []
+            else:
+                return self.dataBuff[axis]
+        else:
+            raise Exception("Unknown synchronization mode.")
+
+    def AbortOne(self, axis):
+        self.StateAll()
+        if self._hw_state != PyTango.DevState.STANDBY:
+            self.AIDevice.stop()
+        self._clean_acquisition()
 
     def GetAxisExtraPar(self, axis, name):
-        if name.lower() == "sd":
+        name = name.lower()
+        if name == "sd":
             return self.sd[axis]
-        if name.lower() == "formula":
+        elif name == "formula":
             return self.formulas[axis]
-        if name.lower() == "sharedformula":
+        elif name == "sharedformula":
             return self.sharedFormula[axis]
 
     def SetAxisExtraPar(self, axis, name, value):
-        state = self.getDeviceState()
-        if state != PyTango.DevState.STANDBY:
-            self.AIDevice.stop()
-
-        # self.set_extra_attribute_par(axis, name, value) #todo Ask to zibi
-        # what is this!!
-        if name.lower() == "formula":
-            self.formulas[axis] = value
-
-        if name.lower() == "sharedformula":
+        name = name.lower()
+        if name == "formula":
+            formula = value.lower()
+            self.formulas[axis] = formula
+            self._apply_formulas[axis] = False
+            if formula != 'value' or formula != '(value)':
+                self._apply_formulas[axis] = True
+        elif name == "sharedformula":
             self.sharedFormula[axis] = value
             if value:
                 for i in self.formulas:
