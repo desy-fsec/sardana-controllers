@@ -28,12 +28,9 @@ class LimaCounterCtrl(CounterTimerController):
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
         self.proxy = PyTango.DeviceProxy(self.RoiCounterDeviceName)
         self.started = False
-
+        
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
-#        if ind > self.max_device:
-#            print "False index"
-#            return
 		
         
     def DeleteDevice(self,ind):
@@ -42,8 +39,22 @@ class LimaCounterCtrl(CounterTimerController):
         
 		
     def StateOne(self,ind):
-        sta = self.proxy.command_inout("State")
-        status = self.proxy.command_inout("Status")
+        try:
+            counterstatus = self.proxy.CounterStatus
+        except:
+            sta = PyTango.DevState.FAULT
+            status = "roicounter Lima device not started"
+            tup = (sta,status)
+            return tup
+        if counterstatus == -1:
+            sta = PyTango.DevState.MOVING
+            status = "Taking data"
+        elif counterstatus == 0:
+            sta = PyTango.DevState.ON
+            status = "Calculation done"
+        elif counterstatus == -2:
+            sta = PyTango.DevState.FAULT
+            status = "Not RoIs defined"
         tup = (sta,status)
         return tup
 
