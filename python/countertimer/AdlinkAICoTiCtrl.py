@@ -263,6 +263,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             raise Exception('Could not start acquisition')
 
     def ReadAll(self):
+        
         self._new_data = True
         if self._synchronization == AcqSynch.SoftwareTrigger:
             if self._hw_state != PyTango.DevState.ON:
@@ -278,8 +279,10 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                     mean = self.AIDevice[mean_attr].value
                     self.sd[axis] = self.AIDevice[std_attr].value
                     if self._apply_formulas[axis]:
-                        formula = self.formulas[axis]
-                        self.dataBuff[axis] = [eval(formula, {'value': mean})]
+                        formula = self.formulas[axis]                        
+                        mean[eval(formula, {'value': mean})]
+                    self.dataBuff[axis] = [mean]
+                
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
             flg_warning = False
@@ -289,11 +292,15 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 if self._last_index_readed != (self._repetitions-1):
                     flg_warning = True
             else:
+
                 # Read last index received by the data ready event
-                while self._index_queue.not_empty():
-                    data_ready_index = self._index_queue.get()
-                    if data_ready_index > new_index:
-                        new_index = data_ready_index
+                try:
+                    while self._index_queue.not_empty():
+                        data_ready_index = self._index_queue.get()
+                        if data_ready_index > new_index:
+                            new_index = data_ready_index
+                except Exception as e:
+                    print e
 
             if new_index == self._last_index_readed:
                 self._new_data = False
@@ -328,7 +335,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self._log.error("ReadOne(%d): wrong state (%r) after"\
                     "acquisition" % (axis, self._hw_state))
                 raise Exception("Acquisition did not finish correctly.")
-
             return SardanaValue(self.dataBuff[axis][0])
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
