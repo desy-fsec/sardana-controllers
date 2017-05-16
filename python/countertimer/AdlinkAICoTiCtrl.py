@@ -127,12 +127,11 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         self._repetitions = 0
         self._latency_time = 1e-6 # 1 us
 
-
     def _unsubcribe_data_ready(self):
         if self._id_callback is not None:
-            self.AIDevice.unsubscribe_event(id)
+            self.AIDevice.unsubscribe_event(self._id_callback)
             self._id_callback = None
-            self._log.debug('DeleteDevice: Unsubcribe event id:%d', id)
+            
 
     def _clean_acquisition(self):
         if self._last_index_readed != -1:
@@ -183,9 +182,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self._state = State.Moving
             self._status = 'The Adlink is acquiring'
 
-        elif self._hw_state == PyTango.DevState.STANDBY:
+        elif self._hw_state == PyTango.DevState.ON:
             # Verify if we read all the channels data:
-
             if self._last_index_readed != (self._repetitions-1) and \
                     self._synchronization == AcqSynch.HardwareTrigger:
                 self._log.warning('The Adlink finished but the ctrl did not '
@@ -263,7 +261,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             raise Exception('Could not start acquisition')
 
     def ReadAll(self):
-        
         self._new_data = True
         if self._synchronization == AcqSynch.SoftwareTrigger:
             if self._hw_state != PyTango.DevState.ON:
@@ -288,6 +285,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             flg_warning = False
             new_index = self._last_index_readed
             if self._hw_state == PyTango.DevState.ON:
+                self._log.debug('ReadAll HW Synch: Adlinkg State ON')
                 new_index = self._repetitions-1
                 if self._last_index_readed != (self._repetitions-1):
                     flg_warning = True
@@ -295,46 +293,53 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
                 # Read last index received by the data ready event
                 try:
-                    while self._index_queue.not_empty():
+                    while not self._index_queue.empty():
                         data_ready_index = self._index_queue.get()
                         if data_ready_index > new_index:
                             new_index = data_ready_index
                 except Exception as e:
                     print e
-
+    
             if new_index == self._last_index_readed:
                 self._new_data = False
                 return
 
+            self._last_index_readed +=1
+            self._log.debug('ReadAll HW Synch: reading indexes [%r, %r]',
+                            self._last_index_readed, new_index)
+
             for axis in self.dataBuff.keys():
-                new_datas = new_index - self._last_index_readed
                 if axis == 1:
+                    new_datas = (new_index - self._last_index_readed) + 1
+                    if new_index == 0:
+                        new_datas = 1
                     self.dataBuff[axis] = [self.intTime] * new_datas
                 else:
                     mean_attr = 'C0%s_MeanValues' % (axis - 2)
-
+                    
                     raw_data = self.AIDevice.getData(([self._last_index_readed,
                                                        new_index], [mean_attr]))
                     means = raw_data
-                    self._last_index_readed = new_index
+                    self._last_index_readed = new_index 
+           
                     if self._apply_formulas[axis]:
                         formula = self.formulas[axis]
                         means = eval(formula, {'value': raw_data})
                     self.dataBuff[axis] = means.tolist()
 
-            if flg_warning:
-                current_values = (self._repetitions-1) - self._last_index_readed
-                chunck_value = self.AIDevice['chuck'].value
-                if (current_values/chunck_value > 1):
-                    msg = "WARNING: Lost DataReady Events"
-                    self._log.warning(msg)
-
+           # TODO implement the warning flag msg             
+           #if flg_warning:
+                #current_values = (self._repetitions-1) - self._last_index_readed
+                #chunck_value = self.AIDevice['chuck'].value
+                #if (current_values/chunck_value > 1):
+                    #msg = "WARNING: Lost DataReady Events"
+                    #self._log.warning(msg)
+            
     def ReadOne(self, axis):
         if self._synchronization == AcqSynch.SoftwareTrigger:
             if not self._new_data:
-                self._log.error("ReadOne(%d): wrong state (%r) after"\
-                    "acquisition" % (axis, self._hw_state))
-                raise Exception("Acquisition did not finish correctly.")
+                raise Exception("Acquisition did not finish correctly. Adlink "
+                                "State %r" % self._hw_state)
             return SardanaValue(self.dataBuff[axis][0])
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
