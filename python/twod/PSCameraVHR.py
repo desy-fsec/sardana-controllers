@@ -9,15 +9,15 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-class EigerPSICtrl(TwoDController):
-    "This class is the Tango Sardana Two D controller for the Eiger PSI"
+class PSCameraVHRCtrl(TwoDController):
+    "This class is the Tango Sardana Two D controller for the PSCameraVHR"
 
 
     ctrl_extra_attributes = {
                              'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
                              }
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the EigerPSI Tango devices'},
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PSCameraVHR Tango devices'},
                   'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
@@ -25,9 +25,8 @@ class EigerPSICtrl(TwoDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        print "PYTHON -> TwoDController ctor for instance",inst
 
-        self.ct_name = "EigerPSICtrl/" + self.inst_name
+        self.ct_name = "PSCameraVHRCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -74,9 +73,9 @@ class EigerPSICtrl(TwoDController):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Eiger ready")
+                tup = (sta,"Camera ready")
             elif sta == PyTango.DevState.MOVING:
-                tup = (sta,"Eiger busy")
+                tup = (sta,"Camera busy")
             elif sta == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
             return tup
@@ -111,9 +110,7 @@ class EigerPSICtrl(TwoDController):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
 
     def GetAxisPar(self, ind, par_name):
-        if par_name == "data_source":
-            data_source = str(self.tango_device[ind -1]) + "/LastImage"
-            return data_source
+        pass
  
     def GetExtraAttributePar(self,ind,name):
         return 0
@@ -125,7 +122,7 @@ class EigerPSICtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> EigerPSICtrl/",self.inst_name,": dying"
+        print "PYTHON -> PSCameraVHRCtrl/",self.inst_name,": dying"
 
         
 if __name__ == "__main__":
