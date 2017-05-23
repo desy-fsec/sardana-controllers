@@ -60,7 +60,7 @@ class DcmTurboPmacController(TurboPmacController):
             FSet: 'setUseqExafs'},
         'NextPosition': {
             Type: [float, ],
-            Description: "Values of bragg and perp"
+            Description: "Values of bragg and perp",
             Access: DataAccess.ReadWrite,
             FGet: 'getNextPosition',
             FSet: 'setNextPosition'}
