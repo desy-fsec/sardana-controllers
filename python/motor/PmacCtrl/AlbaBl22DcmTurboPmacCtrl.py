@@ -42,23 +42,40 @@ class DcmTurboPmacController(TurboPmacController):
     """This class is a Sardana motor controller for DCM of CLAESS beamline at ALBA.
         DCM comprises many motors, and two of them: Bragg and 2ndXtalPerpendicular are controlled
         from TurboPmac Motor Controller"""
-    ctrl_attributes = {'MoveBraggOnly' : { Type : bool,
-                                           DefaultValue: False,
-                                           Description : "Move only bragg, without perp",
-                                           Access : DataAccess.ReadWrite,
-                                           FGet : 'getMoveBragg', 
-                                           FSet : 'setMoveBragg'},
-                       }
+    ctrl_attributes = {
+        'MoveBraggOnly' : {
+            Type : bool,
+            DefaultValue: False,
+            Description : "Move only bragg, without perp",
+            Access : DataAccess.ReadWrite,
+            FGet : 'getMoveBragg',
+            FSet : 'setMoveBragg'},
+        # Implement solution to solve problem with motor group on sep6
+        'UseqExafs': {
+            Type: bool,
+            DefaultValue: False,
+            Description: "Flag to use the protection",
+            Access: DataAccess.ReadWrite,
+            FGet: 'getUseqExafs',
+            FSet: 'setUseqExafs'},
+        'NextPosition': {
+            Type: [float, ],
+            Description: "Values of bragg and perp"
+            Access: DataAccess.ReadWrite,
+            FGet: 'getNextPosition',
+            FSet: 'setNextPosition'}
+    }
     
     
     
     MaxDevice = 2
-    
+
     def __init__(self, inst, props, *args, **kwargs):
         TurboPmacController.__init__(self, inst, props, *args, **kwargs)
         #super(DcmTurboPmacController, self).__init__(inst, props, *args, **kwargs)
         self.move_bragg_only = False
-
+        self.user_qExafs = False
+        self.next_position = []
 
     def StateOne(self, axis):
         switchstate = 0
@@ -106,18 +123,29 @@ class DcmTurboPmacController(TurboPmacController):
         #@todo: here we should use some extra_attribute of energy pseudomotor saying if we want to do energy motion or single axis motion, cause len(self.startMultiple) > 1 is true if we move a MotorGroup(e.g. mv macro with bragg and perp) 
         if len(self.startMultiple) > 1:
             bragg_deg = self.startMultiple[1]
-            bragg_rad = math.radians(bragg_deg)
             perp = self.startMultiple[3]
-    
-            self._log.info('StartAll bragg_deg: %r bragg_rad: %r prep: %r' %(bragg_deg, bragg_rad, perp))
-            #we calculate exit offset form the current position of the perpendicular motor, during energy motion program pmac will try to keep this fixed
+            self._log.info('StartAll bragg_deg: %r prep: %r' %
+                           (bragg_deg, perp))
+
+            # Workaround to avoid problems
+            if self.user_qExafs:
+                try:
+                    w_pos = (bragg_deg, perp)
+                    np.testing.assert_almost_equal(w_pos, self.next_position, 5)
+                except:
+                    self._log.error('The positions set were wrong %r. Use '
+                                    'backup position %r' % (w_pos,
+                                                            self.next_position))
+                    bragg_deg, perp = self.next_position
+
+            bragg_rad = math.radians(bragg_deg)
+
+            # we calculate exit offset form the current position of the
+            # perpendicular motor, during energy motion program pmac will
+            # try to keep this fixed
             exitOffset = 2 * perp * math.cos(bragg_rad)
-            self._log.info('Starting energy movement with bragg: %f, exitOffset: %f' %(bragg_deg,exitOffset))
             self.pmacEth.command_inout("SetPVariable", [100,bragg_deg])
             self.pmacEth.command_inout("SetPVariable", [101,exitOffset])
-            p100 = self.pmacEth.GetPVariable(100)
-            p101 = self.pmacEth.GetPVariable(101)
-            self._log.info('After set pmac p100: %r p101: %r' % (p100, p101))
             program = 11
             if self.move_bragg_only:
                 program = 12
@@ -127,8 +155,21 @@ class DcmTurboPmacController(TurboPmacController):
             super(DcmTurboPmacController, self).StartAll()
         self._log.debug("Leaving StartAll")
 
+
     def setMoveBragg(self,value):
         self.move_bragg_only = value
 
     def getMoveBragg(self):
         return self.move_bragg_only
+
+    def setUseqExafs(self, value):
+        self.user_qExafs = value
+
+    def getUseqExafs(self):
+        return self.user_qExafs
+
+    def setNextPosition(self, value):
+        self.next_position = value
+
+    def getNextPosition(self):
+        return self.next_position
