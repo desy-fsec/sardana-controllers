@@ -37,9 +37,9 @@ from sardana import pool
 from sardana.pool import PoolUtil
 from sardana.pool.controller import MotorController, Type, FSet, FGet, Access, Description, DataAccess, DefaultValue 
 
-import TurboPmacCtrl
+from TurboPmacCtrl import TurboPmacController
 
-class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
+class DcmTurboPmacController(TurboPmacController):
     """This class is a Sardana motor controller for DCM of CLAESS beamline at ALBA.
         DCM comprises many motors, and two of them: Bragg and 2ndXtalPerpendicular are controlled
         from TurboPmac Motor Controller"""
@@ -56,8 +56,8 @@ class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
     MaxDevice = 2
     
     def __init__(self, inst, props, *args, **kwargs):
-        #TurboPmacCtrl.TurboPmacController.__init__(self, inst, props, *args, **kwargs)
-        super(DcmTurboPmacController, self).__init__(inst, props, *args, **kwargs)
+        TurboPmacController.__init__(self, inst, props, *args, **kwargs)
+        #super(DcmTurboPmacController, self).__init__(inst, props, *args, **kwargs)
         self.move_bragg_only = False
 
 
@@ -153,11 +153,16 @@ class DcmTurboPmacController(TurboPmacCtrl.TurboPmacController):
             bragg_deg = self.startMultiple[1]
             bragg_rad = math.radians(bragg_deg)
             perp = self.startMultiple[3]
+    
+            self._log.info('StartAll bragg_deg: %r bragg_rad: %r prep: %r' %(bragg_deg, bragg_rad, perp))
             #we calculate exit offset form the current position of the perpendicular motor, during energy motion program pmac will try to keep this fixed
             exitOffset = 2 * perp * math.cos(bragg_rad)
-            self._log.debug('Starting energy movement with bragg: %f, exitOffset: %f' %(bragg_deg,exitOffset))
+            self._log.info('Starting energy movement with bragg: %f, exitOffset: %f' %(bragg_deg,exitOffset))
             self.pmacEth.command_inout("SetPVariable", [100,bragg_deg])
             self.pmacEth.command_inout("SetPVariable", [101,exitOffset])
+            p100 = self.pmacEth.GetPVariable(100)
+            p101 = self.pmacEth.GetPVariable(101)
+            self._log.info('After set pmac p100: %r p101: %r' % (p100, p101))
             program = 11
             if self.move_bragg_only:
                 program = 12
