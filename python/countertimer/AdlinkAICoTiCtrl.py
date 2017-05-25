@@ -118,7 +118,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         self._master_channel = None
         self._id_callback = None
         self._index_queue = Queue.Queue()
-        self._last_index_readed = -1
+        self._last_index_read = -1
         self._hw_state = None
         self._new_data = False
         self._state = State.On
@@ -134,8 +134,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             
 
     def _clean_acquisition(self):
-        if self._last_index_readed != -1:
-            self._last_index_readed = -1
+        if self._last_index_read != -1:
+            self._last_index_read = -1
             self._repetitions = 0
             self._unsubcribe_data_ready()
             self._index_queue.__init__()
@@ -184,11 +184,11 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         elif self._hw_state == PyTango.DevState.ON:
             # Verify if we read all the channels data:
-            if self._last_index_readed != (self._repetitions-1) and \
+            if self._last_index_read != (self._repetitions-1) and \
                     self._synchronization == AcqSynch.HardwareTrigger:
                 self._log.warning('The Adlink finished but the ctrl did not '
                                   'read all the data yet. Last index readed %r'
-                                  % self._last_index_readed)
+                                  % self._last_index_read)
                 self._state = State.Moving
                 self._status = 'The Adlink is acquiring'
             else:
@@ -283,11 +283,11 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
             flg_warning = False
-            new_index = self._last_index_readed
+            new_index = self._last_index_read
             if self._hw_state == PyTango.DevState.ON:
                 self._log.debug('ReadAll HW Synch: Adlinkg State ON')
                 new_index = self._repetitions-1
-                if self._last_index_readed != (self._repetitions-1):
+                if self._last_index_read != (self._repetitions-1):
                     flg_warning = True
             else:
 
@@ -300,23 +300,23 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 except Exception as e:
                     print e
     
-            if new_index == self._last_index_readed:
+            if new_index == self._last_index_read:
                 self._new_data = False
                 return
 
-            self._last_index_readed +=1
+            self._last_index_read +=1
             self._log.debug('ReadAll HW Synch: reading indexes [%r, %r]',
-                            self._last_index_readed, new_index)
+                            self._last_index_read, new_index)
 
             for axis in self.dataBuff.keys():
                 if axis == 1:
-                    new_datas = (new_index - self._last_index_readed) + 1
+                    new_datas = (new_index - self._last_index_read) + 1
                     if new_index == 0:
                         new_datas = 1
                     self.dataBuff[axis] = [self.intTime] * new_datas
                 else:
                     mean_attr = 'C0%s_MeanValues' % (axis - 2)
-                    raw_data = self.AIDevice.getData(([self._last_index_readed,
+                    raw_data = self.AIDevice.getData(([self._last_index_read,
                                                        new_index], [mean_attr]))
                     means = raw_data
                     if self._apply_formulas[axis]:
@@ -324,11 +324,11 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                         means = eval(formula, {'value': raw_data})
                     self.dataBuff[axis] = means.tolist()
 
-            self._last_index_readed = new_index
+            self._last_index_read = new_index
  
            # TODO implement the warning flag msg             
            #if flg_warning:
-                #current_values = (self._repetitions-1) - self._last_index_readed
+                #current_values = (self._repetitions-1) - self._last_index_read
                 #chunck_value = self.AIDevice['chuck'].value
                 #if (current_values/chunck_value > 1):
                     #msg = "WARNING: Lost DataReady Events"
