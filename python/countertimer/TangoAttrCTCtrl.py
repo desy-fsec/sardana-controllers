@@ -115,6 +115,7 @@ class ReadTangoAttributes():
         return self.devsExtraAttributes[axis][name]
 
     def set_extra_attribute_par(self,axis, name, value):
+        value =  value.lower()
         self._log.debug('SetExtraAttributePar [%d] %s = %s' % (axis, name, value))
         self.devsExtraAttributes[axis][name] = value
         if name == TANGO_ATTR:
