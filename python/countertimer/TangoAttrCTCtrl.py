@@ -63,30 +63,47 @@ class ReadTangoAttributes():
         self.devsExtraAttributes[axis][INDEX_READ_ALL] = index
 
     def read_all(self):
-        for dev in self.devices_to_read.keys():
-            attributes = self.devices_to_read[dev]
-            dev_proxy = PoolUtil().get_device(self.inst_name, dev)
-            try:
-                values = dev_proxy.read_attributes(attributes)
-            except PyTango.DevFailed, e:
-                for attr in attributes:
-                    axis = self.axis_by_tango_attribute[dev+'/'+attr]
-                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = e
-            except Exception,e:
-                self._log.error('Exception reading attributes:%s.%s' % (dev,str(attributes)))
-            for attr in attributes:
-                axis = self.axis_by_tango_attribute[dev+'/'+attr]
-                formula = self.devsExtraAttributes[axis][FORMULA]
-                index = attributes.index(attr)
-                dev_attr_value = values[index]
-                if dev_attr_value.has_failed:
-                    VALUE = PyTango.DevFailed(*dev_attr_value.get_err_stack())
-                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = VALUE
-                else:
-                    VALUE = float(dev_attr_value.value)
-                    value = VALUE # just in case 'VALUE' has been written in lowercase...
-                    self.devsExtraAttributes[axis][EVALUATED_VALUE] = eval(formula)
-                
+        try:
+          for dev in self.devices_to_read.keys():
+              attributes = self.devices_to_read[dev]
+              values = {}
+              try:
+                  dev_proxy = PoolUtil().get_device(self.inst_name, dev)
+                  # Set the list to prevent duplicated attr names
+                  # Tango raise exception on read_attributes if there are
+                  # duplicated attributes
+                  attrs = list(set(attributes))
+                  r_values = dev_proxy.read_attributes(attrs)
+                  values = dict(zip(attrs, r_values))
+              except PyTango.DevFailed, e:
+                  # In case of DeviceServer error
+                  for attr in attributes:
+                      axis = self.axis_by_tango_attribute[dev+'/'+attr]
+                      self.devsExtraAttributes[axis][EVALUATED_VALUE] = e
+                  self._log.debug("Exception on read the attribute:%r"%e)
+              except Exception,e:
+                  self._log.error('Exception reading attributes:%s.%s' % (dev,str(attributes)))
+
+              for attr in attributes:
+                  axies = []
+                  for axis, dic in self.devsExtraAttributes.iteritems():
+                      if dic[TANGO_ATTR] == dev+'/'+attr:
+                           axies.append(axis)
+                  for axis in axies:
+                    if len(values) > 0:
+                        dev_attr_value = values[attr]
+                        if dev_attr_value.has_failed:
+                            # In case of Attribute error
+                            VALUE = PyTango.DevFailed(*dev_attr_value.get_err_stack())
+                            self.devsExtraAttributes[axis][EVALUATED_VALUE] = VALUE
+                        else:
+                            formula = self.devsExtraAttributes[axis][FORMULA]
+                            VALUE = float(dev_attr_value.value)
+                            value = VALUE # just in case 'VALUE' has been written in lowercase...
+                            v = eval(formula)
+                            self.devsExtraAttributes[axis][EVALUATED_VALUE] = v
+        except Exception as e:
+          self._log.error('Exception on read_all: %r'%e)
 
     def read_one(self, axis):
         value = self.devsExtraAttributes[axis][EVALUATED_VALUE]
@@ -135,7 +152,6 @@ class TangoAttrCTController(ReadTangoAttributes, CounterTimerController):
     def __init__(self, inst, props, *args, **kwargs):
         ReadTangoAttributes.__init__(self)
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
-        
 
     def AddDevice(self, axis):
         self.add_device(axis)
