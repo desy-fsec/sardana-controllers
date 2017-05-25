@@ -1,3 +1,7 @@
+
+
+
+
 #!/usr/bin/env python2.5
 
 #############################################################################
@@ -169,6 +173,7 @@ class DcmTurboPmacController(TurboPmacController):
         return self.user_qExafs
 
     def setNextPosition(self, value):
+        self._log.info('Write NextPostion %r' % value)
         self.next_position = value
 
     def getNextPosition(self):
