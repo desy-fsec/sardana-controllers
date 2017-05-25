@@ -316,17 +316,16 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                     self.dataBuff[axis] = [self.intTime] * new_datas
                 else:
                     mean_attr = 'C0%s_MeanValues' % (axis - 2)
-                    
                     raw_data = self.AIDevice.getData(([self._last_index_readed,
                                                        new_index], [mean_attr]))
                     means = raw_data
-                    self._last_index_readed = new_index 
-           
                     if self._apply_formulas[axis]:
                         formula = self.formulas[axis]
                         means = eval(formula, {'value': raw_data})
                     self.dataBuff[axis] = means.tolist()
 
+            self._last_index_readed = new_index
+ 
            # TODO implement the warning flag msg             
            #if flg_warning:
                 #current_values = (self._repetitions-1) - self._last_index_readed
