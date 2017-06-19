@@ -1,23 +1,23 @@
 #!/usr/bin/env python
 
+import os
 import PyTango
-import time
 from sardana import State
-from sardana.pool.controller import CounterTimerController
-from sardana.pool.controller import Type, Access, Description, DefaultValue, MaxDimSize
+from sardana.pool.controller import CounterTimerController, Type, \
+    Description, Access, DataAccess, Memorize, NotMemorized, MaxDimSize, \
+    Memorized
+
 
 class LimaCoTiCtrl(CounterTimerController):
-    """This class is a Tango Sardana Counter Timer Controller for any
+    """
+    This class is a Tango Sardana Counter Timer Controller for any
     Lima Device. This controller is used as an alternative to current
     2D controller. It has a single (master) axis which it provides the
-    image name as a value of an experimental channel in a measurement group.
-    The returned value is a string, which has been defined bby overwriting
-    the current axis attribute Value but as a string.
-    This controller avoids passing the image which was known to slow the
-    acquisition process ans can be used as a workaround before the full
-    integration of the 2D Sardana controller."""
+    integration time as a value of an experimental channel in a measurement 
+    group.
+    """
 
-    gender = "LimaCounterTimerController"
+    gender = "LimaCounterTimer"
     model = "Basic"
     organization = "CELLS - ALBA"
     image = "Lima_ctrl.png"
@@ -26,63 +26,61 @@ class LimaCoTiCtrl(CounterTimerController):
     MaxDevice = 1
 
     class_prop = {}
+    ctrl_attributes = {
+        'Filename': {
+            Type: str,
+            Description: 'Full file name: path/filname. The extension is '
+                         'defined on SavingFormat attribute',
+            Access: DataAccess.ReadWrite,
+            Memorize: NotMemorized},
+        'LastImageName': {
+            Type: str,
+            Description: 'Last images saved full file name',
+            Access: DataAccess.ReadOnly,
+            Memorize: NotMemorized},
+        'DetectorName': {
+            Type: str,
+            Description: 'The full name saved: filename_DetectorName.format',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingFormat': {
+            Type: str,
+            Description: 'Saving format',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        }
 
     axis_attributes = {
-        'ExposureTime': {
-            'Type': float,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Exposure time',
-            'Defaultvalue': 1.0},
-        'LatencyTime': {
-            'Type': float,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Latency time',
-            'Defaultvalue': 1.0},
-        'NbFrames': {
-            'Type': int,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Number of frames to be acquired',
-            'Defaultvalue': 1},
-        'TriggerMode': {
-            'Type': str,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Mode in case of external trigger',
-            'Defaultvalue': 'EXTERNAL_TRIGGER'},
-        'FilePrefix': {
-            'Type': str,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'File prefix',
-            'Defaultvalue': 'Img'},
-        'FileFormat': {
-            'Type': str,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'File format',
-            'Defaultvalue': 'EDF'},
-        'FileDir': {
-            'Type': str,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'Directory path to save files',
-            'Defaultvalue': '/tmp'},
-        'NextNumber': {
-            'Type': int,
-            'R/W Type': 'READ_WRITE',
-            'Description': 'File number for next image',
-            'Defaultvalue': 1},
-        'LastImageReady': {
-            'Type': int,
-            'R/W Type': 'READ',
-            'Description': 'Image Id of last acquired image',
-            },
-        'ImageFileName': {
-            'Type': str,
-            'R/W Type': 'READ',
-            'Description': 'Image identifier'},
+        # attributes added for continuous acquisition mode
+        'NrOfTriggers': {Type: long,
+                         Description: 'Nr of triggers',
+                         Access: DataAccess.ReadWrite,
+                         Memorize: NotMemorized},
+        'SamplingFrequency': {Type: float,
+                              Description: 'Sampling frequency',
+                              Access: DataAccess.ReadWrite,
+                              Memorize: NotMemorized},
+        'AcquisitionTime': {Type: float,
+                            Description: 'Acquisition time per trigger',
+                            Access: DataAccess.ReadWrite,
+                            Memorize: NotMemorized},
+        'TriggerMode': {Type: str,
+                        Description: 'Trigger mode: soft or gate',
+                        Access: DataAccess.ReadWrite,
+                        Memorize: NotMemorized},
+        'Data': {Type: [float],
+                 Description: 'Data buffer',
+                 Access: DataAccess.ReadOnly,
+                 MaxDimSize: (1000000,)},
+
         }
 
     ctrl_properties = {
-        'LimaDeviceName': {Type: str,
-                           Description: 'Detector device name'
-                           }
+        'LimaCCDDeviceName': {Type: str, Description: 'Detector device name'},
+        'SoftwareSync': {Type: str,
+                         Description: 'acq_trigger_mode for software mode'},
+        'HardwareSync': {Type: str,
+                         Description: 'acq_trigger_mode for hardware mode'},
         }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -91,171 +89,270 @@ class LimaCoTiCtrl(CounterTimerController):
                         repr(props))
 
         try:
-            self.LimaDevice = PyTango.DeviceProxy(self.LimaDeviceName)
-        except PyTango.DevFailed, e:
-            self._log.error("__init__(): Could not create a device proxy from "
-                            "following device name: %s.\nException: %s",
-                            self.LimaDeviceName, e)
-            raise
+            self._limacdd = PyTango.DeviceProxy(self.LimaCCDDeviceName)
+            self._limacdd.reset()
+        except PyTango.DevFailed as e:
+            raise RuntimeError('__init__(): Could not create a device proxy '
+                               'from following device name: %s.\nException: '
+                               '%s ' % (self.LimaCCDDeviceName, e))
+        self._data_buff = {}
+        self._hw_state = None
+        self._last_image_read = -1
+        self._repetitions = 0
+        self._ext_trigger = False
+        self._state = None
+        self._status = None
+        self._new_data = False
+        self._int_time = 0
+        self._latency_time = 0
+        self._trigger_mode = None
+        self._software_trigger = self.SoftwareSync
+        self._hardware_trigger = self.HardwareSync
+        self._saving_format = ''
+        self._filename = ''
+        self._det_name = ''
+        # Attributes for the continuous scan sadana 2.2.2
+        self._sampling_frequency = 1
+        self._no_of_triggers = 1
+        self._acquisition_time = 1
 
-        self.t0 = time.time()
-        self.filename = ''
+    def _clean_acquisition(self):
+        if self._last_image_read != -1:
+            self._last_image_read = -1
+            self._repetitions = 0
+            self._trigger_mode = self._software_trigger
+            #self._filename = ''
+            self._new_data = False
+
+    def _prepare_saving(self):
+        if len(self._filename) > 0:
+            path, fname = os.path.split(self._filename)
+            prefix, _ = os.path.splitext(fname)
+            prefix += '_%s_' % self._det_name
+            suffix = self._saving_format.lower()
+            frame_per_file = 1
+            if self._saving_format == 'HDF5':
+                suffix = 'h5'
+                frame_per_file = self._repetitions
+
+            self._limacdd.write_attribute('saving_frame_per_file',
+                                          frame_per_file)
+            self._limacdd.write_attribute('saving_format', self._saving_format)
+            self._limacdd.write_attribute('saving_directory', path)
+            self._limacdd.write_attribute('saving_mode', 'Auto_Frame')
+            self._limacdd.write_attribute('saving_prefix', prefix)
+            self._limacdd.write_attribute('saving_suffix', '.' + suffix)
+        else:
+            self._limacdd.write_attribute('saving_mode', 'Manual')
 
     def AddDevice(self, axis):
-        self._log.debug("AddDevice(%d): Entering...", axis)
-        pass
+        if axis != 1:
+            raise ValueError('This controller only have the axis 1')
+        self._data_buff[1] = []
 
     def DeleteDevice(self, axis):
-        self._log.debug("DeleteDevice(%d): Entering...", axis)
-        pass
+        self._data_buff.pop(axis)
+
+    def StateAll(self):
+        self._hw_state = self._limacdd.read_attribute('acq_status').value
+        if self._hw_state == 'Running':
+            self._state = State.Moving
+            self._status = 'The LimaCCD is acquiring'
+
+        elif self._hw_state == 'Ready':
+            if self._last_image_read != (self._repetitions - 1) and \
+                    self._ext_trigger:
+                self._log.warning('The LimaCCDs finished but the ctrl did not '
+                                  'read all the data yet. Last image read %r'
+                                  % self._last_image_read)
+                self._state = State.Moving
+                self._status = 'The LimaCCD is acquiring'
+            else:
+                self._clean_acquisition()
+                self._state = State.On
+                self._status = 'The LimaCCD is ready to acquire'
+        else:
+            self._state = State.Fault
+            self._status = 'The LimaCCD state is: %s' % self._hw_state
 
     def StateOne(self, axis):
-        self._log.debug("StateOne(%d): Entering...", axis)
-        if self.LimaDevice is None:
-            return PyTango.DevState.FAULT
-        # Avoids continuous state queries during acquisition
-        t = time.time()
-        acqt = self.GetAxisExtraPar(axis, 'ExposureTime')
-        delta = t - self.t0
-        if delta < acqt:
-            self._log.debug("StateOne(%d): Non disturbing the device for %s s"
-                            % (axis, delta))
-            return State.Running, 'Running (expected)'
-        try:
-            limaState = self.LimaDevice.read_attribute('acq_status').value
+        self._log.debug('StateOne(%r): %r' %(axis,self._state))
 
-            if limaState == 'Ready':
-                return State.Standby, limaState
-            elif limaState == 'Running':
-                return State.Running, limaState
-            elif limaState == 'Configuration':
-                return State.Init, limaState
-            else:
-                return State.Fault, limaState
-        except Exception, e:
-            self._log.error("StateOne(%d): Could not verify state of the "
-                            "device: %s.\nException: %s",
-                            axis, self.LimaDeviceName, e)
-            return (PyTango.DevState.UNKNOWN, "Lima Device is not responding.")
+        return self._state, self._status
 
-    def PreReadOne(self, axis):
-        self._log.debug("PreReadOne(%d): Entering...", axis)
-        pass
+    def LoadOne(self, axis, value, repetitions=None):
+        if axis != 1:
+            raise RuntimeError('The master channel should be the axis 1')
 
-    def ReadOne(self, axis):
-        self._log.debug("ReadOne(%d): Entering...", axis)
-        try:
-            return  self.GetAxisExtraPar(axis, 'ExposureTime')
-        except Exception, e:
-            self._log.error("StateOne(%d): Could not read image counter of the"
-                            " device: %s.\nException: %s",
-                            axis, self.LimaDeviceName, e)
+        self._int_time = value
+        if repetitions is None:
+            self._repetitions = 1
+            self._trigger_mode = self._software_trigger
+        else:
+            self._repetitions = repetitions
+            self._trigger_mode = self._hardware_trigger
 
-    def _save_filename(self, axis):
-        number = self.GetAxisExtraPar(axis, 'NextNumber')
-        prefix = self.GetAxisExtraPar(axis, 'FilePrefix')
-        file_dir = self.GetAxisExtraPar(axis, 'FileDir')
-        file_format = self.GetAxisExtraPar(axis, 'FileFormat')
-        self.filename = '%s/%s_%s.%s' % (file_dir, prefix, number, file_format)
+        self._prepare_saving()
+        self._limacdd.write_attribute('acq_expo_time', self._int_time)
+        self._limacdd.write_attribute('acq_nb_frames', self._repetitions)
+        self._limacdd.write_attribute('latency_time', self._latency_time)
+        self._limacdd.write_attribute('acq_trigger_mode', self._trigger_mode)
 
-    def ReadAll(self):
-        self._log.debug("ReadAll: Entering...")
-        pass
-
-    def PreStartOne(self, axis, position=None):
-        self._log.debug("PreStartOne(%d): Entering...", axis)
-        try:
-            self.LimaDevice.prepareAcq()
-            return True
-        except Exception, e:
-            self._log.error("PreStartOne(%d): Could not prepare acquisition for"
-                            " device: %s.\nException: %s",
-                            axis, self.LimaDeviceName, e)
-            return False
-
-    def StartOne(self, axis, position=None):
-        self._log.debug("StartOne(%d): Entering...", axis)
-        pass
+    def PreStartAll(self):
+        self._limacdd.prepareAcq()
+        return True
 
     def StartAll(self):
-        self._log.debug("StartAll: Entering...")
-        self.LimaDevice.startAcq()
-        self.t0 = time.time()
+        self._limacdd.startAcq()
 
-    def LoadOne(self, axis, value):
-        self._log.debug("LoadOne(%d): Entering...", axis)
-        if self.GetAxisExtraPar(axis,'NbFrames') == 0:
-            raise RuntimeError('You must set the number of frames')
-        self.LimaDevice.write_attribute('acq_expo_time', value)
-        self._save_filename(axis)
+    def ReadAll(self):
+        new_image_ready = 0
+        self._new_data = True
+        if self._trigger_mode == self._software_trigger:
+            if self._hw_state != 'Ready':
+                self._new_data = False
+                return
+            self._data_buff[1] = [self._int_time]
+          
+        else:
+            attr = 'last_image_ready'
+            new_image_ready = self._limacdd(attr).value
+            if new_image_ready == self._last_image_read:
+                self._new_data = False
+                return
+            self._last_image_read += 1
+            new_data = (new_image_ready - self._last_image_read) + 1
+            if new_image_ready == 0:
+                new_data = 1
+            self._data_buff[1] = [self._int_time] * new_data
+        self._last_image_read = new_image_ready
+        self._log.debug('Leaving ReadAll %r' %self._data_buff[1])
+
+    def ReadOne(self, axis):
+        self._log.debug('Entering in  ReadOn')
+        self._log.debug(self._trigger_mode)
+        self._log.debug(self._new_data)
+        if self._trigger_mode == self._software_trigger:
+            if not self._new_data:
+                raise Exception('Acquisition did not finish correctly. LimaCCD '
+                                'State %r' % self._hw_state)            
+            return self._data_buff[axis][0]
+        else:
+            if not self._new_data:
+                return []
+            else:
+                return self._data_buff[axis]
+
 
     def AbortOne(self, axis):
-        self._log.debug("AbortOne(%d): Entering...", axis)
-        self.LimaDevice.stopAcq()
+        self.StateAll()
+        if self._hw_state != 'Ready':
+            self._limacdd.stopAcq()
+            self._clean_acquisition()
 
+################################################################################
+#                Controller Extra Attribute Methods
+################################################################################
+    def SetCtrlPar(self, parameter, value):
+        param = parameter.lower()
+        if param == 'filename':
+            self._filename = value
+        elif param == 'detectorname':
+            self._det_name = value
+        elif param == 'savingformat':
+            self._saving_format = value
+        else:
+            super(LimaCoTiCtrl, self).SetCtrlPar(parameter, value)
+
+    def GetCtrlPar(self, parameter):
+        param = parameter.lower()
+        if param == 'filename':
+            value = self._filename
+        elif param == 'lastimagename':
+            path = self._limacdd.read_attribute('saving_directory').value
+            prefix = self._limacdd.read_attribute('saving_prefix').value
+            suffix = self._limacdd.read_attribute('saving_suffix').value
+            nr = self._limacdd.read_attribute('saving_next_number').value - 1
+            value = '%s/%s_%s.%s' % (path, prefix, nr, suffix)
+        elif param == 'detectorname':
+            value = self._det_name
+        elif param == 'savingformat':
+            value = self._saving_format
+        else:
+            value = super(LimaCoTiCtrl, self).GetCtrlPar(parameter)
+        return value
+
+################################################################################
+#                Code needed for sardana 2.2.2
+################################################################################
     def SetAxisExtraPar(self, axis, name, value):
-        if name == 'ExposureTime':
-            self.LimaDevice.write_attribute('acq_expo_time', value)
-        elif name == 'LatencyTime':
-            self.LimaDevice.write_attribute('latency_time', value)
-        elif name == 'NbFrames':
-            self.LimaDevice.write_attribute('acq_nb_frames', value)
-        elif name == 'TriggerMode':
-            TrigList = ['INTERNAL_TRIGGER',
-                        'EXTERNAL_TRIGGER',
-                        'EXTERNAL_TRIGGER_MULTI',
-                        'EXTERNAL_GATE',
-                        'EXTERNAL_START_STOP']
-            if value in TrigList:
-                self.LimaDevice.write_attribute('acq_trigger_mode', value)
-            else:
-                self._log.error('Attribute TriggerMode: ' +
-                                'Not supported trigger mode (%s).' % value)
-        elif name == 'FilePrefix':
-            self.LimaDevice.write_attribute('saving_prefix', value)
-        elif name == 'FileFormat':
-            self.LimaDevice.write_attribute('saving_format', value)
-        elif name == 'FileDir':
-            self.LimaDevice.write_attribute('saving_directory', value)
-        elif name == 'NextNumber':
-            self.LimaDevice.write_attribute('saving_next_number', value)
+        name = name.lower()
+        if name == 'samplingfrequency':
+            self._sampling_frequency = value
+        elif name == 'triggermode':
+            if value == 'soft':
+                self._trigger_mode = self._software_trigger
+            elif value == 'gate':
+                self._trigger_mode = self._hardware_trigger
+        elif name == 'nroftriggers':
+            self._no_of_triggers = value
+        elif name == 'acquisitiontime':
+            self._acquisition_time = value
 
     def GetAxisExtraPar(self, axis, name):
-        if name == 'ExposureTime':
-            value = self.LimaDevice.read_attribute('acq_expo_time').value
-            self._log.debug('ExposureTime: %s' % value)
-            return value
-        elif name == 'LatencyTime':
-            value = self.LimaDevice.read_attribute('latency_time').value
-            self._log.debug('LatencyTime: %s' % value)
-            return value
-        elif name == 'NbFrames':
-            value = self.LimaDevice.read_attribute('acq_nb_frames').value
-            self._log.debug('NbFrames: %s' % value)
-            return value
-        elif name == 'TriggerMode':
-            value = self.LimaDevice.read_attribute('acq_trigger_mode').value
-            self._log.debug('TriggerMode: %s' % value)
-            return value
-        elif name == 'FilePrefix':
-            value = self.LimaDevice.read_attribute('saving_prefix').value
-            self._log.debug('FilePrefix: %s' % value)
-            return value
-        elif name == 'FileFormat':
-            value = self.LimaDevice.read_attribute('saving_format').value
-            self._log.debug('FileFormat: %s' % value)
-            return value
-        elif name == 'FileDir':
-            value = self.LimaDevice.read_attribute('saving_directory').value
-            self._log.debug('FileDir: %s' % value)
-            return value
-        elif name == 'NextNumber':
-            value = self.LimaDevice.read_attribute('saving_next_number').value
-            self._log.debug('NextNumber: %s' % value)
-            return value
-        elif name == 'LastImageReady':
-            value = self.LimaDevice.read_attribute('last_image_ready').value
-            self._log.debug('LastImageReady: %s' % value)
-            return value
-        elif name == 'ImageFileName':
-            return self.filename
+        name = name.lower()
+        result = None
+        if name == 'samplingfrequency':
+            result = self._sampling_frequency
+        elif name == 'triggermode':
+            if self._trigger_mode == self._software_trigger:
+                result = 'soft'
+            else:
+                result = 'gate'
+        elif name == 'nroftriggers':
+            result = self._no_of_triggers
+        elif name == 'acquisitiontime':
+            result = self._acquisition_time
+        elif name.lower() == 'data':
+            self.ReadAll()
+            result = self.ReadOne(axis)
+        return result
+
+    def SendToCtrl(self, cmd):
+        cmd = cmd.lower()
+        words = cmd.split(' ')
+        ret = 'Unknown command'
+        if len(words) == 2:
+            action = words[0]
+            axis = int(words[1])
+            if action == 'pre-start':
+                self._log.debug('SendToCtrl(%s): pre-starting channel %d' %
+                                (cmd, axis))
+                if axis == 1:
+                    self.LoadOne(1, self._acquisition_time,
+                                 self._no_of_triggers)
+                    self.PreStartAll()
+                    ret = 'Prestart did it'
+                else:
+                    ret = 'Only axis 1 can prepare the DS'
+            elif action == 'start':
+                self._log.debug('SendToCtrl(%s): starting channel %d' %
+                                (cmd, axis))
+                if axis == 1:
+                    self.StartAll()
+                    ret = 'Acquisition started'
+                else:
+                    ret = 'Only axis 1 can start the DS'
+            elif action == 'pre-stop':
+                self._log.debug('SendToCtrl(%s): pre-stopping channel %d' %
+                                (cmd, axis))
+                ret = 'No implemented'
+            elif action == 'stop':
+                self._log.debug('SendToCtrl(%s): stopping channel %d' %
+                                (cmd, axis))
+                if axis == 1:
+                    self.AbortOne(1)
+                    ret = "Acquisition stopped"
+                else:
+                    ret = 'Only axis 1 can stop the DS'
+        return ret
