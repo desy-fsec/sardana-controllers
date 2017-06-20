@@ -5,19 +5,21 @@ import PyTango
 from sardana import State
 from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, MaxDimSize, \
-    Memorized
+    Memorized, DefaultValue
 
 
 class LimaCoTiCtrl(CounterTimerController):
-    """
-    This class is a Tango Sardana Counter Timer Controller for any
+    """This class is a Tango Sardana Counter Timer Controller for any
     Lima Device. This controller is used as an alternative to current
     2D controller. It has a single (master) axis which it provides the
-    integration time as a value of an experimental channel in a measurement 
-    group.
-    """
+    image name as a value of an experimental channel in a measurement group.
+    The returned value is a string, which has been defined bby overwriting
+    the current axis attribute Value but as a string.
+    This controller avoids passing the image which was known to slow the
+    acquisition process ans can be used as a workaround before the full
+    integration of the 2D Sardana controller."""
 
-    gender = "LimaCounterTimer"
+    gender = "LimaCounterTimerController"
     model = "Basic"
     organization = "CELLS - ALBA"
     image = "Lima_ctrl.png"
@@ -48,6 +50,12 @@ class LimaCoTiCtrl(CounterTimerController):
             Description: 'Saving format',
             Access: DataAccess.ReadWrite,
             Memorize: Memorized},
+        'ExpectedSavingImages': {
+            Type: int,
+            Description: 'Expected Images to Save using Lima',
+            Access: DataAccess.ReadWrite,
+            Memorize: NotMemorized,
+            DefaultValue: 0},
         }
 
     axis_attributes = {
@@ -106,6 +114,7 @@ class LimaCoTiCtrl(CounterTimerController):
         self._int_time = 0
         self._latency_time = 0
         self._trigger_mode = None
+        self._expectedsavingimages = 0
         self._software_trigger = self.SoftwareSync
         self._hardware_trigger = self.HardwareSync
         self._saving_format = ''
@@ -121,8 +130,10 @@ class LimaCoTiCtrl(CounterTimerController):
             self._last_image_read = -1
             self._repetitions = 0
             self._trigger_mode = self._software_trigger
-            #self._filename = ''
             self._new_data = False
+            if self._expectedsavingimages == 0:
+                self._filename = ''
+
 
     def _prepare_saving(self):
         if len(self._filename) > 0:
@@ -171,12 +182,13 @@ class LimaCoTiCtrl(CounterTimerController):
                 self._clean_acquisition()
                 self._state = State.On
                 self._status = 'The LimaCCD is ready to acquire'
+
         else:
             self._state = State.Fault
             self._status = 'The LimaCCD state is: %s' % self._hw_state
 
     def StateOne(self, axis):
-        self._log.debug('StateOne(%r): %r' %(axis,self._state))
+        #self._log.debug('StateOne(%r): %r' %(axis,self._state))
 
         return self._state, self._status
 
@@ -203,7 +215,14 @@ class LimaCoTiCtrl(CounterTimerController):
         return True
 
     def StartAll(self):
+      
         self._limacdd.startAcq()
+        if self._expectedsavingimages > 0:
+            if self._trigger_mode == self._software_trigger:              
+                self._expectedsavingimages -= 1
+            else:
+                self._expectedsavingimages = 0
+          
 
     def ReadAll(self):
         new_image_ready = 0
@@ -235,7 +254,7 @@ class LimaCoTiCtrl(CounterTimerController):
         if self._trigger_mode == self._software_trigger:
             if not self._new_data:
                 raise Exception('Acquisition did not finish correctly. LimaCCD '
-                                'State %r' % self._hw_state)            
+                                'State %r' % self._hw_state)  
             return self._data_buff[axis][0]
         else:
             if not self._new_data:
@@ -246,6 +265,7 @@ class LimaCoTiCtrl(CounterTimerController):
 
     def AbortOne(self, axis):
         self.StateAll()
+        self._expectedsavingimages = 0
         if self._hw_state != 'Ready':
             self._limacdd.stopAcq()
             self._clean_acquisition()
@@ -273,7 +293,9 @@ class LimaCoTiCtrl(CounterTimerController):
             prefix = self._limacdd.read_attribute('saving_prefix').value
             suffix = self._limacdd.read_attribute('saving_suffix').value
             nr = self._limacdd.read_attribute('saving_next_number').value - 1
-            value = '%s/%s_%s.%s' % (path, prefix, nr, suffix)
+            index_format =  self._limacdd.read_attribute('saving_index_format').value            
+            nr_formated = index_format % nr
+            value = '%s/%s%s%s' % (path, prefix, nr_formated, suffix)
         elif param == 'detectorname':
             value = self._det_name
         elif param == 'savingformat':
@@ -298,7 +320,9 @@ class LimaCoTiCtrl(CounterTimerController):
             self._no_of_triggers = value
         elif name == 'acquisitiontime':
             self._acquisition_time = value
-
+        elif name == 'ExpectedSavingImages':            
+            self._expectedsavingimages = value
+            
     def GetAxisExtraPar(self, axis, name):
         name = name.lower()
         result = None
@@ -316,6 +340,8 @@ class LimaCoTiCtrl(CounterTimerController):
         elif name.lower() == 'data':
             self.ReadAll()
             result = self.ReadOne(axis)
+        elif name == 'expectedSavingImages':            
+            result = self._expectedsavingimages
         return result
 
     def SendToCtrl(self, cmd):
