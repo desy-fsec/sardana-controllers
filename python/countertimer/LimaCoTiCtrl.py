@@ -215,7 +215,6 @@ class LimaCoTiCtrl(CounterTimerController):
         return True
 
     def StartAll(self):
-      
         self._limacdd.startAcq()
         if self._expectedsavingimages > 0:
             if self._trigger_mode == self._software_trigger:              
@@ -281,6 +280,8 @@ class LimaCoTiCtrl(CounterTimerController):
             self._det_name = value
         elif param == 'savingformat':
             self._saving_format = value
+        elif param == 'expectedsavingimages': 
+            self._expectedsavingimages = value            
         else:
             super(LimaCoTiCtrl, self).SetCtrlPar(parameter, value)
 
@@ -300,6 +301,8 @@ class LimaCoTiCtrl(CounterTimerController):
             value = self._det_name
         elif param == 'savingformat':
             value = self._saving_format
+        elif param == 'expectedsavingimages':            
+            value = self._expectedsavingimages            
         else:
             value = super(LimaCoTiCtrl, self).GetCtrlPar(parameter)
         return value
@@ -320,8 +323,7 @@ class LimaCoTiCtrl(CounterTimerController):
             self._no_of_triggers = value
         elif name == 'acquisitiontime':
             self._acquisition_time = value
-        elif name == 'ExpectedSavingImages':            
-            self._expectedsavingimages = value
+
             
     def GetAxisExtraPar(self, axis, name):
         name = name.lower()
@@ -340,8 +342,6 @@ class LimaCoTiCtrl(CounterTimerController):
         elif name.lower() == 'data':
             self.ReadAll()
             result = self.ReadOne(axis)
-        elif name == 'expectedSavingImages':            
-            result = self._expectedsavingimages
         return result
 
     def SendToCtrl(self, cmd):
