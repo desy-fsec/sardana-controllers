@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from sardana.pool.controller import Type, Description
-from LimaCoTiCtrl import LimaCoTiCtrl
+from LimaCoTiCtrl import LimaCoTiCtrl, HW_TRIG, SW_TRIG
 import PyTango
 
 
@@ -40,26 +40,34 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
         self._nr_channels = self._xspress3.read_attribute('numChan').value
         self.MaxDevice = (self._nr_channels * 2) + 1
         self._last_dt_read = -1
+        self._new_data_dt = False 
 
     def _get_values(self, image_nr):
         # TODO optimize reading
         for channel in range(self._nr_channels):
-            data = self._xspress3.ReadScalers(image_nr, channel)
-            base_axis = channel + 2
+            data = self._xspress3.ReadScalers([image_nr, channel])
+            dt = (channel + 1) * 2
+            dtf = dt + 1
             # dt value
-            if base_axis in self._data_buff:
-                self._data_buff[base_axis] += [data[9]]
+            if dt in self._data_buff:
+                self._data_buff[dt] += [data[9]]
             # dtf value
-            if (base_axis+1) in self._data_buff:
-                self._data_buff[base_axis + 1] += [data[10]]
+            if dtf in self._data_buff:
+                self._data_buff[dtf] += [data[10]]
+       
+    def _clean_acquisition(self):
+        LimaCoTiCtrl._clean_acquisition(self)
+        self._last_dt_read = self._last_image_read
+        self._new_data_dt = False 
 
     def _clean_data(self):
         for channel in range(self._nr_channels):
-            base_axis = channel + 2
-            if base_axis in self._data_buff:
-                self._data_buff[base_axis] = []
-            if (base_axis+1) in self._data_buff:
-                self._data_buff[base_axis + 1] = []
+            dt = (channel + 1) * 2
+            dtf = dt + 1
+            if dt in self._data_buff:
+                self._data_buff[dt] = []
+            if dtf in self._data_buff:
+                self._data_buff[dtf] = []
 
     def AddDevice(self, axis):
         if axis == 1:
@@ -71,9 +79,8 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
         LimaCoTiCtrl.ReadAll(self)
         if not self._new_data:
             return
-
         self._clean_data()
-        if self._trigger_mode == self._software_trigger:
+        if self._trigger_mode == SW_TRIG:
             self._get_values(0)
         else:
             self._last_dt_read += 1
@@ -81,15 +88,17 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
             for i in range(nr_images):
                 image_nr = self._last_dt_read + i
                 self._get_values(image_nr)
+            self._new_data_dt = True
+            self._last_dt_read = self._last_image_read
 
     def ReadOne(self, axis):
         if axis == 1:
             return LimaCoTiCtrl.ReadOne(self, axis)
         else:
-            if self._trigger_mode == self._software_trigger:
+            if self._trigger_mode == SW_TRIG:
                 return self._data_buff[axis][0]
             else:
-                if not self._new_data:
+                if not self._new_data_dt:
                     return []
                 else:
                     return self._data_buff[axis]

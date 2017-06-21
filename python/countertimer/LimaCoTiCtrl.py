@@ -7,6 +7,8 @@ from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, MaxDimSize, \
     Memorized, DefaultValue
 
+HW_TRIG = 'gate'
+SW_TRIG = 'soft'
 
 class LimaCoTiCtrl(CounterTimerController):
     """This class is a Tango Sardana Counter Timer Controller for any
@@ -129,11 +131,10 @@ class LimaCoTiCtrl(CounterTimerController):
         if self._last_image_read != -1:
             self._last_image_read = -1
             self._repetitions = 0
-            self._trigger_mode = self._software_trigger
+            self._trigger_mode = SW_TRIG
             self._new_data = False
             if self._expectedsavingimages == 0:
                 self._filename = ''
-
 
     def _prepare_saving(self):
         if len(self._filename) > 0:
@@ -144,8 +145,9 @@ class LimaCoTiCtrl(CounterTimerController):
             frame_per_file = 1
             if self._saving_format == 'HDF5':
                 suffix = 'h5'
-                frame_per_file = self._repetitions
-
+            #     if self._expectedsavingimages != 0:
+            #         frame_per_file = self._expectedsavingimages
+            
             self._limacdd.write_attribute('saving_frame_per_file',
                                           frame_per_file)
             self._limacdd.write_attribute('saving_format', self._saving_format)
@@ -199,16 +201,20 @@ class LimaCoTiCtrl(CounterTimerController):
         self._int_time = value
         if repetitions is None:
             self._repetitions = 1
-            self._trigger_mode = self._software_trigger
+            self._trigger_mode = SW_TRIG
+            acq_trigger_mode = self._software_trigger
         else:
             self._repetitions = repetitions
-            self._trigger_mode = self._hardware_trigger
-
-        self._prepare_saving()
+            self._trigger_mode = HW_TRIG
+            acq_trigger_mode = self._hardware_trigger
+        
+        
         self._limacdd.write_attribute('acq_expo_time', self._int_time)
         self._limacdd.write_attribute('acq_nb_frames', self._repetitions)
         self._limacdd.write_attribute('latency_time', self._latency_time)
-        self._limacdd.write_attribute('acq_trigger_mode', self._trigger_mode)
+        self._limacdd.write_attribute('acq_trigger_mode', acq_trigger_mode)
+        self._prepare_saving()
+        
 
     def PreStartAll(self):
         self._limacdd.prepareAcq()
@@ -217,7 +223,7 @@ class LimaCoTiCtrl(CounterTimerController):
     def StartAll(self):
         self._limacdd.startAcq()
         if self._expectedsavingimages > 0:
-            if self._trigger_mode == self._software_trigger:              
+            if self._trigger_mode == SW_TRIG:
                 self._expectedsavingimages -= 1
             else:
                 self._expectedsavingimages = 0
@@ -226,7 +232,7 @@ class LimaCoTiCtrl(CounterTimerController):
     def ReadAll(self):
         new_image_ready = 0
         self._new_data = True
-        if self._trigger_mode == self._software_trigger:
+        if self._trigger_mode == SW_TRIG:
             if self._hw_state != 'Ready':
                 self._new_data = False
                 return
@@ -234,7 +240,7 @@ class LimaCoTiCtrl(CounterTimerController):
           
         else:
             attr = 'last_image_ready'
-            new_image_ready = self._limacdd(attr).value
+            new_image_ready = self._limacdd.read_attribute(attr).value
             if new_image_ready == self._last_image_read:
                 self._new_data = False
                 return
@@ -250,7 +256,7 @@ class LimaCoTiCtrl(CounterTimerController):
         self._log.debug('Entering in  ReadOn')
         self._log.debug(self._trigger_mode)
         self._log.debug(self._new_data)
-        if self._trigger_mode == self._software_trigger:
+        if self._trigger_mode == SW_TRIG:
             if not self._new_data:
                 raise Exception('Acquisition did not finish correctly. LimaCCD '
                                 'State %r' % self._hw_state)  
@@ -315,10 +321,7 @@ class LimaCoTiCtrl(CounterTimerController):
         if name == 'samplingfrequency':
             self._sampling_frequency = value
         elif name == 'triggermode':
-            if value == 'soft':
-                self._trigger_mode = self._software_trigger
-            elif value == 'gate':
-                self._trigger_mode = self._hardware_trigger
+            self._trigger_mode = value
         elif name == 'nroftriggers':
             self._no_of_triggers = value
         elif name == 'acquisitiontime':
@@ -331,10 +334,7 @@ class LimaCoTiCtrl(CounterTimerController):
         if name == 'samplingfrequency':
             result = self._sampling_frequency
         elif name == 'triggermode':
-            if self._trigger_mode == self._software_trigger:
-                result = 'soft'
-            else:
-                result = 'gate'
+            result = self._trigger_mode
         elif name == 'nroftriggers':
             result = self._no_of_triggers
         elif name == 'acquisitiontime':
