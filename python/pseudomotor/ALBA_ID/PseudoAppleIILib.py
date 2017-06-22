@@ -1,11 +1,13 @@
 """ The standard pseudo motor controller library for the device pool """
 
-from sardana.pool.controller import PseudoMotorController
-#from pool import PseudoMotorController, PoolUtil
-
 from math import *
 import traceback
 import numpy
+
+from sardana.pool.controller import PseudoMotorController, Type, \
+    Description, Access, DataAccess, Memorize, NotMemorized, MaxDimSize, \
+    Memorized, DefaultValue
+
 
 class PseudoAppleII(PseudoMotorController):
     """ """
@@ -17,25 +19,19 @@ class PseudoAppleII(PseudoMotorController):
     logo = "ALBA_logo.png"
 
     ctrl_extra_attributes = {
-        'Offset': {'Type': 'PyTango.DevDouble',
-                   'R/W Type': 'PyTango.READ_WRITE'},
-        'Acceleration': {'Type': 'PyTango.DevDouble',
-                         'R/W Type': 'PyTango.READ_WRITE'},
-        'Deceleration': {'Type': 'PyTango.DevDouble',
-                         'R/W Type': 'PyTango.READ_WRITE'},
-        'Velocity': {'Type': 'PyTango.DevDouble',
-                     'R/W Type': 'PyTango.READ_WRITE',
-                     'memorized': 'false'},
-        'Base_rate': {'Type': 'PyTango.DevDouble',
-                      'R/W Type': 'PyTango.READ_WRITE'},
-        'AlwaysZero': {'Type': 'PyTango.DevBoolean',
-                       'R/W Type': 'PyTango.READ_WRITE'}}
+        'Offset': {Type: float, Access: DataAccess.ReadWrite},
+        'Acceleration': {Type: float, Access: DataAccess.ReadWrite},
+        'Deceleration': {Type: float, Access: DataAccess.ReadWrite},
+        'Velocity': {Type: float, Access: DataAccess.ReadWrite,
+                     Memorize: NotMemorized},
+        'Base_rate': {Type: float, Access: DataAccess.ReadWrite},
+        'AlwaysZero': {Type: bool, Access: DataAccess.ReadWrite}}
     
     pseudo_motor_roles = ("GapLeft", "GapRight", "Offset", "Taper")
     motor_roles = ("Z1", "Z2", "Z3", "Z4")
 
     def __init__(self,inst,props, *args, **kwargs):
-        PseudoMotorController.__init__(self,inst,props, *args, **kwargs)
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         self.offsets = {}
         self.AlwaysZero = {}
 
@@ -163,22 +159,18 @@ class PseudoPhaseAppleII(PseudoMotorController):
     logo = "ALBA_logo.png"
     
     ctrl_extra_attributes = {
-        'Offset': {'Type': 'PyTango.DevDouble',
-                   'R/W Type': 'PyTango.READ_WRITE'},
-        'Acceleration': {'Type': 'PyTango.DevDouble',
-                         'R/W Type': 'PyTango.READ_WRITE'},
-        'Deceleration': {'Type': 'PyTango.DevDouble',
-                         'R/W Type': 'PyTango.READ_WRITE'},
-        'Velocity': {'Type': 'PyTango.DevDouble',
-                     'R/W Type': 'PyTango.READ_WRITE'},
-        'Base_rate': {'Type': 'PyTango.DevDouble',
-                      'R/W Type': 'PyTango.READ_WRITE'}}
+        'Offset': {Type: float, Access: DataAccess.ReadWrite},
+        'Acceleration': {Type: float, Access: DataAccess.ReadWrite},
+        'Deceleration': {Type: float, Access: DataAccess.ReadWrite},
+        'Velocity': {Type: float, Access: DataAccess.ReadWrite},
+        'Base_rate': {Type: float, Access: DataAccess.ReadWrite},
+    }
 
     pseudo_motor_roles = ("Phase", "AntiPhase")
     motor_roles = ("Y1", "Y2")
 
-    def __init__(self,inst,props, *args, **kwargs):
-        PseudoMotorController.__init__(self,inst,props, *args, **kwargs)
+    def __init__(self, inst, props, *args, **kwargs):
+        PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         self.offsets = {}
 
         self.Acceleration = {}
@@ -239,9 +231,9 @@ class PseudoPhaseAppleII(PseudoMotorController):
             return self.Deceleration[ind]
         elif name == "Velocity":
             vel = self.read_all_motors(name)
-            if ind==1:
+            if ind == 1:
                 self.Velocity[ind] = 2*vel
-            if ind==2:
+            if ind == 2:
                 self.Velocity[ind] = vel
             return self.Velocity[ind]
         elif name == "Base_rate":
