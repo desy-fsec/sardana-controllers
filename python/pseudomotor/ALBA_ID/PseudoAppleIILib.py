@@ -1,12 +1,9 @@
 """ The standard pseudo motor controller library for the device pool """
 
-from math import *
 import traceback
 import numpy
-
 from sardana.pool.controller import PseudoMotorController, Type, \
-    Description, Access, DataAccess, Memorize, NotMemorized, MaxDimSize, \
-    Memorized, DefaultValue
+    Description, Access, DataAccess, Memorize, NotMemorized, DefaultValue
 
 
 class PseudoAppleII(PseudoMotorController):
@@ -149,6 +146,7 @@ class PseudoAppleII(PseudoMotorController):
         except Exception as e:
             print "PseudoAppleII Exception", e
 
+
 class PseudoPhaseAppleII(PseudoMotorController):
     """ """
     
@@ -200,7 +198,7 @@ class PseudoPhaseAppleII(PseudoMotorController):
         if index == 2:# y2
             return y2
       
-    def calc_pseudo(self,index,physical_pos):
+    def calc_pseudo(self, index, physical_pos):
         y10 = self.offsets[1]
         y20 = self.offsets[2]
         y1 = physical_pos[0] - y10
@@ -218,7 +216,7 @@ class PseudoPhaseAppleII(PseudoMotorController):
         if index == 2:# antiphase
             return antiphase
 
-    def read_all_motors(self,name):
+    def read_all_motors(self, name):
         try:
             m1 = self.GetMotor(0)
             m2 = self.GetMotor(1)
@@ -231,7 +229,7 @@ class PseudoPhaseAppleII(PseudoMotorController):
             print "Err in read ", name, str(e)
             traceback.print_exc()
         
-    def GetExtraAttributePar(self,ind,name):
+    def GetExtraAttributePar(self, ind, name):
         if name == "Offset":
             return self.offsets[ind]
         elif name == "Acceleration":
@@ -251,9 +249,9 @@ class PseudoPhaseAppleII(PseudoMotorController):
             self.Base_rate[ind] = self.read_all_motors(name)
             return self.Base_rate[ind]
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetExtraAttributePar(self, ind, name, value):
         try:
-            print "Set Phases",ind,name,value
+            print "Set Phases", ind, name, value
             if name == "Offset":
                 self.offsets[ind] = value
             elif name == "Acceleration":
