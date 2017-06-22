@@ -40,7 +40,6 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
         self._nr_channels = self._xspress3.read_attribute('numChan').value
         self.MaxDevice = (self._nr_channels * 2) + 1
         self._last_dt_read = -1
-        self._new_data_dt = False 
 
     def _get_values(self, image_nr):
         # TODO optimize reading
@@ -58,7 +57,6 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
     def _clean_acquisition(self):
         LimaCoTiCtrl._clean_acquisition(self)
         self._last_dt_read = self._last_image_read
-        self._new_data_dt = False 
 
     def _clean_data(self):
         for channel in range(self._nr_channels):
@@ -88,7 +86,6 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
             for i in range(nr_images):
                 image_nr = self._last_dt_read + i
                 self._get_values(image_nr)
-            self._new_data_dt = True
             self._last_dt_read = self._last_image_read
 
     def ReadOne(self, axis):
@@ -98,7 +95,4 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
             if self._trigger_mode == SW_TRIG:
                 return self._data_buff[axis][0]
             else:
-                if not self._new_data_dt:
-                    return []
-                else:
-                    return self._data_buff[axis]
+                return self._data_buff[axis]
