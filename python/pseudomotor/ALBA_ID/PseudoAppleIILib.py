@@ -166,6 +166,10 @@ class PseudoPhaseAppleII(PseudoMotorController):
         'Base_rate': {Type: float, Access: DataAccess.ReadWrite},
     }
 
+    ctrl_properties = {
+        'IDName': {Type: str, Description: 'ID Name', DefaultValue: ' '}
+    }
+
     pseudo_motor_roles = ("Phase", "AntiPhase")
     motor_roles = ("Y1", "Y2")
 
@@ -186,7 +190,10 @@ class PseudoPhaseAppleII(PseudoMotorController):
         y10 = self.offsets[1]
         y20 = self.offsets[2]
         y1 = y10 + (phase + antiphase)
-        y2 = y20 + (phase - antiphase)
+        if self.IDName.lower() == 'lorea':
+            y2 = y20 - (phase - antiphase)
+        else:
+            y2 = y20 + (phase - antiphase)
         
         if index == 1:# y1
             return y1
@@ -198,9 +205,13 @@ class PseudoPhaseAppleII(PseudoMotorController):
         y20 = self.offsets[2]
         y1 = physical_pos[0] - y10
         y2 = physical_pos[1] - y20
-        
-        phase = (y1+y2)/2.0
-        antiphase = (y1-y2)/2.0
+
+        if self.IDName.lower() == 'lorea':
+            phase = (y1-y2)/2.0
+            antiphase = (y1+y2)/2.0
+        else:
+            phase = (y1+y2)/2.0
+            antiphase = (y1-y2)/2.0
         
         if index == 1:# phase
             return phase
