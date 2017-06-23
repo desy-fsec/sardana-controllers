@@ -73,7 +73,7 @@ class LimaRoICounterCtrl(CounterTimerController):
 
     # The command readCounters returns roi_id,frame number,sum,average,std,
     # min,max,...
-    IDX_ROI_NR = 0
+    IDX_ROI_ID = 0
     IDX_IMAGE_NR = 1
     IDX_SUM = 2
     IDX_AVERAGE = 3
@@ -92,10 +92,13 @@ class LimaRoICounterCtrl(CounterTimerController):
             raise RuntimeError('__init__(): Could not create a device proxy '
                                'from following device name: %s.\nException: '
                                '%s ' % (self.LimaROIDeviceName, e))
+        
         self._limaroi.Stop()
+        self._limaroi.clearAllRois()
         self._limaroi.Start()
         self._limaroi.write_attribute('BufferSize', self.LimaROIBufferSize)
         self._rois = {}
+        self._rois_id = {}
         self._data_buff = {}
         self._state = None
         self._status = None
@@ -103,10 +106,11 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._trigger_mode = None
         self._no_of_triggers = None
         self._acquisition_time = None
-        self._start_ct = False
         self._repetitions = 0
         self._last_image_read = -1
         self._last_image_ready = -1
+        self._load_one = False 
+        self._start = False 
 
     def _clean_acquisition(self):
         if self._last_image_read != -1:
@@ -114,29 +118,32 @@ class LimaRoICounterCtrl(CounterTimerController):
             self._last_image_ready = -1
             self._repetitions = 0
             self._trigger_mode = SW_TRIG
-            self._start_ct = False
+            self._load_one = False
+            self._start = False 
+
 
     def AddDevice(self, axis):
-        name = ["roi" + str(axis)]
         self._rois[axis] = {}
-        self._rois[axis]['name'] = 'roi_%d' % axis
-        roi_id = self._limaroi.addNames(name)[0]
-        self._rois[axis]['id'] = roi_id
-        roi = [roi_id, 0, 0, 1, 1]
-        self._limaroi.setRois(roi)
+        roi_name = 'roi_%d' % axis
+        self._rois[axis]['name'] = roi_name 
+        self._rois[axis]['roi'] = [0, 0, 1, 1]
         self._data_buff[axis] = []
+        roi_id = self._limaroi.addNames([roi_name])[0]
+        self._rois_id[roi_id] = axis
+        self._rois[axis]['id'] = roi_id
+        roi =[roi_id] + self._rois[axis]['roi']
+        self._limaroi.setRois(roi)
 
     def DeleteDevice(self, axis):
-        roi_name = self._rois[axis]['name']
-        self._limaroi.removeRois(roi_name)
         self._data_buff.pop(axis)
         self._rois.pop(axis)
-
+        roi_id = self._rois[axis]['id']
+        self._rois_id.pop(roi_id)
+        
     def StateAll(self):
         attr = 'CounterStatus'
         self._last_image_ready = self._limaroi.read_attribute(attr).value
-
-        if self._last_image_read < (self._repetitions - 1):
+        if self._last_image_ready < (self._repetitions - 1) and self._last_image_ready != -2:
             self._state = State.Moving
             self._status = 'Taking data'
         else:
@@ -151,54 +158,56 @@ class LimaRoICounterCtrl(CounterTimerController):
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions=None):
+        self._load_one = True
         if repetitions is None:
             self._repetitions = 1
             self._trigger_mode = SW_TRIG
         else:
             self._repetitions = repetitions
             self._trigger_mode = HW_TRIG
+    
+    def StartAll(self):
+        self._start = True
 
     def ReadAll(self):
-        if self._last_image_ready > self._last_image_read:
+        if self._last_image_ready != self._last_image_read:
             for axis in self._data_buff.keys():
                 self._data_buff[axis] = []
             self._last_image_read += 1
             rois_data = self._limaroi.readCounters(self._last_image_read)
             for base_idx in range(0, len(rois_data), 7):
-                roi_nr_idx = base_idx + self.IDX_ROI_NR
-                roi_nr = rois_data[roi_nr_idx]
-                if roi_nr in self._data_buff:
+                roi_id_idx = base_idx + self.IDX_ROI_ID
+                roi_id = rois_data[roi_id_idx]
+                axis = self._rois_id[roi_id]
+                if axis in self._data_buff:
                     sum_idx = base_idx + self.IDX_SUM
-                    self._data_buff[roi_nr] += [rois_data[sum_idx]]
+                    self._data_buff[axis] += [rois_data[sum_idx]]
             self._last_image_read = self._last_image_ready
 
     def ReadOne(self, axis):
+        print 'ROI trigger' , self._trigger_mode
         if self._trigger_mode == SW_TRIG:
             if len(self._data_buff[axis]) == 0:
                 raise Exception('Acquisition did not finish correctly.')
             value = self._data_buff[axis][0]
         else:
             value = self._data_buff[axis]
+        print self._data_buff
         return value
-
-    def StartAllCT(self):
-        state = self._limaroi.state()
-        if state == PyTango.DevState.OFF:
-            self._limaroi.start()
 
     def GetExtraAttributePar(self, axis, name):
         name = name.lower()
         result = None
         if 'roi' in name:
-            roi = self._limaroi.getRois(self._rois[axis]['id'])
+            roi = self._rois[axis]['roi']
             if name == "roix1":
-                result = roi[1]
+                result = roi[0]
             elif name == "roix2":
-                result = roi[1] + roi[3]
-            elif name == "roiy1":
                 result = roi[2]
+            elif name == "roiy1":
+                result = roi[1]
             elif name == "roiy2":
-                result = roi[2] + roi[4]
+                result = roi[3]
         elif name == 'samplingfrequency':
             result = self._sampling_frequency
         elif name == 'triggermode':
@@ -215,16 +224,19 @@ class LimaRoICounterCtrl(CounterTimerController):
     def SetExtraAttributePar(self, axis, name, value):
         name = name.lower()
         if 'roi' in name:
-            roi = self._limaroi.getRois(self._rois[axis]['id'])
+            roi = self._rois[axis]['roi']
             if name == "roix1":
-                roi[1] = value
+                roi[0] = value
             elif name == "roix2":
-                roi[3] = value - roi[1]
-            elif name == "roiy1":
                 roi[2] = value
+            elif name == "roiy1":
+                roi[1] = value
             elif name == "roiy2":
-                roi[4] = value - roi[2]
-            self._limaroi.setRois(roi)
+                roi[3] = value
+            self._rois[axis]['roi'] = roi
+            roi_id = self._rois[axis]['id']
+            new_roi = [roi_id] + roi
+            self._limaroi.setRois(new_roi)
         elif name == 'samplingfrequency':
             self._sampling_frequency = value
         elif name == 'triggermode':
@@ -244,16 +256,15 @@ class LimaRoICounterCtrl(CounterTimerController):
             if action == 'pre-start':
                 self._log.debug('SendToCtrl(%s): pre-starting channel %d' %
                                 (cmd, axis))
-                if not self._start_ct:
+                if not self._load_one:
                     self.LoadOne(axis, self._acquisition_time,
                                  self._no_of_triggers)
 
             elif action == 'start':
                 self._log.debug('SendToCtrl(%s): starting channel %d' %
                                 (cmd, axis))
-                if not self._start_ct:
+                if not self._start:
                     self.StartAll()
-                    self._start_ct = True
                 ret = 'Acquisition started'
             elif action == 'pre-stop':
                 self._log.debug('SendToCtrl(%s): pre-stopping channel %d' %
@@ -262,7 +273,7 @@ class LimaRoICounterCtrl(CounterTimerController):
             elif action == 'stop':
                 self._log.debug('SendToCtrl(%s): stopping channel %d' %
                                 (cmd, axis))
-                self._start_ct = False
+                self._clean_acquisition()
                 ret = 'No implemented'
 
         return ret
