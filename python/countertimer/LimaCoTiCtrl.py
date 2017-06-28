@@ -58,6 +58,13 @@ class LimaCoTiCtrl(CounterTimerController):
             Access: DataAccess.ReadWrite,
             Memorize: NotMemorized,
             DefaultValue: 0},
+        'SavingFolderName': {
+            Type: str,
+            Description: 'The folder name to save the images SCANDIR + '
+                         'SavingFolderName',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized
+        },
         }
 
     axis_attributes = {
@@ -122,6 +129,8 @@ class LimaCoTiCtrl(CounterTimerController):
         self._saving_format = ''
         self._filename = ''
         self._det_name = ''
+        self._saving_folder_name = ''
+
         # Attributes for the continuous scan sadana 2.2.2
         self._sampling_frequency = 1
         self._no_of_triggers = 1
@@ -139,6 +148,10 @@ class LimaCoTiCtrl(CounterTimerController):
     def _prepare_saving(self):
         if len(self._filename) > 0:
             path, fname = os.path.split(self._filename)
+
+            path = os.path.join(path, self._saving_folder_name)
+            if not os.path.exists(path):
+                os.makedirs(path)
             prefix, _ = os.path.splitext(fname)
             prefix += '_%s_' % self._det_name
             suffix = self._saving_format.lower()
@@ -287,7 +300,9 @@ class LimaCoTiCtrl(CounterTimerController):
         elif param == 'savingformat':
             self._saving_format = value
         elif param == 'expectedsavingimages': 
-            self._expectedsavingimages = value            
+            self._expectedsavingimages = value
+        elif param == 'savingfoldername':
+            self._saving_folder_name = value
         else:
             super(LimaCoTiCtrl, self).SetCtrlPar(parameter, value)
 
@@ -308,7 +323,9 @@ class LimaCoTiCtrl(CounterTimerController):
         elif param == 'savingformat':
             value = self._saving_format
         elif param == 'expectedsavingimages':            
-            value = self._expectedsavingimages            
+            value = self._expectedsavingimages
+        elif param == 'savingfoldername':
+            value = self._saving_folder_name
         else:
             value = super(LimaCoTiCtrl, self).GetCtrlPar(parameter)
         return value
