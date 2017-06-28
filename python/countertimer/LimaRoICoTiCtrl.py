@@ -12,6 +12,8 @@ class LimaRoICounterCtrl(CounterTimerController):
     """
     This class is the Tango Sardana CounterTimer controller for getting the
     Lima RoIs as counters
+
+    Only Tested with LIMA CORE 1.7
     """
 
     gender = "LimaCounterTimer"
@@ -110,7 +112,17 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._last_image_read = -1
         self._last_image_ready = -1
         self._load_one = False 
-        self._start = False 
+        self._start = False
+        event_type = PyTango.EventType.CHANGE_EVENT
+        self.id = self._limaroi.subscribe_event('state', event_type,
+                                                self.statusCallBack)
+        self._log.debug("__init__(%s, %s): Leaving...", repr(inst),
+                        repr(props))
+
+    def statusCallback(self, event):
+        if event.err:
+            self._log.debug("Detected LimaROI DS reconnection, applying ROIS")
+            self._recreate_rois()
 
     def _clean_acquisition(self):
         if self._last_image_read != -1:
@@ -121,6 +133,18 @@ class LimaRoICounterCtrl(CounterTimerController):
             self._load_one = False
             self._start = False 
 
+    def _recreate_rois(self):
+        self._limaroi.clearAllRois()
+        self._limaroi.Start()
+        for axis in self._rois.keys():
+            self._create_roi(axis)
+
+    def _create_roi(self, axis):
+        roi_name = self._rois[axis]['name']
+        roi_id = self._limaroi.addNames([roi_name])[0]
+        self._rois[axis]['id'] = roi_id
+        roi = [roi_id] + self._rois[axis]['roi']
+        self._limaroi.setRois(roi)
 
     def AddDevice(self, axis):
         self._rois[axis] = {}
@@ -128,18 +152,15 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._rois[axis]['name'] = roi_name 
         self._rois[axis]['roi'] = [0, 0, 1, 1]
         self._data_buff[axis] = []
-        roi_id = self._limaroi.addNames([roi_name])[0]
-        self._rois_id[roi_id] = axis
-        self._rois[axis]['id'] = roi_id
-        roi =[roi_id] + self._rois[axis]['roi']
-        self._limaroi.setRois(roi)
+        self._create_roi(axis)
 
     def DeleteDevice(self, axis):
         self._data_buff.pop(axis)
         self._rois.pop(axis)
         roi_id = self._rois[axis]['id']
         self._rois_id.pop(roi_id)
-        
+        self._limaroi.unsubscribe_event(self.id)
+
     def StateAll(self):
         attr = 'CounterStatus'
         self._last_image_ready = self._limaroi.read_attribute(attr).value
