@@ -51,11 +51,6 @@ class VFCADCCtrl(CounterTimerController):
         self.tango_device = []
         self.proxy = []
         self.device_available = []
-	for name in self.devices.value_string:
-            self.tango_device.append(name)
-            self.proxy.append(None)
-            self.device_available.append(0)
-            self.max_device =  self.max_device + 1
         self.started = False
         self.dft_Offset = 0
         self.Offset = []
@@ -65,6 +60,15 @@ class VFCADCCtrl(CounterTimerController):
         self.Polarity = []
         self.dft_FlagReadVoltage = 0
         self.FlagReadVoltage = []
+	for name in self.devices.value_string:
+            self.tango_device.append(name)
+            self.proxy.append(None)
+            self.device_available.append(0)
+            self.max_device =  self.max_device + 1
+            self.Offset.append(self.dft_Offset)
+            self.Gain.append(self.dft_Gain)
+            self.Polarity.append(self.dft_Polarity)
+            self.FlagReadVoltage.append(self.dft_FlagReadVoltage)
         
         
     def AddDevice(self,ind):
@@ -80,10 +84,6 @@ class VFCADCCtrl(CounterTimerController):
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        self.Offset.append(self.dft_Offset)
-        self.Gain.append(self.dft_Gain)
-        self.Polarity.append(self.dft_Polarity)
-        self.FlagReadVoltage.append(self.dft_FlagReadVoltage)
         
         
     def DeleteDevice(self,ind):
