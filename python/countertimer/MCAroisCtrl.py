@@ -69,8 +69,10 @@ class MCAroisCtrl(CounterTimerController):
     def PreReadAll(self):
         if self.proxy.state() != PyTango.DevState.ON:
             self.proxy.command_inout("Stop")
-        self.proxy.command_inout("Read")
-        
+        try:
+            self.proxy.command_inout("Read")
+        except:
+            pass
 
     def PreReadOne(self,ind):
         pass
