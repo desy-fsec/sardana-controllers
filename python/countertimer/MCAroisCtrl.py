@@ -48,6 +48,7 @@ class MCAroisCtrl(CounterTimerController):
         self.proxy = PyTango.DeviceProxy(proxy_name)
         self.start_time = time.time()
         self.exp_time = 0
+        self.scanning = 0
         
         
     def AddDevice(self,ind):
@@ -64,8 +65,10 @@ class MCAroisCtrl(CounterTimerController):
             sta = PyTango.DevState.MOVING
             status_string = "MCA is busy"
         else:
-            self.proxy.command_inout("Stop")
-            self.proxy.command_inout("Read")
+            if self.scanning == 1:
+                self.proxy.command_inout("Stop")
+                self.proxy.command_inout("Read")
+                self.scanning = 0
             sta = PyTango.DevState.ON
             status_string = "MCA is in ON state"
         tup = (sta, status_string)
@@ -106,7 +109,8 @@ class MCAroisCtrl(CounterTimerController):
             self.proxy.command_inout("Clear")
         self.proxy.command_inout("Start")
         self.start_time = time.time()
-		     	
+	self.scanning = 1
+        
     def LoadOne(self,ind,value):
         self.exp_time = value
 	
