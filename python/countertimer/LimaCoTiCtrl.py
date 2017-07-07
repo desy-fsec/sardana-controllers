@@ -63,8 +63,7 @@ class LimaCoTiCtrl(CounterTimerController):
             Description: 'The folder name to save the images SCANDIR + '
                          'SavingFolderName',
             Access: DataAccess.ReadWrite,
-            Memorize: Memorized
-        },
+            Memorize: Memorized},
         }
 
     axis_attributes = {
@@ -203,8 +202,6 @@ class LimaCoTiCtrl(CounterTimerController):
             self._status = 'The LimaCCD state is: %s' % self._hw_state
 
     def StateOne(self, axis):
-        #self._log.debug('StateOne(%r): %r' %(axis,self._state))
-
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions=None):
@@ -220,14 +217,12 @@ class LimaCoTiCtrl(CounterTimerController):
             self._repetitions = repetitions
             self._trigger_mode = HW_TRIG
             acq_trigger_mode = self._hardware_trigger
-        
-        
+
         self._limacdd.write_attribute('acq_expo_time', self._int_time)
         self._limacdd.write_attribute('acq_nb_frames', self._repetitions)
         self._limacdd.write_attribute('latency_time', self._latency_time)
         self._limacdd.write_attribute('acq_trigger_mode', acq_trigger_mode)
         self._prepare_saving()
-        
 
     def PreStartAll(self):
         self._limacdd.prepareAcq()
@@ -240,7 +235,6 @@ class LimaCoTiCtrl(CounterTimerController):
                 self._expectedsavingimages -= 1
             else:
                 self._expectedsavingimages = 0
-          
 
     def ReadAll(self):
         new_image_ready = 0
@@ -250,7 +244,6 @@ class LimaCoTiCtrl(CounterTimerController):
                 self._new_data = False
                 return
             self._data_buff[1] = [self._int_time]
-          
         else:
             attr = 'last_image_ready'
             new_image_ready = self._limacdd.read_attribute(attr).value
@@ -279,7 +272,6 @@ class LimaCoTiCtrl(CounterTimerController):
                 return []
             else:
                 return self._data_buff[axis]
-
 
     def AbortOne(self, axis):
         self.StateAll()
@@ -315,7 +307,8 @@ class LimaCoTiCtrl(CounterTimerController):
             prefix = self._limacdd.read_attribute('saving_prefix').value
             suffix = self._limacdd.read_attribute('saving_suffix').value
             nr = self._limacdd.read_attribute('saving_next_number').value - 1
-            index_format =  self._limacdd.read_attribute('saving_index_format').value            
+            attr = 'saving_index_format'
+            index_format = self._limacdd.read_attribute(attr).value
             nr_formated = index_format % nr
             value = '%s/%s%s%s' % (path, prefix, nr_formated, suffix)
         elif param == 'detectorname':
@@ -344,7 +337,6 @@ class LimaCoTiCtrl(CounterTimerController):
         elif name == 'acquisitiontime':
             self._acquisition_time = value
 
-            
     def GetAxisExtraPar(self, axis, name):
         name = name.lower()
         result = None
