@@ -18,24 +18,17 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
 
     MaxDevice = 11
 
-    xspress_ctrl_properties = {
-        'Xspress3DeviceName': {Type: str, Description: 'Detector device name'},
-        }
-    ctrl_properties = {}
-    ctrl_properties.update(LimaCoTiCtrl.ctrl_properties)
-    ctrl_properties.update(xspress_ctrl_properties)
-
     def __init__(self, inst, props, *args, **kwargs):
         LimaCoTiCtrl.__init__(self, inst, props, *args, **kwargs)
         self._log.debug("__init__(%s, %s): Entering...", repr(inst),
                         repr(props))
 
-        try:
-            self._xspress3 = PyTango.DeviceProxy(self.Xspress3DeviceName)
-        except PyTango.DevFailed as e:
-            raise RuntimeError('__init__(): Could not create a device proxy '
-                               'from following device name: %s.\nException: '
-                               '%s ' % (self.Xspress3DeviceName, e))
+        plugins = self._limaccd['plugin_list'].value
+        if 'xspress3' not in plugins:
+            raise RuntimeError('The Lima DS is not compatible with Xspress3')
+        idx = plugins.index('xspress3')
+        xspress3_name = plugins[idx + 1]
+        self._xspress3 = PyTango.DeviceProxy(xspress3_name)
 
         self._nr_channels = self._xspress3.read_attribute('numChan').value
         self.MaxDevice = (self._nr_channels * 2) + 1
