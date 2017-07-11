@@ -82,8 +82,8 @@ class LimaCoTiCtrl(CounterTimerController):
                         repr(props))
 
         try:
-            self._limacdd = PyTango.DeviceProxy(self.LimaCCDDeviceName)
-            self._limacdd.reset()
+            self._limaccd = PyTango.DeviceProxy(self.LimaCCDDeviceName)
+            self._limaccd.reset()
         except PyTango.DevFailed as e:
             raise RuntimeError('__init__(): Could not create a device proxy '
                                'from following device name: %s.\nException: '
@@ -128,15 +128,15 @@ class LimaCoTiCtrl(CounterTimerController):
             if self._saving_format == 'HDF5':
                 suffix = 'h5'
 
-            self._limacdd.write_attribute('saving_frame_per_file',
+            self._limaccd.write_attribute('saving_frame_per_file',
                                           frame_per_file)
-            self._limacdd.write_attribute('saving_format', self._saving_format)
-            self._limacdd.write_attribute('saving_directory', path)
-            self._limacdd.write_attribute('saving_mode', 'Auto_Frame')
-            self._limacdd.write_attribute('saving_prefix', prefix)
-            self._limacdd.write_attribute('saving_suffix', '.' + suffix)
+            self._limaccd.write_attribute('saving_format', self._saving_format)
+            self._limaccd.write_attribute('saving_directory', path)
+            self._limaccd.write_attribute('saving_mode', 'Auto_Frame')
+            self._limaccd.write_attribute('saving_prefix', prefix)
+            self._limaccd.write_attribute('saving_suffix', '.' + suffix)
         else:
-            self._limacdd.write_attribute('saving_mode', 'Manual')
+            self._limaccd.write_attribute('saving_mode', 'Manual')
 
     def AddDevice(self, axis):
         if axis != 1:
@@ -147,7 +147,7 @@ class LimaCoTiCtrl(CounterTimerController):
         self._data_buff.pop(axis)
 
     def StateAll(self):
-        self._hw_state = self._limacdd.read_attribute('acq_status').value
+        self._hw_state = self._limaccd.read_attribute('acq_status').value
         if self._hw_state == 'Running':
             self._state = State.Moving
             self._status = 'The LimaCCD is acquiring'
@@ -188,18 +188,18 @@ class LimaCoTiCtrl(CounterTimerController):
             raise ValueError('LimaCoTiCtrl allows only Software or Hardware '
                              'triggering')
 
-        self._limacdd.write_attribute('acq_expo_time', self._int_time)
-        self._limacdd.write_attribute('acq_nb_frames', self._repetitions)
-        self._limacdd.write_attribute('latency_time', self._latency_time)
-        self._limacdd.write_attribute('acq_trigger_mode', acq_trigger_mode)
+        self._limaccd.write_attribute('acq_expo_time', self._int_time)
+        self._limaccd.write_attribute('acq_nb_frames', self._repetitions)
+        self._limaccd.write_attribute('latency_time', self._latency_time)
+        self._limaccd.write_attribute('acq_trigger_mode', acq_trigger_mode)
         self._prepare_saving()
 
     def PreStartAll(self):
-        self._limacdd.prepareAcq()
+        self._limaccd.prepareAcq()
         return True
 
     def StartAll(self):
-        self._limacdd.startAcq()
+        self._limaccd.startAcq()
         if self._expected_saving_images > 0:
             if self._synchronization == AcqSynch.SoftwareTrigger:
                 self._expected_saving_images -= 1
@@ -217,7 +217,7 @@ class LimaCoTiCtrl(CounterTimerController):
             self._data_buff[axis] = [self._int_time]
         elif self._synchronization == AcqSynch.HardwareTrigger:
             attr = 'last_image_ready'
-            new_image_ready = self._limacdd.read_attribute(attr).value
+            new_image_ready = self._limaccd.read_attribute(attr).value
             if new_image_ready == self._last_image_read:
                 self._new_data = False
                 return
@@ -246,7 +246,7 @@ class LimaCoTiCtrl(CounterTimerController):
         self.StateAll()
         self._expected_saving_images = 0
         if self._hw_state != 'Ready':
-            self._limacdd.stopAcq()
+            self._limaccd.stopAcq()
             self._clean_acquisition()
 
 ################################################################################
@@ -272,12 +272,12 @@ class LimaCoTiCtrl(CounterTimerController):
         if param == 'filename':
             value = self._filename
         elif param == 'lastimagename':
-            path = self._limacdd.read_attribute('saving_directory').value
-            prefix = self._limacdd.read_attribute('saving_prefix').value
-            suffix = self._limacdd.read_attribute('saving_suffix').value
-            nr = self._limacdd.read_attribute('saving_next_number').value - 1
+            path = self._limaccd.read_attribute('saving_directory').value
+            prefix = self._limaccd.read_attribute('saving_prefix').value
+            suffix = self._limaccd.read_attribute('saving_suffix').value
+            nr = self._limaccd.read_attribute('saving_next_number').value - 1
             attr = 'saving_index_format'
-            index_format = self._limacdd.read_attribute(attr).value
+            index_format = self._limaccd.read_attribute(attr).value
             nr_formated = index_format % nr
             value = '%s/%s%s%s' % (path, prefix, nr_formated, suffix)
         elif param == 'detectorname':
