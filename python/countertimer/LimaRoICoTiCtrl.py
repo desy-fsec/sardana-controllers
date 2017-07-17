@@ -1,4 +1,4 @@
-
+1
 import PyTango
 from sardana import State
 from sardana.pool.controller import Type, Access, Description, MaxDimSize, \
@@ -104,10 +104,10 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._data_buff = {}
         self._state = None
         self._status = None
-        self._sampling_frequency = None
-        self._trigger_mode = None
-        self._no_of_triggers = None
-        self._acquisition_time = None
+        self._sampling_frequency = -1
+        self._trigger_mode = SW_TRIG
+        self._no_of_triggers = -1
+        self._acquisition_time = -1
         self._repetitions = 0
         self._last_image_read = -1
         self._last_image_ready = -1
@@ -115,13 +115,11 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._start = False
 
         event_type = PyTango.EventType.PERIODIC_EVENT
-        try:
-            self.id = self._limaroi.subscribe_event('state', event_type,
-                                                self.statusCallback)
-        except Exception as e:
-            print e
+        self._callback_id = self._limaroi.subscribe_event('state', event_type,
+                                                          self.statusCallback)
         self._log.debug("__init__(%s, %s): Leaving...", repr(inst),
                         repr(props))
+
 
     def statusCallback(self, event):
         if event.err:
@@ -167,8 +165,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._rois.pop(axis)
         roi_id = self._rois[axis]['id']
         self._rois_id.pop(roi_id)
-        self._limaroi.unsubscribe_event(self.id)
-
+        
     def StateAll(self):
         attr = 'CounterStatus'
         self._last_image_ready = self._limaroi.read_attribute(attr).value
