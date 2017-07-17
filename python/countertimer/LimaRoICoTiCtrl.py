@@ -113,9 +113,13 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._last_image_ready = -1
         self._load_one = False 
         self._start = False
-        event_type = PyTango.EventType.CHANGE_EVENT
-        self.id = self._limaroi.subscribe_event('state', event_type,
-                                                self.statusCallBack)
+
+        event_type = PyTango.EventType.PERIODIC_EVENT
+        try:
+            self.id = self._limaroi.subscribe_event('state', event_type,
+                                                self.statusCallback)
+        except Exception as e:
+            print e
         self._log.debug("__init__(%s, %s): Leaving...", repr(inst),
                         repr(props))
 
@@ -134,15 +138,19 @@ class LimaRoICounterCtrl(CounterTimerController):
             self._start = False 
 
     def _recreate_rois(self):
-        self._limaroi.clearAllRois()
+        state = self._limaroi.state()
+        if state == 'ON':
+            return
         self._limaroi.Start()
         for axis in self._rois.keys():
             self._create_roi(axis)
+        self._recreate_flg = True
 
     def _create_roi(self, axis):
         roi_name = self._rois[axis]['name']
         roi_id = self._limaroi.addNames([roi_name])[0]
         self._rois[axis]['id'] = roi_id
+        self._rois_id[roi_id] = axis
         roi = [roi_id] + self._rois[axis]['roi']
         self._limaroi.setRois(roi)
 
