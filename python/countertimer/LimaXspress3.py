@@ -68,9 +68,14 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
 
     def ReadAll(self):
         LimaCoTiCtrl.ReadAll(self)
+        self._clean_data()
         if not self._new_data:
             return
-        self._clean_data()
+        
+        try:
+            print ('After clean_data %r' % len(self._data_buff[1]))
+        except Exception as e:
+            print '\n\n\n', e
         if self._synchronization == AcqSynch.SoftwareTrigger:
             self._get_values(0)
         elif self._synchronization == AcqSynch.HardwareTrigger:
@@ -80,6 +85,7 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
                 image_nr = self._last_dt_read + i
                 self._get_values(image_nr)
             self._last_dt_read = self._last_image_read
+            print('Data of dt %r' % len(self._data_buff[2]))
 
     def ReadOne(self, axis):
         if axis == 1:

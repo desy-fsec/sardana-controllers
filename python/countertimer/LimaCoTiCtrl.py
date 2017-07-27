@@ -92,7 +92,6 @@ class LimaCoTiCtrl(CounterTimerController):
         self._hw_state = None
         self._last_image_read = -1
         self._repetitions = 0
-        self._ext_trigger = False
         self._state = None
         self._status = None
         self._new_data = False
@@ -154,14 +153,14 @@ class LimaCoTiCtrl(CounterTimerController):
 
         elif self._hw_state == 'Ready':
             if self._last_image_read != (self._repetitions - 1) and \
-                    self._ext_trigger:
+                    self._synchronization == AcqSynch.HardwareTrigger:
                 self._log.warning('The LimaCCDs finished but the ctrl did not '
                                   'read all the data yet. Last image read %r'
                                   % self._last_image_read)
                 self._state = State.Moving
                 self._status = 'The LimaCCD is acquiring'
             else:
-                self._clean_acquisition()
+                
                 self._state = State.On
                 self._status = 'The LimaCCD is ready to acquire'
 
@@ -173,6 +172,7 @@ class LimaCoTiCtrl(CounterTimerController):
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions):
+        self._clean_acquisition()
         if axis != 1:
             raise RuntimeError('The master channel should be the axis 1')
 
@@ -217,6 +217,7 @@ class LimaCoTiCtrl(CounterTimerController):
             self._data_buff[axis] = [self._int_time]
         elif self._synchronization == AcqSynch.HardwareTrigger:
             attr = 'last_image_ready'
+            self._data_buff[axis] = []
             new_image_ready = self._limaccd.read_attribute(attr).value
             if new_image_ready == self._last_image_read:
                 self._new_data = False
@@ -227,7 +228,7 @@ class LimaCoTiCtrl(CounterTimerController):
                 new_data = 1
             self._data_buff[axis] = [self._int_time] * new_data
         self._last_image_read = new_image_ready
-        self._log.debug('Leaving ReadAll %r' % self._data_buff[1])
+        self._log.debug('Leaving ReadAll %r' % len(self._data_buff[1]))
 
     def ReadOne(self, axis):
         self._log.debug('Entering in  ReadOn')
@@ -237,10 +238,7 @@ class LimaCoTiCtrl(CounterTimerController):
                                 'State %r' % self._hw_state)  
             return self._data_buff[axis][0]
         elif self._synchronization == AcqSynch.HardwareTrigger:
-            if not self._new_data:
-                return []
-            else:
-                return self._data_buff[axis]
+            return self._data_buff[axis]
 
     def AbortOne(self, axis):
         self.StateAll()
