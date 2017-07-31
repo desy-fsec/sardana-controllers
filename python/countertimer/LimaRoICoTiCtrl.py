@@ -87,9 +87,9 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._start = False
         self._synchronization = AcqSynch.SoftwareTrigger
 
-        event_type = PyTango.EventType.PERIODIC_EVENT
-        self._callback_id = self._limaroi.subscribe_event('state', event_type,
-                                                          self._callback)
+        # event_type = PyTango.EventType.PERIODIC_EVENT
+        # self._callback_id = self._limaroi.subscribe_event('state', event_type,
+        #                                                   self._callback)
         self._log.debug("__init__(%s, %s): Leaving...", repr(inst),
                         repr(props))
 
@@ -145,7 +145,7 @@ class LimaRoICounterCtrl(CounterTimerController):
             self._status = 'Taking data'
         else:
             self._state = State.On
-            self._clean_acquisition()
+            #self._clean_acquisition()
             if self._last_image_ready == -2:
                 self._status = "Not images in buffer"
             else:
@@ -155,7 +155,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions):
-
+        self._clean_acquisition()
         if self._synchronization == AcqSynch.SoftwareTrigger:
             self._repetitions = 1
         elif self._synchronization == AcqSynch.HardwareTrigger:
@@ -168,11 +168,12 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._start = True
 
     def ReadAll(self):
+        for axis in self._data_buff.keys():
+            self._data_buff[axis] = []
         if self._last_image_ready != self._last_image_read:
-            for axis in self._data_buff.keys():
-                self._data_buff[axis] = []
             self._last_image_read += 1
             rois_data = self._limaroi.readCounters(self._last_image_read)
+            self._last_image_ready = rois_data[-6]
             for base_idx in range(0, len(rois_data), 7):
                 roi_id_idx = base_idx + self.IDX_ROI_ID
                 roi_id = rois_data[roi_id_idx]
@@ -180,8 +181,10 @@ class LimaRoICounterCtrl(CounterTimerController):
                 if axis in self._data_buff:
                     sum_idx = base_idx + self.IDX_SUM
                     self._data_buff[axis] += [rois_data[sum_idx]]
+            self._log.debug('Read images [%d, %d]' % (self._last_image_read,
+                                                      self._last_image_ready))
             self._last_image_read = self._last_image_ready
-
+        
     def ReadOne(self, axis):
         if self._synchronization == AcqSynch.SoftwareTrigger:
             if len(self._data_buff[axis]) == 0:

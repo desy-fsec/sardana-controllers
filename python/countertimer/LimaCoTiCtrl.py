@@ -105,6 +105,7 @@ class LimaCoTiCtrl(CounterTimerController):
         self._det_name = ''
         self._saving_folder_name = ''
         self._synchronization = AcqSynch.SoftwareTrigger
+        self._abort_flg = False 
 
     def _clean_acquisition(self):
         if self._last_image_read != -1:
@@ -153,7 +154,8 @@ class LimaCoTiCtrl(CounterTimerController):
 
         elif self._hw_state == 'Ready':
             if self._last_image_read != (self._repetitions - 1) and \
-                    self._synchronization == AcqSynch.HardwareTrigger:
+                    self._synchronization == AcqSynch.HardwareTrigger and \
+                    not self._abort_flg:
                 self._log.warning('The LimaCCDs finished but the ctrl did not '
                                   'read all the data yet. Last image read %r'
                                   % self._last_image_read)
@@ -199,6 +201,7 @@ class LimaCoTiCtrl(CounterTimerController):
         return True
 
     def StartAll(self):
+        self._abort_flg = False 
         self._limaccd.startAcq()
         if self._expected_saving_images > 0:
             if self._synchronization == AcqSynch.SoftwareTrigger:
@@ -244,9 +247,9 @@ class LimaCoTiCtrl(CounterTimerController):
         self.StateAll()
         self._expected_saving_images = 0
         if self._hw_state != 'Ready':
-            self._limaccd.stopAcq()
+            self._limaccd.abortAcq()
             self._clean_acquisition()
-
+            self._abort_flg = True
 ################################################################################
 #                Controller Extra Attribute Methods
 ################################################################################
