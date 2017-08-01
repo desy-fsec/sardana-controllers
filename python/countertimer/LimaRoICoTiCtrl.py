@@ -86,6 +86,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._last_image_ready = -1
         self._start = False
         self._synchronization = AcqSynch.SoftwareTrigger
+        self._abort_flg = False
 
         # event_type = PyTango.EventType.PERIODIC_EVENT
         # self._callback_id = self._limaroi.subscribe_event('state', event_type,
@@ -104,6 +105,7 @@ class LimaRoICounterCtrl(CounterTimerController):
             self._last_image_ready = -1
             self._repetitions = 0
             self._start = False
+            self._abort_flg = False
 
     def _recreate_rois(self):
         state = self._limaroi.state()
@@ -138,6 +140,11 @@ class LimaRoICounterCtrl(CounterTimerController):
         
     def StateAll(self):
         attr = 'CounterStatus'
+        if self._abort_flg:
+            self._state = State.On
+            self._status = 'Aborted'
+            return
+
         self._last_image_ready = self._limaroi.read_attribute(attr).value
         if (self._last_image_ready < (self._repetitions - 1) and
                 self._last_image_ready != -2):
@@ -166,6 +173,10 @@ class LimaRoICounterCtrl(CounterTimerController):
 
     def StartAll(self):
         self._start = True
+        self._abort_flg = False
+
+    def AbortOne(self, axis):
+        self._abort_flg = True
 
     def ReadAll(self):
         for axis in self._data_buff.keys():
