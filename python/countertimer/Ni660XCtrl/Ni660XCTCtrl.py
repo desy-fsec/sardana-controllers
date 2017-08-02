@@ -212,6 +212,12 @@ class Ni660XCTCtrl(object):
             self.attributes.pop(axis)
             self.ch_configured.pop(axis)
         self.channels.pop(axis)
+        if len(self.channels) == 0:
+            cards = self.sev.eval(self.connectTerms)
+            for card_dev_name in cards.keys():
+                card_dev = taurus.Device(card_dev_name)
+                card_dev.removeListener(self.cardEventReceived)
+
 
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("GetAxisExtraPar(%d, %s) entering..." % (axis, name))
