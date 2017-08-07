@@ -3,7 +3,7 @@
 from LimaCoTiCtrl import LimaCoTiCtrl
 from sardana.pool import AcqSynch
 import PyTango
-
+import time
 
 class LimaXspress3CTCtrl(LimaCoTiCtrl):
     """
@@ -33,10 +33,12 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
         self._nr_channels = self._xspress3.read_attribute('numChan').value
         self.MaxDevice = (self._nr_channels * 2) + 1
         self._last_dt_read = -1
+        self._start_channels = []
 
     def _get_values(self, image_nr):
         # TODO optimize reading
-        for channel in range(self._nr_channels):
+        self._log.debug('GetValues method: reading image %d' % image_nr)
+        for channel in self._start_channels:
             data = self._xspress3.ReadScalers([image_nr, channel])
             dt = (channel + 1) * 2
             dtf = dt + 1
@@ -46,10 +48,11 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
             # dtf value
             if dtf in self._data_buff:
                 self._data_buff[dtf] += [data[10]]
-       
+
     def _clean_acquisition(self):
         LimaCoTiCtrl._clean_acquisition(self)
         self._last_dt_read = self._last_image_read
+        self._start_channels = []
 
     def _clean_data(self):
         for channel in range(self._nr_channels):
@@ -65,6 +68,18 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
             LimaCoTiCtrl.AddDevice(self, axis)
         else:
             self._data_buff[axis] = []
+
+    def PreStartOne(self, axis, value):
+        self._log.debug('Start axis %s' % axis)
+        if axis == 1:
+            pass
+        else:
+            chn = int(axis/2) - 1
+            if chn > self._nr_channels:
+                return False 
+            if chn not in self._start_channels:
+                 self._start_channels.append(chn)
+        return True
 
     def ReadAll(self):
         LimaCoTiCtrl.ReadAll(self)
