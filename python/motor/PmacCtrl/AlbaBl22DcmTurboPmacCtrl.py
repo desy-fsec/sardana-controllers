@@ -138,7 +138,7 @@ class DcmTurboPmacController(TurboPmacController):
                            (bragg_deg, perp))
 
             # Workaround to avoid problems
-            if self.user_qExafs:
+            if self.user_qExafs and (self.next_position != []):
                 try:
                     w_pos = (bragg_deg, perp)
                     np.testing.assert_almost_equal(w_pos, self.next_position, 5)
@@ -147,7 +147,10 @@ class DcmTurboPmacController(TurboPmacController):
                                     'backup position %r' % (w_pos,
                                                             self.next_position))
                     bragg_deg, perp = self.next_position
-
+            
+            self.user_qExafs = False    
+            self.next_position = []
+            
             bragg_rad = math.radians(bragg_deg)
 
             # we calculate exit offset form the current position of the
