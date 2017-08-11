@@ -7,6 +7,7 @@ from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, \
     Memorized, DefaultValue
 from sardana.pool import AcqSynch
+import time
 
 # TODO: WIP version.
 
@@ -119,15 +120,15 @@ class LimaCoTiCtrl(CounterTimerController):
         if len(self._filename) > 0:
             path, fname = os.path.split(self._filename)
             path = os.path.join(path, self._saving_folder_name)
+            prefix, _ = os.path.splitext(fname)
+            path = os.path.join(path, prefix)
             if not os.path.exists(path):
                 os.makedirs(path)
-            prefix, _ = os.path.splitext(fname)
             prefix += '_%s_' % self._det_name
             suffix = self._saving_format.lower()
             frame_per_file = 1
             if self._saving_format == 'HDF5':
                 suffix = 'h5'
-
             self._limaccd.write_attribute('saving_frame_per_file',
                                           frame_per_file)
             self._limaccd.write_attribute('saving_format', self._saving_format)
@@ -189,7 +190,7 @@ class LimaCoTiCtrl(CounterTimerController):
             # TODO: Implement the hardware gate
             raise ValueError('LimaCoTiCtrl allows only Software or Hardware '
                              'triggering')
-
+     
         self._limaccd.write_attribute('acq_expo_time', self._int_time)
         self._limaccd.write_attribute('acq_nb_frames', self._repetitions)
         self._limaccd.write_attribute('latency_time', self._latency_time)
