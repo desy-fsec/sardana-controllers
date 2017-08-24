@@ -362,8 +362,8 @@ class Ni660XCTCtrl(object):
                 repetitions = self._repetitions
 
                 # To configure the buffer with 2 points in a single
-                # acquisition with hardware trigger
-                if (self._repetitions == 1):
+                # acquisition with hardware trigger in CICountEdgesChan case
+                if self.APP_TYPE == 'CICountEdgesChan' and self._repetitions == 1:
                     repetitions = long(2)
 
                 channel.write_attribute('SampPerChan', long(repetitions))
@@ -392,11 +392,19 @@ class Ni660XCTCtrl(object):
         return True
 
     def LoadOne(self, axis, value, repetitions):
-        #self._log.debug("LoadOne(%d, %f): Entering...", axis, value)
+        self._log.debug("LoadOne(%d, %f): Entering...", axis, value)
+        self._repetitions = repetitions
+        self._integration_time = value
         self.current_ch_configured = 0
         if axis != 1:
-            raise Exception('The master channel must be the first channel.')
-        if self._synchronization == AcqSynch.SoftwareTrigger:
+            if self._synchronization == AcqSynch.HardwareTrigger:
+                pass
+            else:
+                raise Exception('The master channel must be the first channel.')
+      
+        elif self._synchronization == AcqSynch.SoftwareTrigger:
+            
+            self._repetitions = repetitions
             high_time = value
             low_time = self.min_time
             if high_time > self.max_time:
@@ -411,8 +419,7 @@ class Ni660XCTCtrl(object):
             channel.write_attribute('SampPerChan', long(self._repetitions))
             channel.write_attribute('HighTime', high_time)
             channel.write_attribute('LowTime', low_time)
-        self._repetitions = repetitions
-        self._integration_time = value
+
         #self._log.debug("LoadOne(%d, %f): Leaving...", axis, value)
 
     def AbortOne(self, axis):
@@ -425,7 +432,7 @@ class Ni660XCTCtrl(object):
 
     def _calculate(self, axis, data, index):
         return data[index:]
-
+        
     def ReadOneSingle(self, axis):
         index = self.index[axis]
         #self._log.debug('ReadOne(%d) index = %d' % (axis, index))
@@ -484,11 +491,6 @@ class Ni660XCTCtrl(object):
         self.index[axis] = index + len(data)
         idx = range(index, self.index[axis])
         data = data.tolist()
-        self._log.debug('index: %r'% self.index[axis] )
-        if self._repetitions == 1 and len(data) == 1:
-            channel = self.channels[axis]
-            self._log.debug("Stopping channel %r" % axis)
-            channel.stop()
         return data
 
     def ReadOne(self, axis):
