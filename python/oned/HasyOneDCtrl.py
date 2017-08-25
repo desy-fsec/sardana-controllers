@@ -55,6 +55,7 @@ class HasyOneDCtrl(OneDController):
         self.flagIsMCA8715 = []
         self.flagIsXIA = []
         self.flagIsSIS3302 = []
+        self.flagIsKromo = []
         self.device_available = []
         self.RoIs_start = []
         self.RoIs_end = []
@@ -65,6 +66,7 @@ class HasyOneDCtrl(OneDController):
             self.flagIsMCA8715.append( False)
             self.flagIsXIA.append( False)
             self.flagIsSIS3302.append(False)
+            self.flagIsKromo.append(False)
             self.device_available.append(False)
             self.RoIs_start.append(0)
             self.RoIs_end.append(0)
@@ -95,6 +97,8 @@ class HasyOneDCtrl(OneDController):
             print 'TriggerPeakingTime'
         if hasattr(self.proxy[ind-1], 'ADCxInputInvert'):
             self.flagIsSIS3302[ind-1] = True
+        if hasattr(self.proxy[ind-1], 'HighSpeedMode'):
+            self.flagIsKromo[ind-1] = True
         if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1], "isSIS3302", self.flagIsSIS3302[ind-1]
         print "Flag"
         print self.flagIsSIS3302[ind-1]
@@ -131,9 +135,10 @@ class HasyOneDCtrl(OneDController):
 
         return tup
     
-    def LoadOne(self, axis, value):
-        if self.debugFlag: print "HasyOneDCtrl.LoadOne",self.inst_name,"axis", axis
-        idx = axis - 1
+    def LoadOne(self, ind, value):
+        if self.debugFlag: print "HasyOneDCtrl.LoadOne",self.inst_name,"index", ind
+        if self.flagIsKromo[ind - 1] == True:
+             self.proxy[ind-1].write_attribute("ExpositionTime",value)
         if value > 0:
             self.integ_time = value
             self.monitor_count = None
@@ -148,9 +153,11 @@ class HasyOneDCtrl(OneDController):
 
     def PreReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
-        self.proxy[ind-1].command_inout("Stop")
-        if self.flagIsXIA[ind-1] == 0:
-            self.proxy[ind-1].command_inout("Read")
+        if self.flagIsKromo[ind-1] == False:
+            self.proxy[ind-1].command_inout("Stop")
+            if self.flagIsXIA[ind-1] == 0:
+                self.proxy[ind-1].command_inout("Read")
+            
 
     def ReadAll(self):
         if self.debugFlag: print "HasyOneDCtrl.ReadAll",self.inst_name
@@ -182,15 +189,21 @@ class HasyOneDCtrl(OneDController):
         # the state may be ON but one bank can be active
         sta = self.proxy[ind-1].command_inout("State")
         if sta == PyTango.DevState.ON:
-            self.proxy[ind-1].command_inout("Stop")
-            self.proxy[ind-1].command_inout("Clear")
-            self.proxy[ind-1].command_inout("Start")
-        
+            if self.flagIsKromo[ind-1] == False:
+                self.proxy[ind-1].command_inout("Stop")
+                self.proxy[ind-1].command_inout("Clear")
+                self.proxy[ind-1].command_inout("Start")
+            else:
+                self.proxy[ind-1].command_inout("StartAcquisition")
+                
     def AbortOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.AbortOne",self.inst_name,"index",ind
-        self.proxy[ind-1].command_inout("Stop")
-        if self.flagIsXIA[ind-1] == 0:
-            self.proxy[ind-1].command_inout("Read")
+        if self.flagIsKromo[ind-1] == False:
+            self.proxy[ind-1].command_inout("Stop")
+            if self.flagIsXIA[ind-1] == 0:
+                self.proxy[ind-1].command_inout("Read")
+        else:
+            self.proxy[ind-1].command_inout("StopAcquisition")
 
        
     def GetPar(self, ind, par_name):
@@ -207,10 +220,13 @@ class HasyOneDCtrl(OneDController):
                 return tango_device
         elif name == "DataLength":
             if self.device_available[ind-1]:
-                if self.flagIsXIA[ind-1]:
-                    datalength = int(self.proxy[ind-1].read_attribute("McaLength").value)
+                if self.flagIsKromo[ind - 1] == False:
+                    if self.flagIsXIA[ind-1]:
+                        datalength = int(self.proxy[ind-1].read_attribute("McaLength").value)
+                    else:
+                        datalength = int(self.proxy[ind-1].read_attribute("DataLength").value)
                 else:
-                    datalength = int(self.proxy[ind-1].read_attribute("DataLength").value)
+                    datalength = 255
                 return datalength
         elif name == "RoIStart":
             return self.RoIs_start[ind-1]
@@ -223,10 +239,11 @@ class HasyOneDCtrl(OneDController):
         if self.debugFlag: print "HasyOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if self.device_available[ind-1]:
             if name == "DataLength":
-                if self.flagIsXIA[ind-1]:
-                    self.proxy[ind-1].write_attribute("McaLength",value)
-                else:
-                    self.proxy[ind-1].write_attribute("DataLength",value)
+                if self.flagIsKromo[ind-1] == False:
+                    if self.flagIsXIA[ind-1]:
+                        self.proxy[ind-1].write_attribute("McaLength",value)
+                    else:
+                        self.proxy[ind-1].write_attribute("DataLength",value)
             elif name == "RoIStart":
                 self.RoIs_start[ind-1] = value
             elif name == "RoIEnd":
