@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from sardana.pool.controller import Type, Description
-from LimaCoTiCtrl import LimaCoTiCtrl, HW_TRIG, SW_TRIG
+from LimaCoTiCtrl import LimaCoTiCtrl
+from sardana.pool import AcqSynch
 import PyTango
-
+import time
 
 class LimaXspress3CTCtrl(LimaCoTiCtrl):
     """
@@ -18,32 +18,27 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
 
     MaxDevice = 11
 
-    xspress_ctrl_properties = {
-        'Xspress3DeviceName': {Type: str, Description: 'Detector device name'},
-        }
-    ctrl_properties = {}
-    ctrl_properties.update(LimaCoTiCtrl.ctrl_properties)
-    ctrl_properties.update(xspress_ctrl_properties)
-
     def __init__(self, inst, props, *args, **kwargs):
         LimaCoTiCtrl.__init__(self, inst, props, *args, **kwargs)
         self._log.debug("__init__(%s, %s): Entering...", repr(inst),
                         repr(props))
 
-        try:
-            self._xspress3 = PyTango.DeviceProxy(self.Xspress3DeviceName)
-        except PyTango.DevFailed as e:
-            raise RuntimeError('__init__(): Could not create a device proxy '
-                               'from following device name: %s.\nException: '
-                               '%s ' % (self.Xspress3DeviceName, e))
+        plugins = self._limaccd['plugin_list'].value
+        if 'xspress3' not in plugins:
+            raise RuntimeError('The Lima DS is not compatible with Xspress3')
+        idx = plugins.index('xspress3')
+        xspress3_name = plugins[idx + 1]
+        self._xspress3 = PyTango.DeviceProxy(xspress3_name)
 
         self._nr_channels = self._xspress3.read_attribute('numChan').value
         self.MaxDevice = (self._nr_channels * 2) + 1
         self._last_dt_read = -1
+        self._start_channels = []
 
     def _get_values(self, image_nr):
         # TODO optimize reading
-        for channel in range(self._nr_channels):
+        self._log.debug('GetValues method: reading image %d' % image_nr)
+        for channel in self._start_channels:
             data = self._xspress3.ReadScalers([image_nr, channel])
             dt = (channel + 1) * 2
             dtf = dt + 1
@@ -53,10 +48,11 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
             # dtf value
             if dtf in self._data_buff:
                 self._data_buff[dtf] += [data[10]]
-       
+
     def _clean_acquisition(self):
         LimaCoTiCtrl._clean_acquisition(self)
         self._last_dt_read = self._last_image_read
+        self._start_channels = []
 
     def _clean_data(self):
         for channel in range(self._nr_channels):
@@ -73,14 +69,26 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
         else:
             self._data_buff[axis] = []
 
+    def PreStartOne(self, axis, value):
+        self._log.debug('Start axis %s' % axis)
+        if axis == 1:
+            pass
+        else:
+            chn = int(axis/2) - 1
+            if chn > self._nr_channels:
+                return False 
+            if chn not in self._start_channels:
+                 self._start_channels.append(chn)
+        return True
+
     def ReadAll(self):
         LimaCoTiCtrl.ReadAll(self)
+        self._clean_data()
         if not self._new_data:
             return
-        self._clean_data()
-        if self._trigger_mode == SW_TRIG:
+        if self._synchronization == AcqSynch.SoftwareTrigger:
             self._get_values(0)
-        else:
+        elif self._synchronization == AcqSynch.HardwareTrigger:
             self._last_dt_read += 1
             nr_images = self._last_image_read - self._last_dt_read + 1
             for i in range(nr_images):
@@ -92,7 +100,7 @@ class LimaXspress3CTCtrl(LimaCoTiCtrl):
         if axis == 1:
             return LimaCoTiCtrl.ReadOne(self, axis)
         else:
-            if self._trigger_mode == SW_TRIG:
+            if self._synchronization == AcqSynch.SoftwareTrigger:
                 return self._data_buff[axis][0]
-            else:
+            elif self._synchronization == AcqSynch.HardwareTrigger:
                 return self._data_buff[axis]

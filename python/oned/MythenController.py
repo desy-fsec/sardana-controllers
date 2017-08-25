@@ -86,10 +86,12 @@ class MythenController(OneDController):
     MaxDevice = 1
 
     class_prop = {
-        'MythenDCS': {'Description': 'Device Server',
-                      'Type': 'PyTango.DevString'},
-        'ClearBragg': {'Description': 'Motor name',
-                       'Type': 'PyTango.DevString'},
+        'MythenDCS': {Description: 'Device Server',
+                      Type: str},
+        'ClearBragg': {Description: 'Motor name',
+                       Type: 'PyTango.DevString'},
+        'LatencyTime': {Description: 'Latency time of the controller',
+                        Type: float}
     }
 
     ctrl_attributes = {
@@ -179,7 +181,7 @@ class MythenController(OneDController):
         self.listener_id = self.mythen.subscribe_event('RawData',
                                                        CHANGE_EVENT,
                                                        self.raw_listener)
-        self._latency_time = 0.01
+        self._latency_time = self.LatencyTime
         self.repetitions = 0
 
     @debug

@@ -277,7 +277,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                     self.sd[axis] = self.AIDevice[std_attr].value
                     if self._apply_formulas[axis]:
                         formula = self.formulas[axis]                        
-                        mean[eval(formula, {'value': mean})]
+                        mean = eval(formula, {'value': mean})
                     self.dataBuff[axis] = [mean]
                 
 
