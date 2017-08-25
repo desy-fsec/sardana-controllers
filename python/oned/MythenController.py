@@ -183,6 +183,7 @@ class MythenController(OneDController):
                                                        self.raw_listener)
         self._latency_time = self.LatencyTime
         self.repetitions = 0
+        self.flg_abort = False 
 
     @debug
     def AddDevice(self, axis):
@@ -201,7 +202,7 @@ class MythenController(OneDController):
 
         if self._synchronization in HARDWARE:
             frames_readies = self.mythen.read_attribute('FramesReadies').value
-            if frames_readies < self.repetitions:
+            if frames_readies < self.repetitions and not self.flg_abort:
                 self.state = State.Running
             else:
                 self.state = State.On
@@ -240,11 +241,13 @@ class MythenController(OneDController):
 
     @debug
     def StartOne(self, axis, value):
+        self.flg_abort = False 
         if axis == CHN_RAW:
             with self.raw_queue.mutex:
                 self.raw_queue.queue.clear()
 
             self.mythen.start()
+
 
 
     @debug
@@ -284,6 +287,7 @@ class MythenController(OneDController):
     @debug
     def AbortOne(self, axis):
         self.mythen.stop()
+        self.flg_abort = True
 
 ################################################################################
 #                Controller Extra Attribute Methods
