@@ -51,7 +51,6 @@ class Ni660XPositionCTCtrl(Ni660XCTCtrl, CounterTimerController):
         "sign": {
             Type: int,
             Access: ReadWrite,
-            Memorize: NotMemorized
         }
     })
 
