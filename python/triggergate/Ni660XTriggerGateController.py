@@ -60,6 +60,12 @@ class Ni660XTriggerGateController(TriggerGateController):
             Access: ReadWrite,            
             Memorize: Memorized
         },
+        "extraInitialDelayTime": {
+            Type: float,
+            Access: ReadWrite,
+            Memorize: Memorized,
+            DefaultValue: 0
+        },
     }
 
     # relation between state and status  
@@ -79,6 +85,8 @@ class Ni660XTriggerGateController(TriggerGateController):
         self.channels = {}
         self.slave = False
         self.retriggerable = False
+        self.extraInitialDelayTime = 0
+
 
     def AddDevice(self, axis):
         """
@@ -157,6 +165,8 @@ class Ni660XTriggerGateController(TriggerGateController):
                                 
         channel.write_attribute("StartTriggerSource", startTriggerSource)
         channel.write_attribute("StartTriggerType", startTriggerType)
+        delay = delay + self.extraInitialDelayTime
+        self.extraInitialDelayTime = 0
         channel.write_attribute("InitialDelayTime", delay)
         channel.write_attribute('SampleTimingType',timing_type)
         
@@ -205,8 +215,10 @@ class Ni660XTriggerGateController(TriggerGateController):
         if name == "slave":
             v = self.slave
         elif name == 'retriggerable':
-	    self.rettrigerable =  self.channels[axis].read_attribute('retriggerable').value	                
+            self.rettrigerable =  self.channels[axis].read_attribute('retriggerable').value
             v = self.retriggerable
+        elif name == 'extrainitialdelaytime':
+            v = self.extraInitialDelayTime
         return v
 
     def SetAxisExtraPar(self, axis, name, value):
@@ -220,3 +232,5 @@ class Ni660XTriggerGateController(TriggerGateController):
                 self.channels[axis].stop()
             self.retriggerable = value
             self.channels[axis].write_attribute('retriggerable', value)
+        elif name == 'extrainitialdelaytime':
+            self.extraInitialDelayTime = value
