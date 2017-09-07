@@ -322,6 +322,8 @@ class Ni660XCTCtrl(object):
 
     def PreStartAllCT(self):
         self._log.debug("PreStartAllCT(): Entering...")
+        # Reset all the channel's Indexe
+        self.index = {}
         for card_dev in self.card_configured.keys():
             for device_tuple in self.cards[card_dev]:
                 src_terminal = device_tuple[0]
@@ -392,7 +394,8 @@ class Ni660XCTCtrl(object):
         return True
 
     def LoadOne(self, axis, value, repetitions):
-        self._log.debug("LoadOne(%d, %f): Entering...", axis, value)
+        self._log.debug("LoadOne(%d, %f, %r): Entering...", axis, value,
+                        repetitions)
         self._repetitions = repetitions
         self._integration_time = value
         self.current_ch_configured = 0
