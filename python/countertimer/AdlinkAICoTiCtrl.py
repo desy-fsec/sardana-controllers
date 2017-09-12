@@ -343,9 +343,11 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
             if not self._new_data:
-                return []
+                val =  []
             else:
-                return self.dataBuff[axis]
+                val = self.dataBuff[axis]
+            self._log.debug('ReadOne(%r),HW Synch: %r', axis, val)
+            return val
         else:
             raise Exception("Unknown synchronization mode.")
 
