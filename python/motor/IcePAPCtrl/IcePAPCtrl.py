@@ -464,9 +464,7 @@ class IcepapController(MotorController):
                     freq_float = 1.0 * float(freq)
                     return float(freq_float / self.attributes[axis]["step_per_unit"])
                 elif name.lower() == "base_rate":
-                    start_vel = self.iPAP.getCfgParameter(axis, "STRTVEL")
-                    strt_vel_float = 1.0 * float(start_vel)
-                    return float(strt_vel_float / self.attributes[axis]["step_per_unit"])
+                    return 0
                 elif name.lower() == "acceleration" or name.lower() == "deceleration":
                     return float(self.iPAP.getAcceleration(axis))
 
