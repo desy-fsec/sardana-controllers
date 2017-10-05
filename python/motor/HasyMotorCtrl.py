@@ -5,6 +5,7 @@ import os
 from sardana import DataAccess
 from sardana.pool.controller import MotorController
 from sardana.pool.controller import Type, Access, Description
+from sardana.pool.controller import (Memorize, Memorized, NotMemorized, DefaultValue)
 
 
 class HasyMotorCtrl(MotorController):
@@ -14,8 +15,8 @@ class HasyMotorCtrl(MotorController):
     """
 
     axis_attributes = {
-        'UnitLimitMax': {Type:float,Access:DataAccess.ReadWrite},
-        'UnitLimitMin' :{Type:float,Access:DataAccess.ReadWrite},
+        'UnitLimitMax': {Type:float,Access:DataAccess.ReadWrite,Memorize:NotMemorized},
+        'UnitLimitMin' :{Type:float,Access:DataAccess.ReadWrite,Memorize:NotMemorized},
         'PositionSim': {Type:float,Access:DataAccess.ReadWrite},
         'ResultSim': {Type:str,Access:DataAccess.ReadWrite},
         'TangoDevice': {Type:str,Access:DataAccess.ReadOnly}, # used for handling limits between TangoServer and PoolDevice
