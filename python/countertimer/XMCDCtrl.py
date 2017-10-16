@@ -72,6 +72,8 @@ class XMCDCtrl(CounterTimerController):
             status_string = "XMCD is in ON state"
         elif sta == PyTango.DevState.MOVING:
             status_string = "XMCD is busy"
+        sta = PyTango.DevState.ON
+        status_string = "XMCD is in ON state"
         tup = (sta, status_string)
         return tup
 
