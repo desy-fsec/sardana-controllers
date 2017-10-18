@@ -131,17 +131,15 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         if self._id_callback is not None:
             self.AIDevice.unsubscribe_event(self._id_callback)
             self._id_callback = None
-            
 
     def _clean_acquisition(self):
-        if self._last_index_read != -1:
-            self._last_index_read = -1
-            self._repetitions = 0
-            self._unsubcribe_data_ready()
-            self._index_queue.__init__()
-            self._master_channel = None
-            self._new_data = False
-            self.AIDevice.ClearBuffer()
+        self._last_index_read = -1
+        self._repetitions = 0
+        self._unsubcribe_data_ready()
+        self._index_queue.__init__()
+        self._master_channel = None
+        self._new_data = False
+        self.AIDevice.ClearBuffer()
 
     def _stop_device(self):
         try:
@@ -168,7 +166,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         # buffer for the continuous scan
         self.dataBuff[axis] = []
 
-
     def DeleteDevice(self, axis):
         self.sd.pop(axis)
         self.formulas.pop(axis)
@@ -192,7 +189,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self._state = State.Moving
                 self._status = 'The Adlink is acquiring'
             else:
-                self._clean_acquisition()
                 self._state = State.On
                 self._status = 'The Adlink is ready to acquire'
         else:
@@ -214,6 +210,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         if self._synchronization == AcqSynch.SoftwareTrigger:
             source = "SOFT"
+            # TODO: To fix Sardana bug #594
             self._repetitions = 1
         elif self._synchronization == AcqSynch.HardwareTrigger:
             source = "ExtD:+"
@@ -223,7 +220,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         self.AIDevice["TriggerInfinite"] = 0
         self.AIDevice["TriggerSources"] = source
-        self.AIDevice["NumOfTriggers"] = repetitions
+        self.AIDevice["NumOfTriggers"] = self._repetitions
         self.AIDevice['ChannelSamplesPerTrigger'] = chn_samp_per_trigger
 
     def PreStartOne(self, axis, value=None):
@@ -245,17 +242,21 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                                                               event_type, cb)
 
         # AdlinkAI Tango device has two aleatory bugs:
-        # * Start command changes state to ON without passing throug RUNNING
+        # * Start command changes state to ON without passing through RUNNING
         # * Start command changes state to RUNNING after a while
         # For these reasons we either wait or retry 3 times the Start command.
-        for i in range(1, 4):
+        self.AIDevice.set_timeout_millis(10000)
+        for i in range(1, 20):
+            self._log.debug('StartAllCT: Try to start AIDevice: times ...%r'
+                            % i)
             self.AIDevice.start()
-            time.sleep(0.05)
+            time.sleep(0.1)
             self.StateAll()
             if self._hw_state == PyTango.DevState.RUNNING:
                 break
             self._log.debug('StartAllCT: stopping AIDevice')
             self._stop_device()
+        self.AIDevice.set_timeout_millis(3000)
 
         if self._hw_state != PyTango.DevState.RUNNING:
             raise Exception('Could not start acquisition')
@@ -343,11 +344,9 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
             if not self._new_data:
-                val =  []
+                return []
             else:
-                val = self.dataBuff[axis]
-            self._log.debug('ReadOne(%r),HW Synch: %r', axis, val)
-            return val
+                return self.dataBuff[axis]
         else:
             raise Exception("Unknown synchronization mode.")
 
