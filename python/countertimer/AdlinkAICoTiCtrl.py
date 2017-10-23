@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-import time
 import Queue
 
 import PyTango
 from sardana import State, DataAccess
-from sardana.sardanavalue import SardanaValue
 from sardana.pool import AcqSynch
 from sardana.pool.controller import (CounterTimerController, Type, Access,
                                      Description)
+from sardana.sardanavalue import SardanaValue
 from sardana.tango.core.util import from_tango_state_to_state
 
 
@@ -240,26 +239,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             event_type = PyTango.EventType.DATA_READY_EVENT
             self._id_callback = self.AIDevice.subscribe_event(attr_name,
                                                               event_type, cb)
-
-        # AdlinkAI Tango device has two aleatory bugs:
-        # * Start command changes state to ON without passing through RUNNING
-        # * Start command changes state to RUNNING after a while
-        # For these reasons we either wait or retry 3 times the Start command.
-        self.AIDevice.set_timeout_millis(10000)
-        for i in range(1, 20):
-            self._log.debug('StartAllCT: Try to start AIDevice: times ...%r'
-                            % i)
-            self.AIDevice.start()
-            time.sleep(0.1)
-            self.StateAll()
-            if self._hw_state == PyTango.DevState.RUNNING:
-                break
-            self._log.debug('StartAllCT: stopping AIDevice')
-            self._stop_device()
-        self.AIDevice.set_timeout_millis(3000)
-
-        if self._hw_state != PyTango.DevState.RUNNING:
-            raise Exception('Could not start acquisition')
+        self.AIDevice.start()
 
     def ReadAll(self):
         self._new_data = True
