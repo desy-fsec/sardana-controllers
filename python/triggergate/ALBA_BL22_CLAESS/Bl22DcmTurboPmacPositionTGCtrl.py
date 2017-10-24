@@ -1,9 +1,9 @@
 import PyTango
 
-from sardana import State,
+from sardana import State
 from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController
-from sardana.pool.controller import Type, Description,
+from sardana.pool.controller import Type, Description
 
 from bl22dcmlib import energies4encoders
 
