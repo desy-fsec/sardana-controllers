@@ -6,14 +6,14 @@ from setuptools import setup
 
 release = "1.0.0"
 
-package_dir = {"sardana.PoolControllers": "python"}
+package_dir = {"sardana.PoolController": "python"}
 
-packages = ["sardana.PoolControllers"]
+packages = ["sardana.PoolController"]
 
 provides = ['python']
 
 
-setup(name='PoolControllers',
+setup(name='PoolController',
       version=1.0,
       author="Sardana Controller Developers",
       author_email="fs-ec@desy.de",
