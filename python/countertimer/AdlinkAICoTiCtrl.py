@@ -63,7 +63,10 @@ class AdlinkAICoTiCtrl(CounterTimerController):
     class_prop = {'AdlinkAIDeviceName': {'Description': 'AdlinkAI Tango device',
                                          'Type': 'PyTango.DevString'},
                   'SampleRate': {'Description': 'SampleRate set for AIDevice',
-                                 'Type': 'PyTango.DevLong'}}
+                                 'Type': 'PyTango.DevLong'},
+                  'SkipStart': {Description: 'Flag to skip if DS does not '
+                                             'start',
+                                Type: str}}
 
     axis_attributes = {"SD":
                        {Type: float,
@@ -126,6 +129,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         self._repetitions = 0
         self._latency_time = 1e-6 # 1 us
         self._start_wait_time = 0.05
+        self._skip_start = self.SkipStart.lower() == 'true'
+
 
     def _unsubcribe_data_ready(self):
         if self._id_callback is not None:
@@ -261,7 +266,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self._stop_device()
 
         if self._hw_state != PyTango.DevState.RUNNING:
-            raise Exception('Could not start acquisition')
+            if not self._skip_start:
+                raise Exception('Could not start acquisition')
 
     def ReadAll(self):
         self._new_data = True
