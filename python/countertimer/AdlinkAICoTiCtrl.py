@@ -125,6 +125,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         self._synchronization = None
         self._repetitions = 0
         self._latency_time = 1e-6 # 1 us
+        self._start_wait_time = 0.05
 
     def _unsubcribe_data_ready(self):
         if self._id_callback is not None:
@@ -208,6 +209,10 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         chn_samp_per_trigger = int(self.intTime * sample_rate)
 
         if self._synchronization == AcqSynch.SoftwareTrigger:
+            if value <= self._start_wait_time:
+                msg = 'It is not possible to integrate less than %r in ' \
+                      'software synchronization' % self._start_wait_time
+                raise ValueError(msg)
             source = "SOFT"
             # TODO: To fix Sardana bug #594
             self._repetitions = 1
@@ -239,7 +244,24 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             event_type = PyTango.EventType.DATA_READY_EVENT
             self._id_callback = self.AIDevice.subscribe_event(attr_name,
                                                               event_type, cb)
-        self.AIDevice.start()
+
+        # AdlinkAI Tango device has two aleatory bugs:
+        # * Start command changes state to ON without passing through RUNNING
+        # * Start command changes state to RUNNING after a while
+        # For these reasons we either wait or retry 3 times the Start command.
+        for i in range(1, 4):
+            self._log.debug('StartAllCT: Try to start AIDevice: times ...%r'
+                            % i)
+            self.AIDevice.start()
+            time.sleep(self._start_wait_time)
+            self.StateAll()
+            if self._hw_state == PyTango.DevState.RUNNING:
+                break
+            self._log.debug('StartAllCT: stopping AIDevice')
+            self._stop_device()
+
+        if self._hw_state != PyTango.DevState.RUNNING:
+            raise Exception('Could not start acquisition')
 
     def ReadAll(self):
         self._new_data = True
