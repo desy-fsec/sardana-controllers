@@ -88,7 +88,6 @@ class LambdaCtrl(TwoDController):
         self.DelayTime.append(self.dft_DelayTime)
         self.ShutterTime.append(self.dft_ShutterTime)
         self.SaveFileName.append(self.dft_SaveFileName)
-        self.FilePostfix.append(self.dft_FilePostfix)
         self.SaveFilePath.append(self.dft_SaveFilePath)
         self.LatestImageNumber.append(self.dft_LatestImageNumber)
         self.FrameNumbers.append(self.dft_FrameNumbers)
