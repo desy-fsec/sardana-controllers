@@ -254,6 +254,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         # * Start command changes state to ON without passing through RUNNING
         # * Start command changes state to RUNNING after a while
         # For these reasons we either wait or retry 3 times the Start command.
+        self.AIDevice.set_timeout_millis(15000)
         for i in range(1, 4):
             self._log.debug('StartAllCT: Try to start AIDevice: times ...%r'
                             % i)
@@ -264,6 +265,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 break
             self._log.debug('StartAllCT: stopping AIDevice')
             self._stop_device()
+        self.AIDevice.set_timeout_millis(3000)
 
         if self._hw_state != PyTango.DevState.RUNNING:
             if not self._skip_start:
