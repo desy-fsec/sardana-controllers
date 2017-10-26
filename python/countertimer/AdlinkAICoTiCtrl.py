@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-import time
 import Queue
 
 import PyTango
 from sardana import State, DataAccess
-from sardana.sardanavalue import SardanaValue
 from sardana.pool import AcqSynch
 from sardana.pool.controller import (CounterTimerController, Type, Access,
                                      Description)
+from sardana.sardanavalue import SardanaValue
 from sardana.tango.core.util import from_tango_state_to_state
 
 
@@ -64,7 +63,10 @@ class AdlinkAICoTiCtrl(CounterTimerController):
     class_prop = {'AdlinkAIDeviceName': {'Description': 'AdlinkAI Tango device',
                                          'Type': 'PyTango.DevString'},
                   'SampleRate': {'Description': 'SampleRate set for AIDevice',
-                                 'Type': 'PyTango.DevLong'}}
+                                 'Type': 'PyTango.DevLong'},
+                  'SkipStart': {Description: 'Flag to skip if DS does not '
+                                             'start',
+                                Type: str}}
 
     axis_attributes = {"SD":
                        {Type: float,
@@ -126,22 +128,23 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         self._synchronization = None
         self._repetitions = 0
         self._latency_time = 1e-6 # 1 us
+        self._start_wait_time = 0.05
+        self._skip_start = self.SkipStart.lower() == 'true'
+
 
     def _unsubcribe_data_ready(self):
         if self._id_callback is not None:
             self.AIDevice.unsubscribe_event(self._id_callback)
             self._id_callback = None
-            
 
     def _clean_acquisition(self):
-        if self._last_index_read != -1:
-            self._last_index_read = -1
-            self._repetitions = 0
-            self._unsubcribe_data_ready()
-            self._index_queue.__init__()
-            self._master_channel = None
-            self._new_data = False
-            self.AIDevice.ClearBuffer()
+        self._last_index_read = -1
+        self._repetitions = 0
+        self._unsubcribe_data_ready()
+        self._index_queue.__init__()
+        self._master_channel = None
+        self._new_data = False
+        self.AIDevice.ClearBuffer()
 
     def _stop_device(self):
         try:
@@ -168,7 +171,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         # buffer for the continuous scan
         self.dataBuff[axis] = []
 
-
     def DeleteDevice(self, axis):
         self.sd.pop(axis)
         self.formulas.pop(axis)
@@ -192,7 +194,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self._state = State.Moving
                 self._status = 'The Adlink is acquiring'
             else:
-                self._clean_acquisition()
                 self._state = State.On
                 self._status = 'The Adlink is ready to acquire'
         else:
@@ -213,7 +214,12 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         chn_samp_per_trigger = int(self.intTime * sample_rate)
 
         if self._synchronization == AcqSynch.SoftwareTrigger:
+            if value <= self._start_wait_time:
+                msg = 'It is not possible to integrate less than %r in ' \
+                      'software synchronization' % self._start_wait_time
+                raise ValueError(msg)
             source = "SOFT"
+            # TODO: To fix Sardana bug #594
             self._repetitions = 1
         elif self._synchronization == AcqSynch.HardwareTrigger:
             source = "ExtD:+"
@@ -223,7 +229,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         self.AIDevice["TriggerInfinite"] = 0
         self.AIDevice["TriggerSources"] = source
-        self.AIDevice["NumOfTriggers"] = repetitions
+        self.AIDevice["NumOfTriggers"] = self._repetitions
         self.AIDevice['ChannelSamplesPerTrigger'] = chn_samp_per_trigger
 
     def PreStartOne(self, axis, value=None):
@@ -245,20 +251,25 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                                                               event_type, cb)
 
         # AdlinkAI Tango device has two aleatory bugs:
-        # * Start command changes state to ON without passing throug RUNNING
+        # * Start command changes state to ON without passing through RUNNING
         # * Start command changes state to RUNNING after a while
         # For these reasons we either wait or retry 3 times the Start command.
+        self.AIDevice.set_timeout_millis(15000)
         for i in range(1, 4):
+            self._log.debug('StartAllCT: Try to start AIDevice: times ...%r'
+                            % i)
             self.AIDevice.start()
-            time.sleep(0.05)
+            time.sleep(self._start_wait_time)
             self.StateAll()
             if self._hw_state == PyTango.DevState.RUNNING:
                 break
             self._log.debug('StartAllCT: stopping AIDevice')
             self._stop_device()
+        self.AIDevice.set_timeout_millis(3000)
 
         if self._hw_state != PyTango.DevState.RUNNING:
-            raise Exception('Could not start acquisition')
+            if not self._skip_start:
+                raise Exception('Could not start acquisition')
 
     def ReadAll(self):
         self._new_data = True
@@ -343,11 +354,9 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
             if not self._new_data:
-                val =  []
+                return []
             else:
-                val = self.dataBuff[axis]
-            self._log.debug('ReadOne(%r),HW Synch: %r', axis, val)
-            return val
+                return self.dataBuff[axis]
         else:
             raise Exception("Unknown synchronization mode.")
 
