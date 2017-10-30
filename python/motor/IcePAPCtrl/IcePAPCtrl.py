@@ -25,7 +25,6 @@ import socket
 import errno
 import time
 import math
-import numpy
 
 from pyIcePAP import *
 
@@ -118,6 +117,9 @@ class IcepapController(MotorController):
         'Encoder':{Type:float, Access:ReadOnly},
         ## 29/07/2010 ALLOW THE USER TO SPECIFY THE SPEED AS A 'FREQUENCY' OF THE MOTOR STEPS
         'Frequency':{Type:float, Access:ReadWrite},
+        ## 27/07/2016 ALLOW TO SET EcamData by intervals or table
+        'EcamDataInterval': {Type:[float], Access:ReadWrite},
+        'EcamDataTable': {Type:[float], Access:ReadWrite},
     }
 
     gender = "Motor"
@@ -159,6 +161,7 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source'] = 'attr://EncEncIn'
         self.attributes[axis]['encoder_source_formula'] = 'VALUE'
         self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, 'attr://EncEncIn')
+        self.attributes[axis]['ecam_data_table'] = []
 
         if self.iPAP.connected:
             drivers_alive = self.iPAP.getDriversAlive()
@@ -181,13 +184,13 @@ class IcepapController(MotorController):
         if not self.iPAP.connected:
             return False
 
-    def PreStateOne(self,axis):
+    def PreStateOne(self, axis):
         """ Store all positions in a variable and then react on the StateAll method.
         @param axis to get state
         """
         if self.attributes[axis]['MotorEnabled'] == True:
             self.stateMultiple.append(axis)
-            
+
 
     def StateAll(self):
         """ Get State of all axis with just one command to the Icepap Controller. """
@@ -224,7 +227,7 @@ class IcepapController(MotorController):
         status_stopcode = '?'
         status_limpos = '?'
         status_limneg = '?'
-        
+
         if self.iPAP.connected:
             try:
                 register = self.attributes[axis]['status_value']
@@ -259,7 +262,7 @@ class IcepapController(MotorController):
                 if switchstate != 0 and state == State.On:
                     state = State.Alarm
                     status_state = 'ALARM_LIMIT_SWITCH'
-                        
+
                 # CHECK READY
                 # Not used because slave axis are 'BUSY' (NOT READY) and should not be an alarm
                 ready, status_ready = status_dict['ready']
@@ -329,9 +332,7 @@ class IcepapController(MotorController):
             except Exception,e:
                 self._log.error('ReadAll(%s) Hint: some driver board not present?.\nException:\n%s' % (str(self.positionMultiple),str(e)))
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('ReadAll(). No connection to %s.' % (self.Host))
-            pass
+            self._log.error('ReadAll(). No connection to %s.' % (self.Host))
 
     def ReadOne(self,axis):
         """ Read the position of the axis.
@@ -347,7 +348,7 @@ class IcepapController(MotorController):
             else:
                 log.warning('ReadOne(%s(%d)) Not enabled. Check the Driver Board is present in %s.', name, axis, self.Host)
                 raise Exception('ReadOne(%s(%d)) Not enabled: No position value available' % (name, axis))
-        
+
         if self.iPAP.connected:
             try:
                 pos = self.attributes[axis]['position_value']
@@ -356,9 +357,7 @@ class IcepapController(MotorController):
                 log.error('ReadOne(%s(%d)) Exception:', name, axis, exc_info=1)
                 raise
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #log.error('ReadOne(%s(%d)). No connection to %s.', name, axis, self.Host)
-            pass
+            log.error('ReadOne(%s(%d)). No connection to %s.', name, axis, self.Host)
         return None
 
     def PreStartAll(self):
@@ -388,10 +387,8 @@ class IcepapController(MotorController):
                 self._log.error('PreStartOne(%d,%f).\nException:\n%s' % (axis,pos,str(e)))
                 raise
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('PreStartOne(%d,%f). No connection to %s.' % (axis,pos,self.Host))
-            pass
-        
+            self._log.error('PreStartOne(%d,%f). No connection to %s.' % (axis,pos,self.Host))
+
     def StartOne(self,axis,pos):
         pass
 
@@ -406,9 +403,7 @@ class IcepapController(MotorController):
                 self._log.error('StartAll(%s).\nException:\n%s' % (str(self.moveMultipleValues),str(e)))
                 raise
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('StartAll(). No connection to %s.' % (self.Host))
-            pass
+            self._log.error('StartAll(). No connection to %s.' % (self.Host))
 
     def SetPar(self,axis,name,value):
         """ Set the standard pool motor parameters.
@@ -416,10 +411,6 @@ class IcepapController(MotorController):
         @param name of the parameter
         @param value to be set
         """
-
-        if name.lower() == "step_per_unit":
-            self.attributes[axis]["step_per_unit"] = float(value)
-
         if self.iPAP.connected:
             try:
                 if name.lower() == "velocity":
@@ -432,19 +423,19 @@ class IcepapController(MotorController):
                     self.iPAP.setSpeed(axis, value_steps)
                     self.iPAP.setAcceleration(axis, accel_time)
                 elif name.lower() == "base_rate":
-                    # ONLY ALLOWED WHEN CONFIGURING THE MOTOR (IcepapCMS)
-                    self._log.error('SetPar(%d,%s,%s).\nThis is a configuration parameter set by an expert with IcepapCMS\n' % (axis,name,str(value)))
-                    raise Exception('This is a configuration parameter set by an expert with IcepapCMS')
+                    pass
+                    ### ONLY ALLOWED WHEN CONFIGURING THE MOTOR (IcepapCMS)
+                    ##self._log.error('SetPar(%d,%s,%s).\nThis is a configuration parameter set by an expert with IcepapCMS\n' % (axis,name,str(value)))
+                    ##raise Exception('This is a configuration parameter set by an expert with IcepapCMS')
                 elif name.lower() == "acceleration" or name == "deceleration":
                     self.iPAP.setAcceleration(axis, value)
-
+                elif name.lower() == "step_per_unit":
+                    self.attributes[axis]["step_per_unit"] = float(value)
             except Exception,e:
                 self._log.error('SetPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('SetPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
-            pass
+            self._log.error('SetPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
 
 
     def GetPar(self,axis,name):
@@ -453,10 +444,6 @@ class IcepapController(MotorController):
         @param name of the parameter to get the value
         @return the value of the parameter
         """
-
-        if name.lower() == "step_per_unit":
-           return float(self.attributes[axis]["step_per_unit"])
-
         if self.iPAP.connected:
             try:
                 if name.lower() == "velocity":
@@ -465,16 +452,18 @@ class IcepapController(MotorController):
                     return float(freq_float / self.attributes[axis]["step_per_unit"])
                 elif name.lower() == "base_rate":
                     return 0
+                    #start_vel = self.iPAP.getCfgParameter(axis, "STRTVEL")
+                    #strt_vel_float = 1.0 * float(start_vel)
+                    #return float(strt_vel_float / self.attributes[axis]["step_per_unit"])
                 elif name.lower() == "acceleration" or name.lower() == "deceleration":
                     return float(self.iPAP.getAcceleration(axis))
-
+                elif name.lower() == "step_per_unit":
+                    return float(self.attributes[axis]["step_per_unit"])
             except Exception,e:
                 self._log.error('GetPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('GetPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
-            pass
+            self._log.error('GetPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
 
         return None
 
@@ -572,13 +561,8 @@ class IcepapController(MotorController):
                     ans = self.iPAP.getVStatus(axis)
                     return str(ans)
                 elif name.startswith('status'):
-                    
-                    #We apply getStatusFromBoard to update all status
-                    self.attributes[axis]['status_value'] = self.iPAP.getStatusFromBoard(axis)                    
-                    
                     #register = self.iPAP.getStatusFromBoard(axis)
-                    register = self.attributes[axis]['status_value']
-                    
+                    register = self.attributes[axis]["status_value"]
                     if register == None:
                         register = self.iPAP.getStatusFromBoard(axis)
                     status_dict = self.iPAP.decodeStatus(register)
@@ -612,6 +596,10 @@ class IcepapController(MotorController):
                         raise e
                 elif name == 'frequency':
                     return float(self.iPAP.getSpeed(axis))
+                elif name == 'ecamdatainterval':
+                    return self.iPAP.getEcamDatIntervals(axis)
+                elif name == 'ecamdatatable':
+                    return self.attributes[axis]['ecam_data_table']
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("GetAxisExtraPar(%s(%s), %s): "
@@ -624,9 +612,7 @@ class IcepapController(MotorController):
                 self._log.error('GetAxisExtraPar(%d,%s).\nException:\n%s' % (axis,name,str(e)))
                 raise
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('GetAxisExtraPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
-            pass
+            self._log.error('GetAxisExtraPar(%d,%s). No connection to %s.' % (axis,name,self.Host))
 
     def SetAxisExtraPar(self,axis,name,value):
         """ Set Icepap driver particular parameters.
@@ -671,9 +657,11 @@ class IcepapController(MotorController):
                     self.attributes[axis]["MotorEnabled"] = value
 
                 elif name.startswith("info"):
+                    axis_name = self.GetAxisName(axis)
                     name = name.upper()
                     value = value.split()
                     src = value[0].upper()
+
                     if not src in IcepapInfo.Sources:
                         raise Exception("SetAxisExtraPar(%s(%s), %s): "
                             "Error setting %s. [Source = (%s), Polarity= (%s)]"
@@ -716,12 +704,24 @@ class IcepapController(MotorController):
                                 self.attributes[axis]['use_encoder_source'] = False
                     except Exception,e:
                         raise e
-                    
+
                 elif name == 'encodersourceformula':
                     self.attributes[axis]['encoder_source_formula'] = value
                 elif name == 'frequency':
                     self.iPAP.setSpeed(axis, value)
+                elif name == 'ecamdatainterval':
+                    start_pos, end_pos, nintervals = value
+                    self.iPAP.sendEcamDatIntervals(axis, start_pos, end_pos,
+                                                   nintervals)
+                elif name == 'ecamdatatable':
+                    self.iPAP.sendEcamDat(axis, position_list=value)
+                    # 2017/Oct/27 - in some cases, we get an exception when setting PULSE signal
+                    # 2017/Oct/27
+                    # TODO for long tables, sometimes we get:
+                    # N:ECAM ERROR Not initialised ECAM data
+                    self.attributes[axis]['ecam_data_table'] = value
                 else:
+                    axis_name = self.GetAxisName(axis)
                     raise Exception("SetAxisExtraPar(%s(%s), %s): "
                         "Error setting %s, not implemented"
                         % (axis_name, axis, name, name))
@@ -729,57 +729,23 @@ class IcepapController(MotorController):
                 self._log.error('SetAxisExtraPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                 raise
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('SetAxisExtraPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
-            pass
+            self._log.error('SetAxisExtraPar(%d,%s,%s). No connection to %s.' % (axis,name,str(value),self.Host))
 
-
-    def StopOne(self, axis):
-        if self.iPAP.connected: 
-            self.iPAP.stop(axis)
-            time.sleep(0.050) # not sure about that, 
-                              # it comes from AbortOne implementation
-            # due to the IcePAP firmware bug: 
-            # axes with velocity to acceleration time factor less that 18
-            # are not stoppable
-            try:
-                vel = float(self.iPAP.getSpeed(axis))
-                acc = float(self.iPAP.getAcceleration(axis))
-                factor = vel / acc
-            except Exception, e:
-                msg = 'Problems while trying to determine velocity to ' + \
-                      'acceleration factor'
-                self._log.error('StopOne(%d): %s. Trying to abort...' % \
-                                                                    (axis,msg))
-                self._log.debug(e)
-                self.AbortOne(axis)
-                raise Exception(msg)
-            if factor < 18:
-                self.AbortOne(axis)
-        else:
-            # To provent huge logs, do not log this error until log levels can 
-            # be changed in per-controller basis
-            # self._log.error('StopOne(%d). No connection to %s.' % \
-            #                                                 (axis,self.Host))
-            pass
 
     def AbortOne(self, axis):
         if self.iPAP.connected:
+            #self.iPAP.abortMotor(axis)
             self.iPAP.abort(axis)
             time.sleep(0.050)
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('AbortOne(%d). No connection to %s.' % (axis,self.Host))
-            pass
+            self._log.error('AbortOne(%d). No connection to %s.' % (axis,self.Host))
 
     def DefinePosition(self, axis, position):
         if self.iPAP.connected:
             position = long(position * self.attributes[axis]["step_per_unit"])
             self.iPAP.setPosition(axis, position)
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('DefinePosition(%d,%f). No connection to %s.' % (axis,position,self.Host))
-            pass
+            self._log.error('DefinePosition(%d,%f). No connection to %s.' % (axis,position,self.Host))
 
 
     #def GOAbsolute(self, axis, finalpos):
@@ -804,12 +770,8 @@ class IcepapController(MotorController):
                 self.iPAP.sendWriteCommand(cmd)
             if res is not None:
                 return res
-            #added by zreszela on 8.02.2013
-            else:
-                return ""
         else:
-            # To provent huge logs, do not log this error until log levels can be changed in per-controller basis
-            #self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd, self.Host))
+            self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd, self.Host))
             return 'SendToCtrl(%s). No connection to %s.' % (cmd, self.Host)
 
 
