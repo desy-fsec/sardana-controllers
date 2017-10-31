@@ -746,7 +746,13 @@ class IcepapController(MotorController):
                     # 2017/Oct/27
                     # TODO for long tables, sometimes we get:
                     # N:ECAM ERROR Not initialised ECAM data
-                    self.attributes[axis]['ecam_data_table'] = value
+                    try:
+                        self.attributes[axis]['ecam_data_table'] = value
+                    except Exception,e:
+                        self._log.error('SetAxisExtraPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
+                        self._log.error('Since it is a known bug... just retry once more time.. :-(')
+                        # JUST try again... :-(
+                        self.attributes[axis]['ecam_data_table'] = value
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("SetAxisExtraPar(%s(%s), %s): "
