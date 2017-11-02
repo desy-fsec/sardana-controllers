@@ -156,6 +156,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
         ### FAST INTEGRATION TIMES MAY RAISE WRONG EXCEPTIONS
         ### e.g. 10ms ACQTIME -> self.state MAY BE NOT MOVING BECAUSE FINISHED, NOT FAILED
         self.StateAll()
+        t0 = time.time()
         while (self.state != State.Moving):
             if time.time() - t0 > 3:
                 raise Exception('The HW did not start the acquisition')
@@ -170,6 +171,8 @@ class Albaem2CoTiCtrl(CounterTimerController):
         try:
             if self.index < data_ready:
                 data_len = data_ready - self.index
+                # THIS CONTROLLER IS NOT YET READY FOR TIMESTAMP DATA
+                self.sendCmd('TSTM 0', rw=False)
                 raw_data = self.sendCmd('ACQU:MEAS? %r,%r' % (self.index-1,data_len))
                 data = eval(raw_data)
                 for chn_name, values in data:
