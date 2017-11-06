@@ -91,10 +91,7 @@ class LambdaCtrl(TwoDController):
         self.SaveFilePath.append(self.dft_SaveFilePath)
         self.LatestImageNumber.append(self.dft_LatestImageNumber)
         self.FrameNumbers.append(self.dft_FrameNumbers)
-        self.TriggerMode.append(self.dft_TriggerMode)
         self.ThresholdEnergy.append(self.dft_ThresholdEnergy)
-        self.Gain.append(self.dft_Gain)
-        self.Reset.append(self.dft_Reset)
         
     def DeleteDevice(self,ind):
 #        print "PYTHON -> LambdaCtrl/",self.inst_name,": In DeleteDevice method for index",ind
