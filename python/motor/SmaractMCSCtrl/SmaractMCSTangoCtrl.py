@@ -41,10 +41,9 @@ STEP_RES = 1
 HOME_LIN_SINGLE = 'home_linial_single'
 
 
-class SmaractMCSController(MotorController):
-    """This class is the Tango Sardana motor controller for the Smaract MCS
-    motor controller device. It is designed to work linked to the TangoDS
-    PySmaract."""
+class SmaractMCSTangoCtrl(MotorController):
+    """This class is the Sardana motor controller for the Smaract MCS
+    motor controller device. It is based on the TangoDS PySmaract."""
 
     MaxDevice = 16
 

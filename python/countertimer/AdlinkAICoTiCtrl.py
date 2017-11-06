@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import Queue
+import time
 
 import PyTango
 from sardana import State, DataAccess
