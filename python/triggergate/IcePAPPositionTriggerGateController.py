@@ -21,6 +21,7 @@
 ##
 ##############################################################################
 
+import numpy
 import taurus
 
 from sardana import State
@@ -42,12 +43,12 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
     ctrl_properties = {
         'Motors': {Type: str,
                    Description: 'List of IcePap motors name separated by '
-                                'colon(s)'
+                                'comma(s)'
         },
         'Info_channels': {Type: str,
                           Description: 'List of groups of Info channel(s) '
                                        'separated by space(s) to be used as '
-                                       'trigger separated by colon(s). '
+                                       'trigger separated by comma(s). '
                                        'e.g: "InfoA InfoB,InfoB InfoC,InfoB"'
         }
     }
@@ -97,7 +98,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         idx = axis - 1
         tg = self.triggers[idx]
         motor = tg['motor']
-        return motor.state(), motor.status()
+        return motor.state, motor.status
 
     def PreStartOne(self, axis):
         """PreStart the specified trigger
@@ -108,7 +109,6 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         motor = tg['motor']
         for info_chn in tg['info_channels']:
             info_cfg = motor.__getattr__(info_chn).upper()
-            print info_cfg
             if info_cfg != 'ECAM NORMAL':
                 msg = ('PreStartOne(%d): The axis has the %s wrong '
                       'configured (%s)' %(idx, info_chn.upper(), info_cfg))
@@ -132,7 +132,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         return True
 
     def StartOne(self, axis):
-        """Overwrite the StarOne method
+        """Overwrite the StartOne method
         """
         pass
 
@@ -161,7 +161,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
             self._log.error(msg)
         return v
 
-    def SetConfiguration(self, axis, configuration):
+    def SynchOne(self, axis, configuration):
         idx = axis - 1
         motor = self.triggers[idx]['motor']
 
@@ -178,13 +178,14 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         initial = (initial_user - offset) * (step_per_unit / sign)
         total = total_user * (step_per_unit / sign)
         final = initial + (total * nr_points)
-        self._log.debug('IcepapTriggerCtr configuration: %f %f %d' %
-                        (initial, final, nr_points))
+        self._log.debug('IcepapTriggerCtr configuration: %f %f %d %d' %
+                        (initial, final, nr_points, total))
 
         # There is a limitation of numbers of point on the icepap (8192)
         # ecamdata = motor.getAttribute('ecamdatainterval')
         # ecamdata.write([initial, final, nr_points], with_read=False)
 
-        trigger_positions_tables = range(initial, final, nr_points)
+        trigger_positions_tables = numpy.linspace(int(initial), int(final-total), int(nr_points))
+        self._log.debug('trigger table %s'%str(trigger_positions_tables))
         ecamdatatable = motor.getAttribute('ecamdatatable')
         ecamdatatable.write(trigger_positions_tables, with_read=False)
