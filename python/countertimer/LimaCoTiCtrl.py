@@ -127,7 +127,7 @@ class LimaCoTiCtrl(CounterTimerController):
             prefix += '_%s_' % self._det_name
             suffix = self._saving_format.lower()
             frame_per_file = 1
-            if self._saving_format == 'HDF5':
+            if self._saving_format.lower() == 'hdf5':
                 suffix = 'h5'
             self._limaccd.write_attribute('saving_frame_per_file',
                                           frame_per_file)
