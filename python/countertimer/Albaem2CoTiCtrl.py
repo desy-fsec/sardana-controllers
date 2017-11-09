@@ -172,7 +172,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
             if self.index < data_ready:
                 data_len = data_ready - self.index
                 # THIS CONTROLLER IS NOT YET READY FOR TIMESTAMP DATA
-                self.sendCmd('TSTM 0', rw=False)
+                self.sendCmd('TMST 0', rw=False)
                 raw_data = self.sendCmd('ACQU:MEAS? %r,%r' % (self.index-1,data_len))
                 data = eval(raw_data)
                 for chn_name, values in data:
