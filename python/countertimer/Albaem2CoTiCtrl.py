@@ -62,6 +62,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
         self.index = 0
         self.master = None
         self._latency_time = 0.001  # In fact, it is just 320us
+        self._repetitions = 0
 
     def AddDevice(self, axis):
         """Add device to controller."""
@@ -118,17 +119,18 @@ class Albaem2CoTiCtrl(CounterTimerController):
                                      AcqSynch.SoftwareGate]:
             # self._log.debug("SetCtrlPar(): setting synchronization "
             #                 "to SoftwareTrigger")
-            repetitions = 1
+            self._repetitions = 1
             source = 'SOFTWARE'
 
         else:
             # self._log.debug("SetCtrlPar(): setting synchronization "
             #                 "to HardwareTrigger")
             source = 'HARDWARE'
+            self._repetitions = repetitions
         self.sendCmd('TRIG:MODE %s' % source, rw=False)
 
         # Set Number of Triggers
-        self.sendCmd('ACQU:NTRI %r' % repetitions, rw=False)
+        self.sendCmd('ACQU:NTRI %r' % self._repetitions, rw=False)
 
     def PreStartOneCT(self, axis):
         # self._log.debug("PreStartOneCT(%d): Entering...", axis)
@@ -180,7 +182,8 @@ class Albaem2CoTiCtrl(CounterTimerController):
                     self.new_data.append(eval(values))
                 time_data = [self.itime] * len(self.new_data[0])
                 self.new_data.insert(0, time_data)
-                self.index += len(time_data)
+                if self._repetitions != 1:
+                    self.index += len(time_data)
 
         except Exception as e:
             raise Exception("ReadAll error: %s: "+str(e))
