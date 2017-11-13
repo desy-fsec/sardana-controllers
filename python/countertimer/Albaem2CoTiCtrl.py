@@ -85,7 +85,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
             self.state = State.Moving
 
         elif state == 'STATE_ON':
-            self.state = State.Standby
+            self.state = State.On
 
         elif state == 'STATE_FAULT':
             self.state = State.Fault
