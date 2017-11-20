@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import time
 import socket
+from threading import Lock
 
 from sardana import State, DataAccess
 from sardana.sardanavalue import SardanaValue
@@ -55,14 +56,15 @@ class Albaem2CoTiCtrl(CounterTimerController):
         self._log.debug("__init__(%s, %s): Entering...", repr(inst),
                         repr(props))
 
-        ip_config = (self.AlbaEmHost, self.Port)
+        self.ip_config = (self.AlbaEmHost, self.Port)
         self.albaem_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.albaem_socket.settimeout(2.5)
-        self.albaem_socket.connect(ip_config)
+        self.albaem_socket.settimeout(.5)
+        self.albaem_socket.connect(self.ip_config)
         self.index = 0
         self.master = None
         self._latency_time = 0.001  # In fact, it is just 320us
         self._repetitions = 0
+        self.lock = Lock()
 
     def AddDevice(self, axis):
         """Add device to controller."""
@@ -205,50 +207,65 @@ class Albaem2CoTiCtrl(CounterTimerController):
         self.sendCmd('ACQU:STOP', rw=False)
 
     def sendCmd(self, cmd, rw=True, size=8096):
-        cmd += '\r;'
-        while cmd:
-            n = self.albaem_socket.send(cmd)
-            cmd = cmd[n:]
-        if rw:
-            # WARNING...
-            # socket.recv(size) IS NEVER ENOUGH TO RECEIVE DATA !!!
-            # you should know by the protocol either:
-            # the length of data to be received
-            # or
-            # wait until a special end-of-transfer control
-            # In this case: while not '\r' in data:
-            #                 receive more data...
-            ################################################
-            # AS IT IS SAID IN https://docs.python.org/3/howto/sockets.html
-            # SECTION "3 Using a Socket"
-            #
-            # A protocol like HTTP uses a socket for only one
-            # transfer. The client sends a request, the reads a
-            # reply. That's it. The socket is discarded. This
-            # means that a client can detect the end of the reply
-            # by receiving 0 bytes.
-            #
-            # But if you plan to reuse your socket for further
-            # transfers, you need to realize that there is no
-            # "EOT" (End of Transfer) on a socket. I repeat: if a
-            # socket send or recv returns after handling 0 bytes,
-            # the connection has been broken. If the connection
-            # has not been broken, you may wait on a recv forever,
-            # because the socket will not tell you that there's
-            # nothing more to read (for now). Now if you think
-            # about that a bit, you'll come to realize a
-            # fundamental truth of sockets: messages must either
-            # be fixed length (yuck), or be delimited (shrug), or
-            # indicate how long they are (much better), or end by
-            # shutting down the connection. The choice is entirely
-            # yours, (but some ways are righter than others).
-            ################################################
-            data = ""
-            while True:
-                data += self.albaem_socket.recv(size)
-                if data[-1] == '\n':
-                    break
-            return data[:-2]
+        with self.lock:
+            cmd += ';\n'
+            self.albaem_socket.sendall(cmd)
+            if rw:
+                # WARNING...
+                # socket.recv(size) IS NEVER ENOUGH TO RECEIVE DATA !!!
+                # you should know by the protocol either:
+                # the length of data to be received
+                # or
+                # wait until a special end-of-transfer control
+                # In this case: while not '\r' in data:
+                #                 receive more data...
+                ################################################
+                # AS IT IS SAID IN https://docs.python.org/3/howto/sockets.html
+                # SECTION "3 Using a Socket"
+                #
+                # A protocol like HTTP uses a socket for only one
+                # transfer. The client sends a request, the reads a
+                # reply. That's it. The socket is discarded. This
+                # means that a client can detect the end of the reply
+                # by receiving 0 bytes.
+                #
+                # But if you plan to reuse your socket for further
+                # transfers, you need to realize that there is no
+                # "EOT" (End of Transfer) on a socket. I repeat: if a
+                # socket send or recv returns after handling 0 bytes,
+                # the connection has been broken. If the connection
+                # has not been broken, you may wait on a recv forever,
+                # because the socket will not tell you that there's
+                # nothing more to read (for now). Now if you think
+                # about that a bit, you'll come to realize a
+                # fundamental truth of sockets: messages must either
+                # be fixed length (yuck), or be delimited (shrug), or
+                # indicate how long they are (much better), or end by
+                # shutting down the connection. The choice is entirely
+                # yours, (but some ways are righter than others).
+                ################################################
+                data = ""
+                while True:
+                    # SOME TIMEOUTS OCCUR WHEN USING THE WEBPAGE
+                    retries = 5
+                    for i in range(retries):
+                        try:
+                            data += self.albaem_socket.recv(size)
+                            break
+                        except socket.timeout:
+                            self._log.debug('Socket timeout! reconnecting and commanding again %s'% cmd[:-2])
+                            self.albaem_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            self.albaem_socket.settimeout(2.5)
+                            self.albaem_socket.connect(self.ip_config)
+                            self.albaem_socket.sendall(cmd)
+                            pass
+                    if data[-1] == '\n':
+                        break
+                # NOTE: EM MAY ANSWER WITH MULTIPLE ANSWERS IN CASE OF AN EXCEPTION
+                # SIMPLY GET THE LAST ONE
+                if data.count(';') > 1:
+                    data = data.rsplit(';')[-2:]
+                return data[:-2]
 
 ###############################################################################
 #                Axis Extra Attribute Methods
@@ -313,12 +330,12 @@ if __name__ == '__main__':
 
     ctrl._synchronization = AcqSynch.SoftwareTrigger
     # ctrl._synchronization = AcqSynch.HardwareTrigger
-    acqtime = .03
+    acqtime = 1.1
     ctrl.LoadOne(1, acqtime, 10)
     ctrl.StartAllCT()
     t0 = time.time()
     ctrl.StateAll()
-    while ctrl.StateOne(1)[0] != State.Standby:
+    while ctrl.StateOne(1)[0] != State.On:
         ctrl.StateAll()
         time.sleep(0.1)
     print time.time() - t0 - acqtime
