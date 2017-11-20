@@ -182,10 +182,13 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
                         (initial, final, nr_points, total))
 
         # There is a limitation of numbers of point on the icepap (8192)
-        # ecamdata = motor.getAttribute('ecamdatainterval')
-        # ecamdata.write([initial, final, nr_points], with_read=False)
+        # ecamdat = motor.getAttribute('ecamdatinterval')
+        # ecamdat.write([initial, final, nr_points], with_read=False)
 
         trigger_positions_tables = numpy.linspace(int(initial), int(final-total), int(nr_points))
+        # ECAMDAT HAS TO BE A LIST WITH l[0] < l[-1]
+        if trigger_positions_tables[0] > trigger_positions_tables[-1]:
+            trigger_positions_tables = [x for x in reversed(trigger_positions_tables)]
         self._log.debug('trigger table %s'%str(trigger_positions_tables))
-        ecamdatatable = motor.getAttribute('ecamdatatable')
-        ecamdatatable.write(trigger_positions_tables, with_read=False)
+        ecamdattable = motor.getAttribute('ecamdattable')
+        ecamdattable.write(trigger_positions_tables, with_read=False)
