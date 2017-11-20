@@ -117,9 +117,9 @@ class IcepapController(MotorController):
         'Encoder':{Type:float, Access:ReadOnly},
         ## 29/07/2010 ALLOW THE USER TO SPECIFY THE SPEED AS A 'FREQUENCY' OF THE MOTOR STEPS
         'Frequency':{Type:float, Access:ReadWrite},
-        ## 27/07/2016 ALLOW TO SET EcamData by intervals or table
-        'EcamDataInterval': {Type:[float], Access:ReadWrite},
-        'EcamDataTable': {Type:[float], Access:ReadWrite},
+        ## 27/07/2016 ALLOW TO SET EcamDat by intervals or table
+        'EcamDatInterval': {Type:[float], Access:ReadWrite},
+        'EcamDatTable': {Type:[float], Access:ReadWrite},
     }
 
     gender = "Motor"
@@ -161,7 +161,7 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source'] = 'attr://EncEncIn'
         self.attributes[axis]['encoder_source_formula'] = 'VALUE'
         self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, 'attr://EncEncIn')
-        self.attributes[axis]['ecam_data_table'] = []
+        self.attributes[axis]['ecam_dat_table'] = []
 
         if self.iPAP.connected:
             drivers_alive = self.iPAP.getDriversAlive()
@@ -621,10 +621,10 @@ class IcepapController(MotorController):
                         raise e
                 elif name == 'frequency':
                     return float(self.iPAP.getSpeed(axis))
-                elif name == 'ecamdatainterval':
+                elif name == 'ecamdatinterval':
                     return self.iPAP.getEcamDatIntervals(axis)
-                elif name == 'ecamdatatable':
-                    return self.attributes[axis]['ecam_data_table']
+                elif name == 'ecamdattable':
+                    return self.attributes[axis]['ecam_dat_table']
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("GetAxisExtraPar(%s(%s), %s): "
@@ -736,23 +736,26 @@ class IcepapController(MotorController):
                     self.attributes[axis]['encoder_source_formula'] = value
                 elif name == 'frequency':
                     self.iPAP.setSpeed(axis, value)
-                elif name == 'ecamdatainterval':
+                elif name == 'ecamdatinterval':
                     start_pos, end_pos, nintervals = value
                     self.iPAP.sendEcamDatIntervals(axis, start_pos, end_pos,
                                                    nintervals)
-                elif name == 'ecamdatatable':
-                    self.iPAP.sendEcamDat(axis, position_list=value)
+                elif name == 'ecamdattable':
                     # 2017/Oct/27 - in some cases, we get an exception when setting PULSE signal
                     # 2017/Oct/27
                     # TODO for long tables, sometimes we get:
                     # N:ECAM ERROR Not initialised ECAM data
+                    # NOTE: IN PARAMETRIC TRAJECTORIES, THE SOURCE OF THE TABLE MAY NOT BE AXIS (default) BUT PARAM
+                    # sendEcamDat(axis, source=SOURCE, position_list=value)
                     try:
-                        self.attributes[axis]['ecam_data_table'] = value
+                        self.iPAP.sendEcamDat(axis, position_list=value)
+                        self.attributes[axis]['ecam_dat_table'] = value
                     except Exception,e:
                         self._log.error('SetAxisExtraPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                         self._log.error('Since it is a known bug... just retry once more time.. :-(')
                         # JUST try again... :-(
-                        self.attributes[axis]['ecam_data_table'] = value
+                        self.iPAP.sendEcamDat(axis, position_list=value)
+                        self.attributes[axis]['ecam_dat_table'] = value
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("SetAxisExtraPar(%s(%s), %s): "
