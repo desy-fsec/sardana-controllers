@@ -98,7 +98,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         idx = axis - 1
         tg = self.triggers[idx]
         motor = tg['motor']
-        return motor.state, motor.status
+        return motor.state(), motor.status()
 
     def PreStartOne(self, axis):
         """PreStart the specified trigger
