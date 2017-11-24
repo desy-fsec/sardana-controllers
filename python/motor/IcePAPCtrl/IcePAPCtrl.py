@@ -140,6 +140,13 @@ class IcepapController(MotorController):
         """
         MotorController.__init__(self, inst, props, *args, **kwargs)
         self.iPAP = EthIcePAP(self.Host, self.Port, self.Timeout)
+        # Use a secondary socket to execute slow commands (i.e. EcamData) and
+        # avoid possible blocking issues. Its use is highly recommended.
+        #
+        # Now used by ecamdatintervals and ecamdattable extra axis attributes
+        #
+        self.iPAP2 = EthIcePAP(self.Host, self.Port, self.Timeout)
+
         # DO NOT CONNECT BY DEFAULT SINCE THIS CAN RAISE A TANGO TIMEOUT EXCEPTION IN THE POOL COMMAND CreateController.
         # self.iPAP.connect()
         self.attributes = {}
@@ -621,9 +628,9 @@ class IcepapController(MotorController):
                 elif name == 'frequency':
                     return float(self.iPAP.getSpeed(axis))
                 elif name == 'ecamdatinterval':
-                    return self.iPAP.getEcamDatIntervals(axis)
+                    return self.iPAP2.getEcamDatIntervals(axis)
                 elif name == 'ecamdattable':
-                    return self.iPAP.getEcamDat(axis)
+                    return self.iPAP2.getEcamDat(axis)
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("GetAxisExtraPar(%s(%s), %s): "
@@ -737,7 +744,7 @@ class IcepapController(MotorController):
                     self.iPAP.setSpeed(axis, value)
                 elif name == 'ecamdatinterval':
                     start_pos, end_pos, nintervals = value
-                    self.iPAP.sendEcamDatIntervals(axis, start_pos, end_pos,
+                    self.iPAP2.sendEcamDatIntervals(axis, start_pos, end_pos,
                                                    nintervals)
                 elif name == 'ecamdattable':
                     # 2017/Oct/27 - in some cases, we get an exception when setting PULSE signal
@@ -747,12 +754,12 @@ class IcepapController(MotorController):
                     # NOTE: IN PARAMETRIC TRAJECTORIES, THE SOURCE OF THE TABLE MAY NOT BE AXIS (default) BUT PARAM
                     # sendEcamDat(axis, source=SOURCE, position_list=value)
                     try:
-                        self.iPAP.sendEcamDat(axis, position_list=value)
+                        self.iPAP2.sendEcamDat(axis, position_list=value)
                     except Exception,e:
                         self._log.error('SetAxisExtraPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                         self._log.error('Since it is a known bug... just retry once more time.. :-(')
                         # JUST try again... :-(
-                        self.iPAP.sendEcamDat(axis, position_list=value)
+                        self.iPAP2.sendEcamDat(axis, position_list=value)
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("SetAxisExtraPar(%s(%s), %s): "
