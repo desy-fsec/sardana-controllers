@@ -185,10 +185,10 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         # ecamdat = motor.getAttribute('ecamdatinterval')
         # ecamdat.write([initial, final, nr_points], with_read=False)
 
+        # The ecamdattable attribute is protected against non increasing list
+        # at the pyIcePAP library level. HOWEVER, is not protected agains list
+        #  with repeated elements
         trigger_positions_tables = numpy.linspace(int(initial), int(final-total), int(nr_points))
-        # ECAMDAT HAS TO BE A LIST WITH l[0] < l[-1]
-        if trigger_positions_tables[0] > trigger_positions_tables[-1]:
-            trigger_positions_tables = [x for x in reversed(trigger_positions_tables)]
         self._log.debug('trigger table %s'%str(trigger_positions_tables))
         ecamdattable = motor.getAttribute('ecamdattable')
         ecamdattable.write(trigger_positions_tables, with_read=False)
