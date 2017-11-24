@@ -161,7 +161,6 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source'] = 'attr://EncEncIn'
         self.attributes[axis]['encoder_source_formula'] = 'VALUE'
         self.attributes[axis]['encoder_source_tango_attribute'] = FakedAttributeProxy(self, axis, 'attr://EncEncIn')
-        self.attributes[axis]['ecam_dat_table'] = []
 
         if self.iPAP.connected:
             drivers_alive = self.iPAP.getDriversAlive()
@@ -624,7 +623,7 @@ class IcepapController(MotorController):
                 elif name == 'ecamdatinterval':
                     return self.iPAP.getEcamDatIntervals(axis)
                 elif name == 'ecamdattable':
-                    return self.attributes[axis]['ecam_dat_table']
+                    return self.iPAP.getEcamDat(axis)
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("GetAxisExtraPar(%s(%s), %s): "
@@ -749,13 +748,11 @@ class IcepapController(MotorController):
                     # sendEcamDat(axis, source=SOURCE, position_list=value)
                     try:
                         self.iPAP.sendEcamDat(axis, position_list=value)
-                        self.attributes[axis]['ecam_dat_table'] = value
                     except Exception,e:
                         self._log.error('SetAxisExtraPar(%d,%s,%s).\nException:\n%s' % (axis,name,str(value),str(e)))
                         self._log.error('Since it is a known bug... just retry once more time.. :-(')
                         # JUST try again... :-(
                         self.iPAP.sendEcamDat(axis, position_list=value)
-                        self.attributes[axis]['ecam_dat_table'] = value
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("SetAxisExtraPar(%s(%s), %s): "
