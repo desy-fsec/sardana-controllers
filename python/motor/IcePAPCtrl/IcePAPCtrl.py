@@ -630,7 +630,9 @@ class IcepapController(MotorController):
                 elif name == 'ecamdatinterval':
                     return self.iPAP2.getEcamDatIntervals(axis)
                 elif name == 'ecamdattable':
-                    return self.iPAP2.getEcamDat(axis)
+                    #return self.iPAP2.getEcamDat(axis)
+                    raise Exception("Requesting the EcamDat table may cause a Timeout error" 
+                                    "at the icepap level. Use the pyIcePAP module to access these values.")
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("GetAxisExtraPar(%s(%s), %s): "
