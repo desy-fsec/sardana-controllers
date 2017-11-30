@@ -1,29 +1,44 @@
 #!/usr/bin/env python
 
-import os
 import PyTango
 from sardana import State
 from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, \
     Memorized, DefaultValue
 from sardana.pool import AcqSynch
-import time
+
 
 # TODO: WIP version.
+
+LIMA_ATTRS = {'cameramode': 'camera_mode',
+              'cameratype': 'camera_type',
+              'instrumentname': 'instrument_name',
+              'savingcommonheader': 'saving_common_header',
+              'savingdirectory': 'saving_directory',
+              'savingformat': 'saving_format',
+              'savingframeperfile': 'saving_frame_per_file',
+              'savingheaderdelimiter': 'saving_header_delimiter',
+              'savingmanagemode': 'saving_manage_mode',
+              'savingmaxwritingtask': 'saving_max_writing_task',
+              'savingmode': 'saving_mode',
+              'savingnextnumber': 'saving_next_number',
+              'savingoverwritepolicy': 'saving_overwrite_policy',
+              'savingprefix': 'saving_prefix',
+              'savingsuffix': 'saving_suffix'}
+
 
 class LimaCoTiCtrl(CounterTimerController):
     """This class is a Tango Sardana Counter Timer Controller for any
     Lima Device. This controller is used as an alternative to current
     2D controller. It has a single (master) axis which it provides the
-    image name as a value of an experimental channel in a measurement group.
-    The returned value is a string, which has been defined bby overwriting
-    the current axis attribute Value but as a string.
+    integration time as a value of an experimental channel in a measurement
+    group.
     This controller avoids passing the image which was known to slow the
     acquisition process ans can be used as a workaround before the full
     integration of the 2D Sardana controller."""
 
-    gender = "LimaCounterTimerController"
-    model = "Basic"
+    gender = "LimaAcquisition"
+    model = "LimaCCD"
     organization = "CELLS - ALBA"
     image = "Lima_ctrl.png"
     logo = "ALBA_logo.png"
@@ -32,37 +47,92 @@ class LimaCoTiCtrl(CounterTimerController):
 
     class_prop = {}
     ctrl_attributes = {
-        'Filename': {
+        'CameraModel': {
             Type: str,
-            Description: 'Full file name: path/filname. The extension is '
-                         'defined on SavingFormat attribute',
-            Access: DataAccess.ReadWrite,
-            Memorize: NotMemorized},
-        'LastImageName': {
-            Type: str,
-            Description: 'Last images saved full file name',
+            Description: 'LimaCCD attribute camera_model',
             Access: DataAccess.ReadOnly,
             Memorize: NotMemorized},
-        'DetectorName': {
+        'CameraType': {
             Type: str,
-            Description: 'The full name saved: filename_DetectorName.format',
+            Description: 'LimaCCD attribute camera_type',
+            Access: DataAccess.ReadOnly,
+            Memorize: NotMemorized},
+        'ExpectedScanImages': {
+            Type: int,
+            Description: 'Expected Images on the scan. It will set by the '
+                         'recorder',
+            Access: DataAccess.ReadWrite,
+            Memorize: NotMemorized,
+            DefaultValue: 0},
+        'InstrumentName': {
+            Type: str,
+            Description: 'LimaCCD attribute instrument_name',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingCommonHeader': {
+            Type: [str, ],
+            Description: 'LimaCCD attribute saving_common_header',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingDirectory': {
+            Type: str,
+            Description: 'LimaCCD attribute saving_directory',
             Access: DataAccess.ReadWrite,
             Memorize: Memorized},
         'SavingFormat': {
             Type: str,
-            Description: 'Saving format',
+            Description: 'LimaCCD attribute saving_format',
+            Access: DataAccess.ReadOnly,
+            Memorize: Memorized},
+        'SavingFramePerFile': {
+            Type: int,
+            Description: 'LimaCCD attribute saving_frame_per_file',
             Access: DataAccess.ReadWrite,
             Memorize: Memorized},
-        'ExpectedSavingImages': {
-            Type: int,
-            Description: 'Expected Images to Save using Lima',
+        'SavingHeaderDelimiter': {
+            Type: [str, ],
+            Description: 'LimaCCD attribute saving_header_delimiter',
             Access: DataAccess.ReadWrite,
-            Memorize: NotMemorized,
-            DefaultValue: 0},
-        'SavingFolderName': {
+            Memorize: Memorized},
+        'SavingIndexFormat': {
             Type: str,
-            Description: 'The folder name to save the images SCANDIR + '
-                         'SavingFolderName',
+            Description: 'LimaCCD attribute saving_index_format',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingManagedMode': {
+            Type: str,
+            Description: 'LimaCCD attribute saving_managed_mode',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingMaxWritingTask': {
+            Type: int,
+            Description: 'LimaCCD attribute saving_max_writing_task',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingMode': {
+            Type: str,
+            Description: 'LimaCCD attribute saving_mode. The controller will'
+                         'set it to MANUAL on the startup.',
+            Access: DataAccess.ReadWrite,
+            Memorize: NotMemorized},
+        'SavingNextNumber': {
+            Type: int,
+            Description: 'LimaCCD attribute saving_next_number',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingOverwritePolicy': {
+            Type: str,
+            Description: 'LimaCCD attribute saving_overwrite_policy',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingPrefix': {
+            Type: str,
+            Description: 'LimaCCD attribute saving_prefix',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized},
+        'SavingSuffix': {
+            Type: str,
+            Description: 'LimaCCD attribute saving_suffix',
             Access: DataAccess.ReadWrite,
             Memorize: Memorized},
         }
@@ -71,8 +141,6 @@ class LimaCoTiCtrl(CounterTimerController):
 
     ctrl_properties = {
         'LimaCCDDeviceName': {Type: str, Description: 'Detector device name'},
-        'SoftwareSync': {Type: str,
-                         Description: 'acq_trigger_mode for software mode'},
         'HardwareSync': {Type: str,
                          Description: 'acq_trigger_mode for hardware mode'},
         }
@@ -89,6 +157,7 @@ class LimaCoTiCtrl(CounterTimerController):
             raise RuntimeError('__init__(): Could not create a device proxy '
                                'from following device name: %s.\nException: '
                                '%s ' % (self.LimaCCDDeviceName, e))
+
         self._data_buff = {}
         self._hw_state = None
         self._last_image_read = -1
@@ -98,46 +167,23 @@ class LimaCoTiCtrl(CounterTimerController):
         self._new_data = False
         self._int_time = 0
         self._latency_time = 0
-        self._expected_saving_images = 0
-        self._software_trigger = self.SoftwareSync
+        self._expected_scan_images = 0
         self._hardware_trigger = self.HardwareSync
-        self._saving_format = ''
-        self._filename = ''
-        self._det_name = ''
         self._saving_folder_name = ''
         self._synchronization = AcqSynch.SoftwareTrigger
-        self._abort_flg = False 
+        self._abort_flg = False
+        self._load_flag = False
+        self._start_flg = False
 
     def _clean_acquisition(self):
-        if self._last_image_read != -1:
-            self._last_image_read = -1
-            self._repetitions = 0
-            self._new_data = False
-            if self._expected_saving_images == 0:
-                self._filename = ''
-
-    def _prepare_saving(self):
-        if len(self._filename) > 0:
-            path, fname = os.path.split(self._filename)
-            path = os.path.join(path, self._saving_folder_name)
-            prefix, _ = os.path.splitext(fname)
-            path = os.path.join(path, prefix)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            prefix += '_%s_' % self._det_name
-            suffix = self._saving_format.lower()
-            frame_per_file = 1
-            if self._saving_format.lower() == 'hdf5':
-                suffix = 'h5'
-            self._limaccd.write_attribute('saving_frame_per_file',
-                                          frame_per_file)
-            self._limaccd.write_attribute('saving_format', self._saving_format)
-            self._limaccd.write_attribute('saving_directory', path)
-            self._limaccd.write_attribute('saving_mode', 'Auto_Frame')
-            self._limaccd.write_attribute('saving_prefix', prefix)
-            self._limaccd.write_attribute('saving_suffix', '.' + suffix)
-        else:
-            self._limaccd.write_attribute('saving_mode', 'Manual')
+        acq_ready = self._limaccd.read_attribute('acq_status').value.lower()
+        if acq_ready != 'ready':
+            self._limaccd.stopAcq()
+        self._last_image_read = -1
+        self._repetitions = 0
+        self._new_data = False
+        self._abort_flg = False
+        self._start_flg = False
 
     def AddDevice(self, axis):
         if axis != 1:
@@ -148,81 +194,118 @@ class LimaCoTiCtrl(CounterTimerController):
         self._data_buff.pop(axis)
 
     def StateAll(self):
-        self._hw_state = self._limaccd.read_attribute('acq_status').value
-        if self._hw_state == 'Running':
-            self._state = State.Moving
-            self._status = 'The LimaCCD is acquiring'
+        attr_list = ['acq_status', 'ready_for_next_acq',
+                     'ready_for_next_image']
+        values = [i.value for i in self._limaccd.read_attributes(attr_list)]
+        acq_ready, ready_for_next_acq, ready_for_next_image = values
+        self._hw_state = acq_ready
 
-        elif self._hw_state == 'Ready':
-            if self._last_image_read != (self._repetitions - 1) and \
-                    self._synchronization == AcqSynch.HardwareTrigger and \
-                    not self._abort_flg:
-                self._log.warning('The LimaCCDs finished but the ctrl did not '
-                                  'read all the data yet. Last image read %r'
-                                  % self._last_image_read)
-                self._state = State.Moving
-                self._status = 'The LimaCCD is acquiring'
-            else:
-                
+        if acq_ready not in ['Ready', 'Running']:
+            self._state = State.Fault
+            self._status = 'The LimaCCD state is: {0}'.format(acq_ready)
+            return
+
+        if self._expected_scan_images == 0:
+            if acq_ready == 'Ready':
                 self._state = State.On
                 self._status = 'The LimaCCD is ready to acquire'
-
+            else:
+                self._state = State.Moving
+                self._status = 'The LimaCCD is acquiring'
         else:
-            self._state = State.Fault
-            self._status = 'The LimaCCD state is: %s' % self._hw_state
+            if self._repetitions == 1:
+                # Step scan or Continuous scan by software synchronization
+                if ready_for_next_image:
+                    self._state = State.On
+                    self._status = 'The LimaCCD is ready to acquire'
+                else:
+                    self._state = State.Moving
+                    self._status = 'The LimaCCD is acquiring'
+                if acq_ready == 'Ready':
+                    self._expected_scan_images = 0
+                    self._load_flag = False
+            else:
+                if self._synchronization == AcqSynch.HardwareTrigger:
+                    # Continuous scan
+                    if acq_ready == 'Ready':
+                        if self._last_image_read != (self._repetitions - 1)\
+                                and not self._abort_flg:
+                            self._log.warning('The LimaCCDs finished but the'
+                                              'ctrl did not read all the data '
+                                              'yet. Last image read %r' %
+                                              self._last_image_read)
+                            self._state = State.Moving
+                            self._status = 'The LimaCCD is acquiring'
+                        else:
+                            self._state = State.On
+                            self._status = 'The LimaCCD is ready to acquire'
+                            self._expected_scan_images = 0
+                            self._load_flag = 0
+                    else:
+                        self._state = State.Moving
+                        self._status = 'The LimaCCD is acquiring'
+
+        self._log.debug('Leaving Stateall %s %s' % (self._state, self._status))
 
     def StateOne(self, axis):
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions):
+        self._log.debug('LoadOne flag=%s images=%s' %
+                        (self._load_flag, self._expected_scan_images))
+        if self._load_flag:
+            return
+
+        # Detect if is using the recorder
+        if self._expected_scan_images == 0:
+            acq_nb_frames = repetitions
+            self._load_flag = False
+        else:
+            self._load_flag = True
+            acq_nb_frames = self._expected_scan_images
+
         self._clean_acquisition()
         if axis != 1:
             raise RuntimeError('The master channel should be the axis 1')
 
         self._int_time = value
+        self._repetitions = repetitions
+
         if self._synchronization == AcqSynch.SoftwareTrigger:
-            self._repetitions = 1
-            acq_trigger_mode = self._software_trigger
+            acq_trigger_mode = 'INTERNAL_TRIGGER_MULTI'
         elif self._synchronization == AcqSynch.HardwareTrigger:
-            self._repetitions = repetitions
             acq_trigger_mode = self._hardware_trigger
         else:
             # TODO: Implement the hardware gate
             raise ValueError('LimaCoTiCtrl allows only Software or Hardware '
                              'triggering')
-     
-        self._limaccd.write_attribute('acq_expo_time', self._int_time)
-        self._limaccd.write_attribute('acq_nb_frames', self._repetitions)
-        self._limaccd.write_attribute('latency_time', self._latency_time)
-        self._limaccd.write_attribute('acq_trigger_mode', acq_trigger_mode)
-        self._prepare_saving()
+        values = [['acq_expo_time', self._int_time],
+                  ['acq_nb_frames', acq_nb_frames],
+                  ['latency_time', self._latency_time],
+                  ['acq_trigger_mode', acq_trigger_mode]]
+        self._limaccd.write_attributes(values)
+        self._limaccd.prepareAcq()
 
     def PreStartAll(self):
-        self._limaccd.prepareAcq()
         return True
 
     def StartAll(self):
-        self._abort_flg = False 
+        self._abort_flg = False
+        if self._expected_scan_images > 0 and self._repetitions > 1 and \
+                self._start_flg:
+            return
         self._limaccd.startAcq()
-        if self._expected_saving_images > 0:
-            if self._synchronization == AcqSynch.SoftwareTrigger:
-                self._expected_saving_images -= 1
-            else:
-                self._expected_saving_images = 0
+        self._start_flg = True
 
     def ReadAll(self):
-        new_image_ready = 0
-        self._new_data = True
         axis = 1
-        if self._synchronization == AcqSynch.SoftwareTrigger:
-            if self._hw_state != 'Ready':
-                self._new_data = False
-                return
+        attr = 'last_image_ready'
+        new_image_ready = self._limaccd.read_attribute(attr).value
+        if self._repetitions == 1:
+            # Step scan or Continuous scan by software
             self._data_buff[axis] = [self._int_time]
-        elif self._synchronization == AcqSynch.HardwareTrigger:
-            attr = 'last_image_ready'
+        else:
             self._data_buff[axis] = []
-            new_image_ready = self._limaccd.read_attribute(attr).value
             if new_image_ready == self._last_image_read:
                 self._new_data = False
                 return
@@ -232,64 +315,49 @@ class LimaCoTiCtrl(CounterTimerController):
                 new_data = 1
             self._data_buff[axis] = [self._int_time] * new_data
         self._last_image_read = new_image_ready
-        self._log.debug('Leaving ReadAll %r' % len(self._data_buff[1]))
+        self._log.debug('Leaving ReadAll %r' % len(self._data_buff[axis]))
 
     def ReadOne(self, axis):
-        self._log.debug('Entering in  ReadOn')
-        if self._synchronization == AcqSynch.SoftwareTrigger:
-            if not self._new_data:
-                raise Exception('Acquisition did not finish correctly. LimaCCD '
-                                'State %r' % self._hw_state)  
-            return self._data_buff[axis][0]
-        elif self._synchronization == AcqSynch.HardwareTrigger:
-            return self._data_buff[axis]
+        self._log.debug('Entering in  ReadOnly')
+        if self._repetitions == 1:
+            value = self._data_buff[axis][0]
+        else:
+            value = self._data_buff[axis]
+        return value
 
     def AbortOne(self, axis):
-        self.StateAll()
-        self._expected_saving_images = 0
-        if self._hw_state != 'Ready':
-            self._limaccd.abortAcq()
-            self._clean_acquisition()
-            self._abort_flg = True
-################################################################################
+        self._log.debug('AbortOne in')
+        self._abort_flg = True
+        self._load_flag = False
+        self._expected_scan_images = 0
+        self._clean_acquisition()
+
+###############################################################################
 #                Controller Extra Attribute Methods
-################################################################################
+###############################################################################
     def SetCtrlPar(self, parameter, value):
+        self._log.debug('SetCtrlPar %s %s' % (parameter, value))
         param = parameter.lower()
-        if param == 'filename':
-            self._filename = value
-        elif param == 'detectorname':
-            self._det_name = value
-        elif param == 'savingformat':
-            self._saving_format = value
-        elif param == 'expectedsavingimages': 
-            self._expected_saving_images = value
-        elif param == 'savingfoldername':
-            self._saving_folder_name = value
+        if param == 'expectedscanimages':
+            self._expected_scan_images = value
+            self._load_flag = False
+
+        elif param in LIMA_ATTRS:
+            # TODO: Verify intrument_name attribute
+            attr = LIMA_ATTRS[param]
+            self._limaccd.write_attribute(attr, value)
         else:
             super(LimaCoTiCtrl, self).SetCtrlPar(parameter, value)
 
     def GetCtrlPar(self, parameter):
         param = parameter.lower()
-        if param == 'filename':
-            value = self._filename
-        elif param == 'lastimagename':
-            path = self._limaccd.read_attribute('saving_directory').value
-            prefix = self._limaccd.read_attribute('saving_prefix').value
-            suffix = self._limaccd.read_attribute('saving_suffix').value
-            nr = self._limaccd.read_attribute('saving_next_number').value - 1
-            attr = 'saving_index_format'
-            index_format = self._limaccd.read_attribute(attr).value
-            nr_formated = index_format % nr
-            value = '%s/%s%s%s' % (path, prefix, nr_formated, suffix)
-        elif param == 'detectorname':
-            value = self._det_name
-        elif param == 'savingformat':
-            value = self._saving_format
-        elif param == 'expectedsavingimages':            
-            value = self._expected_saving_images
-        elif param == 'savingfoldername':
-            value = self._saving_folder_name
+        if param == 'expectedscanimages':
+            value = self._expected_scan_images
+        elif param in LIMA_ATTRS:
+            # TODO: Verify intrument_name attribute
+            attr = LIMA_ATTRS[param]
+            value = self._limaccd.read_attribute(attr).value
         else:
             value = super(LimaCoTiCtrl, self).GetCtrlPar(parameter)
+
         return value
