@@ -1,33 +1,33 @@
 ##############################################################################
 ##
-## This file is part of Sardana
+# This file is part of Sardana
 ##
-## http://www.tango-controls.org/static/sardana/latest/doc/html/index.html
+# http://www.tango-controls.org/static/sardana/latest/doc/html/index.html
 ##
-## Copyright 2011 CELLS / ALBA Synchrotron, Bellaterra, Spain
+# Copyright 2011 CELLS / ALBA Synchrotron, Bellaterra, Spain
 ##
-## Sardana is free software: you can redistribute it and/or modify
-## it under the terms of the GNU Lesser General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
+# Sardana is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 ##
-## Sardana is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU Lesser General Public License for more details.
+# Sardana is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
 ##
-## You should have received a copy of the GNU Lesser General Public License
-## along with Sardana.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU Lesser General Public License
+# along with Sardana.  If not, see <http://www.gnu.org/licenses/>.
 ##
 ##############################################################################
-
+import time
 import numpy
 import taurus
-
 from sardana import State
 from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Description
+
 
 class IcePAPPositionTriggerGateController(TriggerGateController):
     """Basic IcePAPPositionTriggerGateController.
@@ -37,20 +37,18 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
     gender = "TriggerGate"
     model = "Icepap"
 
-    ActivePeriod = 50e-6 # 50 micro seconds
+    ActivePeriod = 50e-6  # 50 micro seconds
 
     # The properties used to connect to the ICEPAP motor controller
     ctrl_properties = {
         'Motors': {Type: str,
                    Description: 'List of IcePap motors name separated by '
-                                'comma(s)'
-        },
+                                'comma(s)'},
         'Info_channels': {Type: str,
                           Description: 'List of groups of Info channel(s) '
                                        'separated by space(s) to be used as '
                                        'trigger separated by comma(s). '
-                                       'e.g: "InfoA InfoB,InfoB InfoC,InfoB"'
-        }
+                                       'e.g: "InfoA InfoB,InfoB InfoC,InfoB"'}
     }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -66,6 +64,13 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         self.triggers = {}
         self.motor_names = self.Motors.split(',')
         self.info_channels = map(str.split, self.Info_channels.split(','))
+        self._time_mode = False
+
+    def _setLow(self, axis):
+        tg = self.triggers[axis - 1]
+        if self._time_mode:
+            for info_chn in tg['info_channels']:
+                tg['motor'][info_chn] = 'low'
 
     def AddDevice(self, axis):
         """
@@ -83,6 +88,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
                               'sign': 1,
                               'info_channels': info_channels
                               }
+        self._setLow(axis)
 
     def DeleteDevice(self, axis):
         """
@@ -98,7 +104,10 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         idx = axis - 1
         tg = self.triggers[idx]
         motor = tg['motor']
-        return motor.state(), motor.status()
+        if motor.state == State.On:
+            self._setLow(axis)
+
+        return motor.state, motor.status
 
     def PreStartOne(self, axis):
         """PreStart the specified trigger
@@ -107,46 +116,42 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         idx = axis - 1
         tg = self.triggers[idx]
         motor = tg['motor']
+
+        if self._time_mode:
+            output = 'low'
+        else:
+            output = 'ecam'
+
         for info_chn in tg['info_channels']:
-            info_cfg = motor.__getattr__(info_chn).upper()
-            if info_cfg != 'ECAM NORMAL':
-                msg = ('PreStartOne(%d): The axis has the %s wrong '
-                      'configured (%s)' %(idx, info_chn.upper(), info_cfg))
-                self._log.debug(msg)
-                return False
-#         pos0 = motor.position
-#         velocity = motor.velocity
-#         offset = tg.get('offset', 0)
-#         sign = tg.get('sign', 1)
-#         tg['active_interval'] = active_interval = self.ActivePeriod * velocity
-#         repetitions = tg.get('repetitions', 1)
-#         passive_interval = tg.get('passive_interval')
-#         start_pos = pos0 + offset
-#         step = (active_interval + passive_interval) * sign
-#         end_pos = step * repetitions
-#         # TODO if we want a trigger in the last position:
-#         # - end_pos +=  active_interval + passive_interval
-#         # - repetitions += 1
-#         motor.ecamdat = [start_pos, end_pos, repetitions]
+           motor[info_chn] = output
 
         return True
+
 
     def StartOne(self, axis):
         """Overwrite the StartOne method
         """
-        pass
+        if self._time_mode:
+            tg = self.triggers[axis - 1]
+            for info_chn in tg['info_channels']:
+                tg['motor'][info_chn] = 'high'
+                time.sleep(0.001)
+                tg['motor'][info_chn] = 'low'
+
 
     def AbortOne(self, axis):
         """Start the specified trigger
         """
         self._log.debug('AbortOne(%d): entering...' % axis)
+        self._setLow(axis)
+
 
     def SetAxisPar(self, axis, name, value):
         idx = axis - 1
         tg = self.triggers[idx]
         name = name.lower()
         pars = ['offset', 'passive_interval', 'repetitions', 'sign',
-                 'info_channels']
+                'info_channels']
         if name in pars:
             tg[name] = value
 
@@ -157,7 +162,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         v = tg.get(name, None)
         if v is None:
             msg = ('GetAxisPar(%d). The parameter %s does not exist.'
-                    % (axis, name))
+                   % (axis, name))
             self._log.error(msg)
         return v
 
@@ -171,10 +176,17 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         sign = motor['sign'].value
 
         group = configuration[0]
-        initial_user = group[SynchParam.Initial][SynchDomain.Position]
         nr_points = group[SynchParam.Repeats]
-        total_user = group[SynchParam.Total][SynchDomain.Position]
+        if SynchParam.Initial not in group:
+            self._time_mode = True
+            if nr_points > 1:
+                raise RuntimeError('The IcePAP is not allowed to generated '
+                                   'more than one trigger in time domain.')
+            return
 
+        self._time_mode = False
+        initial_user = group[SynchParam.Initial][SynchDomain.Position]
+        total_user = group[SynchParam.Total][SynchDomain.Position]
         initial = (initial_user - offset) * (step_per_unit / sign)
         total = total_user * (step_per_unit / sign)
         final = initial + (total * nr_points)
@@ -188,7 +200,10 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         # The ecamdattable attribute is protected against non increasing list
         # at the pyIcePAP library level. HOWEVER, is not protected agains list
         #  with repeated elements
-        trigger_positions_tables = numpy.linspace(int(initial), int(final-total), int(nr_points))
-        self._log.debug('trigger table %s'%str(trigger_positions_tables))
+        trigger_positions_tables = numpy.linspace(int(initial),
+                                                  int(final-total),
+                                                  int(nr_points))
+
+        self._log.debug('trigger table %r' % trigger_positions_tables)
         ecamdattable = motor.getAttribute('ecamdattable')
         ecamdattable.write(trigger_positions_tables, with_read=False)
