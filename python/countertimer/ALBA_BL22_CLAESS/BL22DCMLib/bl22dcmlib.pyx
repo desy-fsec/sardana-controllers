@@ -86,7 +86,7 @@ cdef long bragg2encoder(double bragg, double bragg_spu, double bragg_offset,
 
     if enc_value > PMAC_OVERFLOW:
         enc_value = enc_value - 2 * PMAC_OVERFLOW
-    elif enc_value > -PMAC_OVERFLOW:
+    elif enc_value > -PMAC_OVERFLOW and enc_value < 0:
         enc_value = enc_value + 2 * PMAC_OVERFLOW
 
     return enc_value
@@ -123,7 +123,7 @@ cdef double encoder2bragg(long encoder, double bragg_spu, double bragg_offset,
     enc_value = <double> (encoder + offset)
     if enc_value > PMAC_OVERFLOW:
         enc_value = enc_value - 2 * PMAC_OVERFLOW
-    elif enc_value > -PMAC_OVERFLOW:
+    elif enc_value > -PMAC_OVERFLOW and enc_value < 0:
         enc_value = enc_value + 2 * PMAC_OVERFLOW
 
 
