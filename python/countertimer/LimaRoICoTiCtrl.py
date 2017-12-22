@@ -198,9 +198,13 @@ class LimaRoICounterCtrl(CounterTimerController):
         
     def ReadOne(self, axis):
         if self._synchronization == AcqSynch.SoftwareTrigger:
+            # Avoid problem with read one during the acquisition (state Moving)
+
             if len(self._data_buff[axis]) == 0:
-                raise Exception('Acquisition did not finish correctly.')
+            #    raise Exception('Acquisition did not finish correctly.')
+                return
             value = self._data_buff[axis][0]
+
         else:
             value = self._data_buff[axis]
         return value
