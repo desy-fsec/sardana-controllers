@@ -82,7 +82,7 @@ class LimaCoTiCtrl(CounterTimerController):
         'SavingFormat': {
             Type: str,
             Description: 'LimaCCD attribute saving_format',
-            Access: DataAccess.ReadOnly,
+            Access: DataAccess.ReadWrite,
             Memorize: Memorized},
         'SavingFramePerFile': {
             Type: int,
@@ -343,7 +343,7 @@ class LimaCoTiCtrl(CounterTimerController):
             self._load_flag = False
 
         elif param in LIMA_ATTRS:
-            # TODO: Verify intrument_name attribute
+            # TODO: Verify instrument_name attribute
             attr = LIMA_ATTRS[param]
             self._limaccd.write_attribute(attr, value)
         else:
@@ -354,7 +354,7 @@ class LimaCoTiCtrl(CounterTimerController):
         if param == 'expectedscanimages':
             value = self._expected_scan_images
         elif param in LIMA_ATTRS:
-            # TODO: Verify intrument_name attribute
+            # TODO: Verify instrument_name attribute
             attr = LIMA_ATTRS[param]
             value = self._limaccd.read_attribute(attr).value
         else:
