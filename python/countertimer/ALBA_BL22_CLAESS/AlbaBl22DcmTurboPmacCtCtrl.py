@@ -121,6 +121,16 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
 
                 rawCounts = rawCounts.astype(long)
 
+                msg = '%r %r %r %r %r %r %r %r' % (rawCounts,
+                                                   self.vcm_pitch_rad,
+                                                   self.xtal_d,
+                                                   self.xtal_offset,
+                                                   self.bragg_spu,
+                                                   self.bragg_offset,
+                                                   self.bragg_pos,
+                                                   self.bragg_enc)
+                self._log.debug(msg)
+
                 return_value = enegies4encoders(rawCounts,
                                                 self.vcm_pitch_rad,
                                                 self.xtal_d,
