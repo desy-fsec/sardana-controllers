@@ -4,7 +4,7 @@ import PyTango
 from sardana import State
 from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, \
-    Memorized, DefaultValue
+    Memorized, DefaultValue, FGet, FSet
 from sardana.pool import AcqSynch
 
 
@@ -12,7 +12,7 @@ from sardana.pool import AcqSynch
 
 LIMA_ATTRS = {'cameramode': 'camera_mode',
               'cameratype': 'camera_type',
-              'instrumentname': 'instrument_name',
+              # 'instrumentname': 'instrument_name',
               'savingcommonheader': 'saving_common_header',
               'savingdirectory': 'saving_directory',
               'savingformat': 'saving_format',
@@ -175,6 +175,13 @@ class LimaCoTiCtrl(CounterTimerController):
         self._load_flag = False
         self._start_flg = False
 
+        # Check if the LimaCCD has the instrument name attribute
+        attrs = attrs_lima = self._limaccd.get_attribute_list()
+        if 'instrument_name' in attrs:
+            self._instrument_name = None
+        else:
+            self._instrument_name = ''
+
     def _clean_acquisition(self):
         acq_ready = self._limaccd.read_attribute('acq_status').value.lower()
         if acq_ready != 'ready':
@@ -335,6 +342,22 @@ class LimaCoTiCtrl(CounterTimerController):
 ###############################################################################
 #                Controller Extra Attribute Methods
 ###############################################################################
+    def getInstrumentName(self):
+        self._log.debug('getIntrumentName')
+
+        if self._instrument_name is None:
+            value = self._limaccd.read_attribute('instrument_name').value
+        else:
+            value = self._instrument_name
+        return  value
+
+    def setInstrumentName(self, value):
+        self._log.debug('setIntrumentName with %s'%value)
+        if self._instrument_name is None:
+            self._limaccd.write_attribute('instrument_name', value)
+        else:
+            self._instrument_name = value
+
     def SetCtrlPar(self, parameter, value):
         self._log.debug('SetCtrlPar %s %s' % (parameter, value))
         param = parameter.lower()
@@ -343,7 +366,6 @@ class LimaCoTiCtrl(CounterTimerController):
             self._load_flag = False
 
         elif param in LIMA_ATTRS:
-            # TODO: Verify instrument_name attribute
             attr = LIMA_ATTRS[param]
             self._limaccd.write_attribute(attr, value)
         else:
