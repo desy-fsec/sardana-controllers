@@ -135,6 +135,12 @@ class LimaCoTiCtrl(CounterTimerController):
             Description: 'LimaCCD attribute saving_suffix',
             Access: DataAccess.ReadWrite,
             Memorize: Memorized},
+        'SavingFormatsAllowed': {
+            Type:  [str, ],
+            Description: 'Detector SavingModes allowed'
+                         'saving_suffix',
+            Access: DataAccess.ReadOnly,
+            Memorize: NotMemorized},
         }
 
     axis_attributes = {}
@@ -169,11 +175,15 @@ class LimaCoTiCtrl(CounterTimerController):
         self._latency_time = 0
         self._expected_scan_images = 0
         self._hardware_trigger = self.HardwareSync
-        self._saving_folder_name = ''
         self._synchronization = AcqSynch.SoftwareTrigger
         self._abort_flg = False
         self._load_flag = False
         self._start_flg = False
+
+        # Get the Detector Saving Modes allowed
+        formats = self._limaccd.command_inout('getAttrStringValueList',
+                                            'saving_format')
+        self._saving_formats_allowed = formats
 
         # Check if the LimaCCD has the instrument name attribute
         attrs = attrs_lima = self._limaccd.get_attribute_list()
@@ -343,8 +353,6 @@ class LimaCoTiCtrl(CounterTimerController):
 #                Controller Extra Attribute Methods
 ###############################################################################
     def getInstrumentName(self):
-        self._log.debug('getIntrumentName')
-
         if self._instrument_name is None:
             value = self._limaccd.read_attribute('instrument_name').value
         else:
@@ -352,11 +360,15 @@ class LimaCoTiCtrl(CounterTimerController):
         return  value
 
     def setInstrumentName(self, value):
-        self._log.debug('setIntrumentName with %s'%value)
         if self._instrument_name is None:
             self._limaccd.write_attribute('instrument_name', value)
         else:
             self._instrument_name = value
+
+    def getSavingFormatsAllowed(self):
+        modes = self._limaccd.command_inout('getAttrStringValueList',
+                                            'saving_format')
+        return modes
 
     def SetCtrlPar(self, parameter, value):
         self._log.debug('SetCtrlPar %s %s' % (parameter, value))
