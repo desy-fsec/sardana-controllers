@@ -129,6 +129,12 @@ class IcepapController(MotorController):
         # 27/07/2016 ALLOW TO SET EcamDat by intervals or table
         'EcamDatInterval': {Type: [float], Access: ReadWrite},
         'EcamDatTable': {Type: [float], Access: ReadWrite},
+        # 11/01/2018 ALLOW TO SET SyncAux
+        'SyncAux': {Type: str,
+                    Description: 'Internal auxiliary synchronization line. '
+                                 'It can use the same signals sources than '
+                                 'InfoX.',
+                    Access: ReadWrite},
     }
 
     gender = "Motor"
@@ -719,6 +725,8 @@ class IcepapController(MotorController):
                                     "Timeout error"
                                     "at the icepap level. Use the pyIcePAP "
                                     "module to access these values.")
+                elif name == 'syncaux':
+                    return self.iPAP.getSyncAux(axis)
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("GetAxisExtraPar(%s(%s), %s): "
@@ -808,6 +816,7 @@ class IcepapController(MotorController):
                                              IcepapInfo.Sources,
                                              IcepapInfo.Polarity))
                     # self.iPAP.setInfoSource(axis, name, src, polarity)
+
                     self.iPAP.setInfo(axis, name, src, polarity)
                 elif name == 'useencodersource':
                     self.attributes[axis]['use_encoder_source'] = value
@@ -878,6 +887,9 @@ class IcepapController(MotorController):
                                         'retry once more time.. :-(')
                         # JUST try again... :-(
                         self.iPAP2.sendEcamDat(axis, position_list=value)
+                elif name == 'syncaux':
+                    signal, polarity = value.split()
+                    self.iPAP.setSyncAux(axis, signal, polarity)
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("SetAxisExtraPar(%s(%s), %s): "
