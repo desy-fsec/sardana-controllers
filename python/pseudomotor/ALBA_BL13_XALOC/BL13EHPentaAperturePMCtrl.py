@@ -90,6 +90,10 @@ class BL13EHPentaApertureController(DiscretePseudoMotorController):
             self._log.debug(msg)
             return pos_list
 
+    def getNlabels(self, axis):
+        labels = self._labels
+        return len(labels)
+
 
 class CalibrationMatrix(object):
     def __init__(self, calibrations):
