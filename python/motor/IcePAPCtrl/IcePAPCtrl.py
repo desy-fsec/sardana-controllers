@@ -31,8 +31,9 @@ from pyIcePAP import EthIcePAP, IcepapAnswers, IcepapRegisters, IcepapInfo
 from PyTango import AttributeProxy
 
 from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import MotorController, Type, Access, \
+    Description, DefaultValue, Memorize, NotMemorized
+
 # from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
@@ -57,6 +58,14 @@ class IcepapController(MotorController):
                     DefaultValue: 3}
     }
 
+    ctrl_attributes = {
+        'Pmux': {
+            Type: str,
+            Description: 'Attribute to set/get the PMUX configuration. See '
+                         'IcePAP user manual pag. 107',
+            Access: DataAccess.ReadWrite,
+            Memorize: NotMemorized},
+    }
     # The axis extra attributes that correspond to extra features from the
     # Icepap drivers
     axis_attributes = {
@@ -134,6 +143,9 @@ class IcepapController(MotorController):
                     Description: 'Internal auxiliary synchronization line. '
                                  'It can use the same signals sources than '
                                  'InfoX.',
+                    Access: ReadWrite},
+        'EcamOut': {Type: bool,
+                    Description: 'Ecam signal output [OFF, PULSE, LOW, HIGH]',
                     Access: ReadWrite},
     }
 
@@ -727,6 +739,13 @@ class IcepapController(MotorController):
                                     "module to access these values.")
                 elif name == 'syncaux':
                     return self.iPAP.getSyncAux(axis)
+                elif name == 'ecamout':
+                    config = self.iPAP.getEcamConfig(axis)
+                    if config[0] == 'ON':
+                        result = config[1]
+                    else:
+                        result = config[0]
+                    return result
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("GetAxisExtraPar(%s(%s), %s): "
@@ -890,6 +909,11 @@ class IcepapController(MotorController):
                 elif name == 'syncaux':
                     signal, polarity = value.split()
                     self.iPAP.setSyncAux(axis, signal, polarity)
+                elif name == 'ecamout':
+                    if value.lower == 'off':
+                        self.iPAP.setEcamConfig(axis, False)
+                    else:
+                        self.iPAP.setEcamConfig(axis, True, value)
                 else:
                     axis_name = self.GetAxisName(axis)
                     raise Exception("SetAxisExtraPar(%s(%s), %s): "
@@ -990,6 +1014,51 @@ class IcepapController(MotorController):
             # self._log.error('SendToCtrl(%s). No connection to %s.' % (cmd,
             #  self.Host))
             return 'SendToCtrl(%s). No connection to %s.' % (cmd, self.Host)
+
+    def SetCtrlPar(self, parameter, value):
+        param = parameter.lower()
+        if param == 'pmux':
+            value = value.lower()
+            if 'remove' in value:
+                args = value.split()
+                dest = ''
+                if len(args) > 1:
+                    dest = args[-1]
+                self.iPAP.clearPmux(dest=dest)
+            else:
+                args = value.split()
+                if len(args) == 1:
+                    self.iPAP.setPmux(source=args[0])
+                else:
+                    hard = 'hard' in args
+                    if hard:
+                        args.pop(args.index('hard'))
+                    pos = 'pos' in args
+                    if pos:
+                        args.pop(args.index('pos'))
+                    aux = 'aux' in value
+                    if aux:
+                        args.pop(args.index('aux'))
+
+                    source = args[0]
+                    dest = ''
+                    if len(args) == 2:
+                        dest = args[1]
+                    if not any([pos, aux]):
+                        self.iPAP.setPmux(source=source, dest=dest)
+                    else:
+                        self.iPAP.setPmux(source=source, dest=dest, pos=pos,
+                                          aux=aux, hard=hard)
+        else:
+            super(IcepapController, self).SetCtrlPar(parameter, value)
+
+    def GetCtrlPar(self, parameter):
+        param = parameter.lower()
+        if param == 'pmux':
+            value = '{0}'.format(self.iPAP.getPmux())
+        else:
+            value = super(IcepapController, self).GetCtrlPar(parameter)
+        return value
 
     def __del__(self):
         if self.iPAP.connected:
