@@ -139,7 +139,7 @@ class IcepapController(MotorController):
         'EcamDatInterval': {Type: [float], Access: ReadWrite},
         'EcamDatTable': {Type: [float], Access: ReadWrite},
         # 11/01/2018 ALLOW TO SET SyncAux
-        'SyncAux': {Type: str,
+        'SyncAux': {Type: [str],
                     Description: 'Internal auxiliary synchronization line. '
                                  'It can use the same signals sources than '
                                  'InfoX.',
@@ -907,7 +907,10 @@ class IcepapController(MotorController):
                         # JUST try again... :-(
                         self.iPAP2.sendEcamDat(axis, position_list=value)
                 elif name == 'syncaux':
-                    signal, polarity = value.split()
+                    signal = value[0]
+                    polarity = 'normal'
+                    if len(value) > 1:
+                        polarity = value[1]
                     self.iPAP.setSyncAux(axis, signal, polarity)
                 elif name == 'ecamout':
                     if value.lower == 'off':
