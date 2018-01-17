@@ -118,7 +118,7 @@ class LimaRoICounterCtrl(CounterTimerController):
 
     def _create_roi(self, axis):
         roi_name = self._rois[axis]['name']
-        roi_id = self._limaroi.addNames([roi_name])[0]
+        roi_id = int(self._limaroi.addNames([roi_name])[0])
         self._rois[axis]['id'] = roi_id
         self._rois_id[roi_id] = axis
         roi = [roi_id] + self._rois[axis]['roi']
@@ -159,6 +159,7 @@ class LimaRoICounterCtrl(CounterTimerController):
                 self._status = "RoI computed"
 
     def StateOne(self, axis):
+        self._log.debug('StateOne: [%s] %s' % (self._state, self._status))
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions):
@@ -179,10 +180,12 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._abort_flg = True
 
     def ReadAll(self):
+        self._log.debug("ReadAll: Entering")
         for axis in self._data_buff.keys():
             self._data_buff[axis] = []
         if self._last_image_ready != self._last_image_read:
-            self._last_image_read += 1
+            if not self._synchronization == AcqSynch.SoftwareTrigger:
+                self._last_image_read += 1
             rois_data = self._limaroi.readCounters(self._last_image_read)
             self._last_image_ready = rois_data[-6]
             for base_idx in range(0, len(rois_data), 7):
@@ -194,19 +197,22 @@ class LimaRoICounterCtrl(CounterTimerController):
                     self._data_buff[axis] += [rois_data[sum_idx]]
             self._log.debug('Read images [%d, %d]' % (self._last_image_read,
                                                       self._last_image_ready))
-            self._last_image_read = self._last_image_ready
-        
+            if not self._synchronization == AcqSynch.SoftwareTrigger:
+                self._last_image_read = self._last_image_ready
+        self._log.debug("ReadAll: Leaving")
+
     def ReadOne(self, axis):
-        if self._synchronization == AcqSynch.SoftwareTrigger:
-            # Avoid problem with read one during the acquisition (state Moving)
-
-            if len(self._data_buff[axis]) == 0:
-            #    raise Exception('Acquisition did not finish correctly.')
-                return
-            value = self._data_buff[axis][0]
-
-        else:
-            value = self._data_buff[axis]
+        self._log.debug("ReadOne: Entering")
+        try:
+            if self._synchronization == AcqSynch.SoftwareTrigger:
+                if len(self._data_buff[axis]) == 0:
+                    raise Exception('Acquisition did not finish correctly.')
+                value = self._data_buff[axis][0]
+            else:
+                value = self._data_buff[axis]
+        except Exception, e:
+            self._log.error("ReadOne %r" % e)
+        self._log.debug("ReadOne return %r" % value)
         return value
 
     def GetExtraAttributePar(self, axis, name):
