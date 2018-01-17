@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 import PyTango
+
 from sardana import State
+from sardana.pool import AcqSynch
 from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, \
-    Memorized, DefaultValue, FGet, FSet
-from sardana.pool import AcqSynch
-
+    Memorized, DefaultValue
 
 # TODO: WIP version.
 
@@ -195,7 +195,12 @@ class LimaCoTiCtrl(CounterTimerController):
     def _clean_acquisition(self):
         acq_ready = self._limaccd.read_attribute('acq_status').value.lower()
         if acq_ready != 'ready':
-            self._limaccd.stopAcq()
+            try:
+                self._limaccd.abortAcq()
+            except AttributeError:
+                # for backwards compatibility with old Lima versions
+                self._limaccd.stopAcq()
+
         self._last_image_read = -1
         self._repetitions = 0
         self._new_data = False
