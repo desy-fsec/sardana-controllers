@@ -144,7 +144,7 @@ class IcepapController(MotorController):
                                  'It can use the same signals sources than '
                                  'InfoX.',
                     Access: ReadWrite},
-        'EcamOut': {Type: bool,
+        'EcamOut': {Type: str,
                     Description: 'Ecam signal output [OFF, PULSE, LOW, HIGH]',
                     Access: ReadWrite},
     }
