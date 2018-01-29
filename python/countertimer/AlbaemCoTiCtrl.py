@@ -61,6 +61,12 @@ class AlbaemCoTiCtrl(CounterTimerController):
                                  'memorized': NotMemorized,
                                  'R/W Type':'PyTango.READ_WRITE'
                                 },
+                             "Inversion":
+                                 {'Type':'PyTango.DevBoolean',
+                                  'Description':'Enable/Disable electrometer analog inversion',
+                                  'memorized': NotMemorized,
+                                  'R/W Type':'PyTango.READ_WRITE'
+                                  },
                             #attributes added for continuous acqusition mode
                             "NrOfTriggers": 
                                 {'Type':'PyTango.DevLong',
@@ -304,6 +310,12 @@ class AlbaemCoTiCtrl(CounterTimerController):
             attr = 'Autorange'
             autoRange = self.AemDevice[attr].value
             return autoRange
+        if name.lower() == 'inversion':
+            if axis == 1:
+                return False
+            ans = self.AemDevice.sendCommand('?INV').split()[1:]
+            values = [a for idx,a in enumerate(ans) if idx%2 != 0]
+            return values[axis-2] == 'YES'
         #attributes used for continuous acquisition
         if name.lower() == "samplingfrequency":
             freq = 1 / self.AemDevice["samplerate"].value
@@ -348,6 +360,13 @@ class AlbaemCoTiCtrl(CounterTimerController):
         if name.lower() == "autorange":
             attr = 'AutoRange'
             self.AemDevice[attr] = value
+        if name.lower() == 'inversion':
+            if axis == 1:
+                return
+            self.AemDevice.StopAdc()
+            cmd = 'INV {0} {1}'.format((axis-1), ['NO','YES'][value])
+            self.AemDevice.sendCommand(cmd)
+            self.AemDevice.StartAdc()
         #attributes used for continuous acquisition
         if name.lower() == "samplingfrequency":
             maxFrequency = 1000
