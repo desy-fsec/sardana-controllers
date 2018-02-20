@@ -105,8 +105,8 @@ class IcePAPTriggerController(TriggerGateController):
         state = State.On
         status = 'Motor is not generating triggers.'
         if self._motor is not None:
-            state = self._motor.state
-            status = self._motor.status
+            state = self._motor.state()
+            status = self._motor.status()
 
         return state, status
 
