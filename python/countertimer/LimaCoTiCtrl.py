@@ -141,6 +141,11 @@ class LimaCoTiCtrl(CounterTimerController):
                          'saving_suffix',
             Access: DataAccess.ReadOnly,
             Memorize: NotMemorized},
+        'LastImageFullName': {
+            Type: str,
+            Description: 'Image Full Name',
+            Access: DataAccess.Read,
+            Memorize: NotMemorized},
         }
 
     axis_attributes = {}
@@ -375,6 +380,22 @@ class LimaCoTiCtrl(CounterTimerController):
                                             'saving_format')
         return modes
 
+    def getLastImageFullName(self):
+        try:
+            path = self._limaccd.read_attribute('saving_directory').value
+            prefix = self._limaccd.read_attribute('saving_prefix').value
+            suffix = self._limaccd.read_attribute('saving_suffix').value
+            nr = self._limaccd.read_attribute('saving_next_number').value - 1
+            attr = 'saving_index_format'
+            index_format = self._limaccd.read_attribute(attr).value
+            nr_format = index_format % nr
+            value = '%s/%s%s%s' % (path, prefix, nr_format, suffix)
+        except Exception as e:
+            value = "Error on read the last image name"
+            self._log.debug(e)
+
+        return value
+
     def SetCtrlPar(self, parameter, value):
         self._log.debug('SetCtrlPar %s %s' % (parameter, value))
         param = parameter.lower()
@@ -396,6 +417,8 @@ class LimaCoTiCtrl(CounterTimerController):
             # TODO: Verify instrument_name attribute
             attr = LIMA_ATTRS[param]
             value = self._limaccd.read_attribute(attr).value
+        elif param == 'lastimagefullname':
+            value = self.getLastImageFullName()
         else:
             value = super(LimaCoTiCtrl, self).GetCtrlPar(parameter)
 
