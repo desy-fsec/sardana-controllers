@@ -144,7 +144,7 @@ class LimaCoTiCtrl(CounterTimerController):
         'LastImageFullName': {
             Type: str,
             Description: 'Image Full Name',
-            Access: DataAccess.Read,
+            Access: DataAccess.ReadOnly,
             Memorize: NotMemorized},
         }
 
