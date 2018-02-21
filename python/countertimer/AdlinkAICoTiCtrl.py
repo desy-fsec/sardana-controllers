@@ -1,12 +1,12 @@
 #!/usr/bin/env python
+import PyTango
 import Queue
 import time
 
-import PyTango
 from sardana import State, DataAccess
 from sardana.pool import AcqSynch
 from sardana.pool.controller import (CounterTimerController, Type, Access,
-                                     Description)
+                                     Description, DefaultValue)
 from sardana.sardanavalue import SardanaValue
 from sardana.tango.core.util import from_tango_state_to_state
 
@@ -67,7 +67,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                                  'Type': 'PyTango.DevLong'},
                   'SkipStart': {Description: 'Flag to skip if DS does not '
                                              'start',
-                                Type: str}}
+                                Type: str,
+                                DefaultValue: 'true'}}
 
     axis_attributes = {"SD":
                        {Type: float,
