@@ -137,7 +137,8 @@ class IcepapController(MotorController):
         'Frequency': {Type: float, Access: ReadWrite},
         # 27/07/2016 ALLOW TO SET EcamDat by intervals or table
         'EcamDatInterval': {Type: [float], Access: ReadWrite},
-        'EcamDatTable': {Type: [float], Access: ReadWrite, MaxDimSize: 20477},
+        'EcamDatTable': {Type: [float], Access: ReadWrite, MaxDimSize:(
+            20477,)},
         # 11/01/2018 ALLOW TO SET SyncAux
         'SyncAux': {Type: [str],
                     Description: 'Internal auxiliary synchronization line. '
