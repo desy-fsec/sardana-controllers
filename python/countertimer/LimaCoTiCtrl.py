@@ -154,6 +154,9 @@ class LimaCoTiCtrl(CounterTimerController):
         'LimaCCDDeviceName': {Type: str, Description: 'Detector device name'},
         'HardwareSync': {Type: str,
                          Description: 'acq_trigger_mode for hardware mode'},
+        'LatencyTime': {Type: float,
+                        Description: 'Latency time use on the synchronization',
+                        DefaultValue: 0},
         }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -177,7 +180,7 @@ class LimaCoTiCtrl(CounterTimerController):
         self._status = None
         self._new_data = False
         self._int_time = 0
-        self._latency_time = 0
+        self._latency_time = self.LatencyTime
         self._expected_scan_images = 0
         self._hardware_trigger = self.HardwareSync
         self._synchronization = AcqSynch.SoftwareTrigger
