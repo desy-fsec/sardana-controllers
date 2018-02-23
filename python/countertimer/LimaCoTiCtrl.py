@@ -6,7 +6,7 @@ from sardana import State
 from sardana.pool import AcqSynch
 from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, \
-    Memorized, DefaultValue
+    Memorized, DefaultValue, MaxDimSize
 
 # TODO: WIP version.
 
@@ -141,6 +141,12 @@ class LimaCoTiCtrl(CounterTimerController):
                          'saving_suffix',
             Access: DataAccess.ReadOnly,
             Memorize: NotMemorized},
+        'SavingImageHeaders': {
+            Type: [str, ],
+            Description: 'Headers for each image',
+            Access: DataAccess.ReadWrite,
+            Memorize: NotMemorized,
+            MaxDimSize: (1000000,) },
         'LastImageFullName': {
             Type: str,
             Description: 'Image Full Name',
@@ -399,6 +405,15 @@ class LimaCoTiCtrl(CounterTimerController):
 
         return value
 
+    def getSavingImageHeaders(self):
+        raise RuntimeError('It is not possible to read the value')
+
+    def setSavingImageHeaders(self, values):
+        print 'Headers %r' % values
+        self._limaccd.resetCommonHeader()
+        self._limaccd.resetFrameHeaders()
+        self._limaccd.setImageHeader(values)
+    
     def SetCtrlPar(self, parameter, value):
         self._log.debug('SetCtrlPar %s %s' % (parameter, value))
         param = parameter.lower()
