@@ -184,20 +184,18 @@ class BL22ClearTrajectory (MotorController):
         if state != State.Moving:
             master_pos = self._ipap[self._master_motor].parpos
             out_pos = []
+            msg = '{0} in {1} and should be in {2}\n'
             for motor in self._motor_list:
                 motor_pos = self._ipap[motor].parpos
                 is_close = np.isclose([motor_pos], [master_pos],
                                       rtol=self._tolerance)[0]
                 if not is_close:
-                    msg = '{0} in {1} and should be in {2}'.format(motor,
-                                                                   motor_pos,
-                                                                   master_pos)
-                    out_pos.append(msg)
+                    out_pos.append(msg.format(motor, motor_pos, master_pos))
 
             if len(out_pos) > 0:
                 state = State.Alarm
                 status = 'There are motors with diffent position (use ' \
-                         'clearMoveTo macro):\n {0}'.format('\n'.join(out_pos))
+                         'clearMoveTo macro):\n {0}'.format(' '.join(out_pos))
         self._log.debug('State: %r Status: %r' % (state, status))
         return state, status
 
