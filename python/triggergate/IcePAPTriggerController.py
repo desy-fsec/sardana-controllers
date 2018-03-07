@@ -62,7 +62,7 @@ class IcePAPTriggerController(TriggerGateController):
                                    'axis UseMasterOut=False',
                       DefaultValue: 'InfoA'}
     }
-    ctrl_attributes = {
+    axis_attributes = {
         # TODO: This attribute should be removed when the Sardana PR 671 is
         # integrated.
         'MasterMotor': {
@@ -232,19 +232,11 @@ class IcePAPTriggerController(TriggerGateController):
                 pmux = self._ipap_ctrl['PMUX'].value
                 self._log.debug('_connectMotor PMUX={0}'.format(pmux))
 
-    def SetCtrlPar(self, parameter, value):
-        param = parameter.lower()
-        if param == 'mastermotor':
-            self._configureMotor(value)
-        else:
-            super(IcePAPTriggerGateController,
-                  self).SetCtrlPar(parameter, value)
+    # -------------------------------------------------------------------------
+    #               Axis Extra Parameters
+    # -------------------------------------------------------------------------
+    def setMasterMotor(self, axis, value):
+        self._configureMotor(value)
 
-    def GetCtrlPar(self, parameter):
-        param = parameter.lower()
-        if param == 'mastermotor':
-            value = self._last_motor_name
-        else:
-            value = super(IcePAPTriggerGateController,
-                          self).GetCtrlPar(parameter)
-        return value
+    def getMasterMotor(self, axis):
+        return self._last_motor_name
