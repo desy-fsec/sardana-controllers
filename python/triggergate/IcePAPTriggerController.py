@@ -22,12 +22,11 @@
 ##############################################################################
 import time
 import numpy
-import taurus
 from sardana import State
 from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController, Access, Memorize, \
     Memorized, Type, Description, DataAccess, DefaultValue
-
+import PyTango
 
 # [WIP] This controller need the Sardana PR 671 !!!!!
 
@@ -89,7 +88,7 @@ class IcePAPTriggerController(TriggerGateController):
         self._motor = None
         self._use_master_out = self.UseMasterOut
         self._axis_info_list = map(str.strip, self.AxisInfos.split(','))
-        self._ipap_ctrl = taurus.Device(self.IcepapController)
+        self._ipap_ctrl = PyTango.DeviceProxy(self.IcepapController)
         # self._configureMotor(self.BaseMotor)
 
     def _set_out(self, out=LOW):
@@ -210,16 +209,17 @@ class IcePAPTriggerController(TriggerGateController):
                                                       int(nr_points))
 
             self._log.debug('trigger table %r' % trigger_positions_tables)
-            ecamdattable = self._motor.getAttribute('ecamdattable')
-            ecamdattable.write(trigger_positions_tables, with_read=False)
-
-
+            self._motor.write_attribute('ecamdattable',
+                                        trigger_positions_tables)
 
     def _configureMotor(self, motor_name):
         if motor_name != self._last_motor_name or self._motor is None:
             self._last_motor_name = motor_name
-            self._motor = taurus.Device(self._last_motor_name)
+            self._motor = PyTango.DeviceProxy(self._last_motor_name)
             if self._use_master_out:
+                print self._last_motor_name
+                print motor_name
+                print self._motor.get_property('axis')
                 motor_axis = self._motor.get_property('axis')['axis'][0]
                 # remove previous connection and connect the new motor
                 pmux = eval(self._ipap_ctrl['PMUX'].value)
