@@ -68,7 +68,8 @@ class SIS3302Ctrl(OneDController):
         
 
     def PreReadAll(self):
-        #print "SIS3302Ctrl.PreReadAll",self.inst_name
+        print "SIS3302Ctrl.PreReadAll",self.inst_name
+        print self.type
         if self.started == True:
             self.proxy.command_inout("Stop")
             self.started = False
@@ -81,12 +82,12 @@ class SIS3302Ctrl(OneDController):
     def ReadAll(self):
         #while(self.proxy.command_inout("State") != PyTango.DevState.ON):
         #    sleep(0.1)
-        if self.Type == 0:
+        if self.type == 0:
             self.counts = self.proxy.read_attribute("Count").value
 
     def ReadOne(self,ind):
         #print "SIS3302Ctrl.ReadOne",self.inst_name,"index",ind
-        if self.Type == 0:
+        if self.type == 0:
             if ind == 1:            
                 data = self.proxy.Data
             else:
