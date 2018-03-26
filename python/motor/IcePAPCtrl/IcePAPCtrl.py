@@ -51,7 +51,10 @@ class IcepapController(MotorController):
         'Port': {Type: int, Description: 'The port number',
                  DefaultValue: 5000},
         'Timeout': {Type: int, Description: 'Connection timeout',
-                    DefaultValue: 3}
+                    DefaultValue: 3},
+        'IcepapLogLevel': {Type: str,
+                           Description: 'Icepap library logging level',
+                           DefaultValue: 'INFO'},
     }
 
     ctrl_attributes = {
@@ -154,6 +157,12 @@ class IcepapController(MotorController):
         self.move_multiple = []
         self.stop_multiple = []
         self.abort_multiple = []
+
+        # Set IcePAP library logging level
+        import logging
+        logger = logging.getLogger('pyIcePAP')
+        logger.setLevel(self.IcepapLogLevel)
+        self._log.debug('Icepap logging level set to %s' % self.IcepapLogLevel)
 
     def AddDevice(self, axis):
         """ Set default values for the axis and try to connect to it
