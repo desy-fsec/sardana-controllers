@@ -24,6 +24,7 @@ class SIS3302RoisCtrl(CounterTimerController):
 		     
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3302Rois Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
+                       "FlagMaster": {Type: int, Description: '1 if controlling SIS3302Master', DefaultValue: 0},
                        }
 
     gender = "CounterTimer"
@@ -50,6 +51,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         if self.TangoHost != None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
+        self.acqStartTime = None 
 
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
@@ -62,6 +64,13 @@ class SIS3302RoisCtrl(CounterTimerController):
         
 		
     def StateOne(self,ind):
+        if self.FlagMaster == 1:
+            if self.acqStartTime != None:
+                now = time.time()
+                elapsedTime = now - self.acqStartTime
+                if elapsedTime > self.exp_time:
+                    self.proxy.command_inout("Stop")
+                    self.acqStartTime == None
         sta = self.proxy.command_inout("State")
         if sta == PyTango.DevState.ON:
             status_string = "MCA is in ON state"
@@ -82,7 +91,8 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
 
     def ReadAll(self):
-        self.counts = self.proxy.read_attribute("Count").value
+        if self.FlagMaster == 0:
+            self.counts = self.proxy.read_attribute("Count").value
 
     def PreStartOne(self,ind,pos):
         return True
@@ -91,7 +101,10 @@ class SIS3302RoisCtrl(CounterTimerController):
         return True
             
     def ReadOne(self,ind):
-        value = self.counts[self.RoIIndexes[ind-1]-1]
+        if self.FlagMaster == 0:
+            value = self.counts[self.RoIIndexes[ind-1]-1]
+        else:
+            value = self.proxy.read_attribute("CountsOfAllChannels").value
         return  value
 	
     def AbortOne(self,ind):
@@ -104,7 +117,12 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
 	
     def StartAllCT(self):
-        pass
+        if self.FlagMaster == 1:
+            self.acqStartTime = time.time()
+            self.proxy.command_inout("Clear")
+            self.proxy.command_inout("Stop")
+            self.proxy.command_inout("Start")
+            
 		     	
     def LoadOne(self,ind,value):
         self.exp_time = value
