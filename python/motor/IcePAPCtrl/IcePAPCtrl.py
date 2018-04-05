@@ -301,13 +301,17 @@ class IcepapController(MotorController):
         if self.attributes[axis]['motor_enabled'] is True and not \
                 self.attributes[axis]['use_encoder_source']:
             self.position_multiple.append(axis)
+        else:
+            self._log.debug('PreReadOne: driver board %s not '
+                            'present or using specific encoder source.' % axis)
 
     def ReadAll(self):
         """ We connect to the Icepap system for each axis. """
         try:
-            ans = self.ipap.get_pos(self.position_multiple)
-            for axis, position in zip(self.position_multiple, ans):
-                self.attributes[axis]['position_value'] = float(position)
+            if len(self.position_multiple) != 0:
+                ans = self.ipap.get_pos(self.position_multiple)
+                for axis, position in zip(self.position_multiple, ans):
+                    self.attributes[axis]['position_value'] = float(position)
         except Exception as e:
             self._log.error('ReadAll(%s) Hint: some driver board not '
                             'present?.\nException:\n%s' %
@@ -323,7 +327,11 @@ class IcepapController(MotorController):
         if axis not in self.position_multiple:
             # IN CASE OF EXTERNAL SOURCE, JUST READ IT AND EVALUATE THE FORMULA
             if self.attributes[axis]['use_encoder_source']:
-                return self.GetAxisExtraPar(axis, 'Encoder')
+                try:
+                    return self.getEncoder(axis)
+                except Exception as e:
+                    log.error('ReadOne (%s): Error %s' %(axis, repr(e)))
+                    raise
             else:
                 log.warning('ReadOne(%s(%d)) Not enabled. Check the Driver '
                             'Board is present in %s.', name, axis, self.Host)
@@ -355,7 +363,7 @@ class IcepapController(MotorController):
         # RECALCULATED USING SOURCE + FORMULA
         if self.attributes[axis]['use_encoder_source']:
             try:
-                current_source_pos = self.GetAxisExtraPar(axis, 'Encoder')
+                current_source_pos = self.getEncoder(axis)
                 current_steps_pos = self.ipap[axis].pos
             except Exception as e:
                 self._log.error('PreStartOne(%d,%f).\nException:\n%s' %
