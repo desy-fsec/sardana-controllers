@@ -1,3 +1,4 @@
+
 ##############################################################################
 ##
 # This file is part of Sardana
@@ -544,7 +545,7 @@ class IcepapController(MotorController):
             enc_src_tango_attr = self.attributes[axis][
                 'encoder_source_tango_attribute']
             if enc_src_tango_attr is not None:
-                value = enc_src_tango_attr.read().value
+                value = float(enc_src_tango_attr.read().value)
                 eval_globals = numpy.__dict__
                 eval_locals = {'VALUE': value, 'value': value}
                 enc_src_formula = self.attributes[axis][
