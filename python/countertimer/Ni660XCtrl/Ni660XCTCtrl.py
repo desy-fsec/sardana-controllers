@@ -400,16 +400,16 @@ class Ni660XCTCtrl(object):
         self._integration_time = value
         self.current_ch_configured = 0
         if axis != 1:
-            if self._synchronization == AcqSynch.HardwareTrigger:
+            if self._synchronization in [AcqSynch.HardwareTrigger,
+                                         AcqSynch.HardwareGate]:
                 pass
             else:
                 raise Exception('The master channel must be the first channel.')
       
-        elif self._synchronization == AcqSynch.SoftwareTrigger:
-            
-            self._repetitions = repetitions
+        elif self._synchronization in [AcqSynch.SoftwareTrigger,
+                                       AcqSynch.SoftwareGate]:
             high_time = value
-            low_time = self.min_time
+            low_time = self._latency_time
             if high_time > self.max_time:
                 max_integ_time = self.min_time + self.max_time
                 msg = ("Integration time not supported. Max = %f" %
