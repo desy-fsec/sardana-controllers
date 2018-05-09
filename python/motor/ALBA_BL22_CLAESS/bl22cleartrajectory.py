@@ -35,8 +35,25 @@ import pickle
 import numpy as np
 from pyIcePAP import EthIcePAPController
 from sardana.pool.controller import MotorController, Type, Description, \
-    DefaultValue
+    DefaultValue, Access, DataAccess
 from sardana import State
+
+
+def get_max_vel(lpar, lpos, motor_vel):
+    """
+    Get the maximum velocity of the parameter according to the motor velocity
+
+    :param lpar: [float]
+    :param lpos: [float]
+    :param motor_vel: float
+    :return: float
+    """
+    par_vels = []
+    for i in range(len(lpar)-1):
+        ti = abs(abs(lpos[i+1]) - abs(lpos[i])) / motor_vel
+        vi = abs(abs(lpar[i+1]) - abs(lpar[i])) / ti
+        par_vels.append(vi)
+    return min(par_vels)
 
 
 class BL22ClearTrajectory (MotorController):
@@ -59,13 +76,13 @@ class BL22ClearTrajectory (MotorController):
                     DefaultValue: 3},
         'DataFile': {Type: str,
                      Description: 'Filename with the binary data'},
-        'cay_add': {Type: int, Description: 'Motor axis number'},
-        'caxr_add': {Type: int, Description: 'Motor axis number'},
-        'caz_add': {Type: int, Description: 'Motor axis number'},
-        'cdy_add': {Type: int, Description: 'Motor axis number'},
-        'cdz_add': {Type: int, Description: 'Motor axis number'},
-        'cdxr_add': {Type: int, Description: 'Motor axis number'},
-        'cslxr_add': {Type: int, Description: 'Motor axis number'},
+        'cay_addr': {Type: int, Description: 'Motor axis number'},
+        'caxr_addr': {Type: int, Description: 'Motor axis number'},
+        'caz_addr': {Type: int, Description: 'Motor axis number'},
+        'cdy_addr': {Type: int, Description: 'Motor axis number'},
+        'cdz_addr': {Type: int, Description: 'Motor axis number'},
+        'cdxr_addr': {Type: int, Description: 'Motor axis number'},
+        'cslxr_addr': {Type: int, Description: 'Motor axis number'},
 
         'Tolerance': {Type: float,
                       Description: 'Parameter error on the position of each '
@@ -78,36 +95,50 @@ class BL22ClearTrajectory (MotorController):
     }
     axis_attributes = {
         # TODO add mode to select which motor we will move
+        'MaxVelocity': {Type: float, Access: DataAccess.ReadOnly},
     }
 
     def __init__(self, inst, props, *args, **kwargs):
         MotorController.__init__(self, inst, props, *args, **kwargs)
         self._ipap = EthIcePAPController(self.Host, self.Port, self.Timeout)
+
         self._step_per_unit = None
         aliases = {}
-        aliases['cay'] = self.cay_add
-        aliases['caxr'] = self.caxr_add
-        aliases['caz'] = self.caz_add
-        aliases['cdy'] = self.cdy_add
-        aliases['cdz'] = self.cdz_add
-        aliases['cdxr'] = self.cdxr_add
-        aliases['cslxr'] = self.cslxr_add
+        aliases['cay'] = self.cay_addr
+        aliases['caxr'] = self.caxr_addr
+        aliases['caz'] = self.caz_addr
+        aliases['cdy'] = self.cdy_addr
+        aliases['cdz'] = self.cdz_addr
+        aliases['cdxr'] = self.cdxr_addr
+        aliases['cslxr'] = self.cslxr_addr
         self._trajdic = None
         self._ipap.add_aliases(aliases)
         # TODO: Include on the trajectory tables the cslxr motor.
-        self._motor_list = ['cay', 'caxr', 'caz', 'cdy', 'cdz', 'cdxr']
+        # Exclude caz
+        self._motor_list = ['cay', 'caxr', 'cdy', 'cdz', 'cdxr', 'cslxr']
         self._master_motor = 'caxr'
         self._tolerance = self.Tolerance
         self._velocity = None
         self._acctime = 0
+        self._max_vel = None
 
     def _load_trajectories(self, filename):
         with open(filename) as f:
             self._trajdic = pickle.load(f)
         par = self._trajdic['parameter']
+        self._max_vel = None
+        max_vels = []
         for motor_name in self._motor_list:
             motor_table = self._trajdic[motor_name]
-            self._ipap[motor_name].set_parametric_table(par, motor_table)
+            self._ipap[motor_name].clear_parametric_table()
+            self._ipap[motor_name].set_parametric_table(par, motor_table,
+                                                        mode='LINEAR')
+            motor_vel = self._ipap[motor_name].velocity
+            max_vel = get_max_vel(par, motor_table, motor_vel)
+            max_vels.append(max_vel)
+            self._log.debug('{0} {1}'.format(motor_name, max_vel))
+
+        self._max_vel = min(max_vels)
 
     def _set_vel(self, vel):
         for motor in self._motor_list:
@@ -121,7 +152,9 @@ class BL22ClearTrajectory (MotorController):
         current_pos = self._ipap[motor_name].pos
         traj_pos = np.array(self._trajdic[motor_name])
         idx_min = (np.abs(traj_pos - current_pos)).argmin()
-        return self._trajdic['parameter'][idx_min]
+        bragg_pos = self._trajdic['parameter'][idx_min]
+        motor_pos = self._trajdic[motor_name][idx_min]
+        return bragg_pos, current_pos, motor_pos
 
     def AddDevice(self, axis):
         """ Set default values for the axis and try to connect to it
@@ -148,8 +181,12 @@ class BL22ClearTrajectory (MotorController):
             try:
                 self._ipap[motor].parpos
             except Exception:
-                near_bragg = self._find_near_bragg(motor)
-                sync.append('{0} is near to {1}\n'.format(motor, near_bragg))
+                near_bragg, current_pos, motor_pos = self._find_near_bragg(
+                    motor)
+                msg = '{0} ({1}) is near to ({2}) ' \
+                      '{3}\n'.format(motor, current_pos, motor_pos,
+                                     near_bragg)
+                sync.append(msg)
 
         if len(sync) > 0:
             state = State.Alarm
@@ -186,9 +223,10 @@ class BL22ClearTrajectory (MotorController):
             out_pos = []
             msg = '{0} in {1} and should be in {2}\n'
             for motor in self._motor_list:
+
                 motor_pos = self._ipap[motor].parpos
-                is_close = np.isclose([motor_pos], [master_pos],
-                                      rtol=self._tolerance)[0]
+                diff = abs(abs(motor_pos) - abs(master_pos))
+                is_close = diff <= self._tolerance
                 if not is_close:
                     out_pos.append(msg.format(motor, motor_pos, master_pos))
 
@@ -209,6 +247,9 @@ class BL22ClearTrajectory (MotorController):
         if state == State.Alarm:
             raise RuntimeError(status)
 
+        for motor in self._motor_list:
+            pos = self._ipap[motor].parpos
+            self._log.debug('{0}: {1}'.format(motor, pos))
         return self._ipap[self._master_motor].parpos
 
     def StartOne(self, axis, pos):
@@ -220,7 +261,7 @@ class BL22ClearTrajectory (MotorController):
         state, status = self.StateOne(axis)
         if state != State.On:
             raise RuntimeError(status)
-        self._ipap.pmove(pos, self._motor_list)
+        self._ipap.pmove(pos, self._motor_list, group=True)
 
     def StopOne(self, axis):
         """
@@ -249,7 +290,13 @@ class BL22ClearTrajectory (MotorController):
         if attr_name == 'step_per_unit':
             self._step_per_unit = float(value)
         elif attr_name == 'velocity':
-            self._velocity = value * self._step_per_unit
+            velocity = value * self._step_per_unit
+            if self._max_vel is None:
+                raise RuntimeError('You must load first the table')
+            if velocity > self._max_vel:
+                raise ValueError('The value must be lower/equal than/to '
+                                 '{0}'.format(self._max_vel))
+            self._velocity = velocity
             self._set_vel(self._velocity)
             self._set_acctime(self._acctime)
         elif attr_name == 'acceleration':
@@ -284,27 +331,39 @@ class BL22ClearTrajectory (MotorController):
             result = MotorController.GetPar(self, axis, name)
         return result
 
+    def getMaxVelocity(self, axis):
+        if self._max_vel is None:
+            return -1
+        else:
+            return self._max_vel
+
     def SendToCtrl(self, cmd):
         """ Send the .
         @param cmd: command to send to the Icepap controller
         @return the result received
         """
         res = 'Done'
-        cmd = cmd.upper()
+
         args = cmd.split()
-        if args[0] == 'MOVEP':
+        cmd_type = args[0].upper()
+        if cmd_type == 'MOVEP':
             pos = args[1]
             motors = map(int, args[2:])
             self._ipap.movep(pos, motors)
-        elif args[0] == 'LOAD':
+        elif cmd_type == 'LOAD':
             filename = args[1]
             if filename == 'NONE':
                 filename = self.DataFile
             self._load_trajectories(filename)
-        elif args[0] == 'PMOVE':
+        elif cmd_type == 'PMOVE':
             pos = args[1]
             motors = map(int, args[2:])
             self._ipap.pmove(pos, motors)
+        elif cmd_type == 'MAX_VEL':
+            res = ''
+            for motor in self._motor_list:
+                max_par_vel = self._ipap[motor].send_cmd('?parvel max')[0]
+                res += '{0} {1};'.format(motor, max_par_vel)
         else:
             res = 'Wrong command'
         return res
