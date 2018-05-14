@@ -251,12 +251,12 @@ class IcepapController(MotorController):
                        axis_state.is_limit_negative(),
                        not axis_state.is_poweron()]
 
-        if any(alarm_flags):
-            state = State.Alarm
-            status_state = 'Alarm'
-        elif any(moving_flags):
+        if any(moving_flags):
             state = State.Moving
             status_state = 'Moving'
+        elif any(alarm_flags):
+            state = State.Alarm
+            status_state = 'Alarm'
         else:
             state = State.On
             status_state = 'On'
