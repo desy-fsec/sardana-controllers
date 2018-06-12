@@ -125,11 +125,14 @@ class BL22ClearTrajectory (MotorController):
     def _load_trajectories(self, filename):
         with open(filename) as f:
             self._trajdic = pickle.load(f)
-        par = self._trajdic['parameter']
+        # par = self._trajdic['parameter']
         self._max_vel = None
         max_vels = []
+
         for motor_name in self._motor_list:
-            motor_table = self._trajdic[motor_name]
+            par_name = 'bragg_{0}'.format(motor_name)
+            motor_table = list(self._trajdic[motor_name])
+            par = list(self._trajdic[par_name])
             self._ipap[motor_name].clear_parametric_table()
             self._ipap[motor_name].set_parametric_table(par, motor_table,
                                                         mode='LINEAR')
@@ -149,11 +152,25 @@ class BL22ClearTrajectory (MotorController):
             self._ipap[motor].paracct = acctime
 
     def _find_near_bragg(self, motor_name):
-        current_pos = self._ipap[motor_name].pos
+        is_cdz = False
+        if motor_name == 'cdz':
+            is_cdz = True
+            motor_name = 'cdy'
+        current_steps = self._ipap[motor_name].pos
         traj_pos = np.array(self._trajdic[motor_name])
-        idx_min = (np.abs(traj_pos - current_pos)).argmin()
-        bragg_pos = self._trajdic['parameter'][idx_min]
-        motor_pos = self._trajdic[motor_name][idx_min]
+        idx_min = (np.abs(traj_pos - current_steps)).argmin()
+        par_name = 'bragg_{0}'.format(motor_name)
+        if is_cdz:
+            motor_name = 'cdz'
+            current_steps = self._ipap[motor_name].pos
+
+        bragg_pos = self._trajdic[par_name][idx_min]
+        spu = self._trajdic['spu'][motor_name]
+        offset = self._trajdic['offset'][motor_name]
+        sign = self._trajdic['sign'][motor_name]
+        motor_steps = self._trajdic[motor_name][idx_min]
+        motor_pos = (motor_steps * sign / spu) + offset
+        current_pos = (current_steps * sign / spu) + offset
         return bragg_pos, current_pos, motor_pos
 
     def AddDevice(self, axis):
@@ -234,7 +251,7 @@ class BL22ClearTrajectory (MotorController):
                 state = State.Alarm
                 status = 'There are motors with diffent position (use ' \
                          'clearMoveTo macro):\n {0}'.format(' '.join(out_pos))
-        self._log.debug('State: %r Status: %r' % (state, status))
+        # self._log.debug('State: %r Status: %r' % (state, status))
         return state, status
 
     def ReadOne(self, axis):
@@ -246,11 +263,12 @@ class BL22ClearTrajectory (MotorController):
         state, status = self.StateOne(axis)
         if state == State.Alarm:
             raise RuntimeError(status)
-
-        for motor in self._motor_list:
-            pos = self._ipap[motor].parpos
-            self._log.debug('{0}: {1}'.format(motor, pos))
-        return self._ipap[self._master_motor].parpos
+        pos = self._ipap[self._master_motor].parpos
+       
+        # for motor in self._motor_list:
+        #     pos = self._ipap[motor].parpos
+            #self._log.debug('{0}: {1}'.format(motor, pos))
+        return pos
 
     def StartOne(self, axis, pos):
         """ Start movement of the axis.
