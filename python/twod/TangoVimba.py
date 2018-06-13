@@ -45,6 +45,7 @@ class TangoVimbaCtrl(TwoDController):
         self.proxy = []
         self.device_available = []
         self.start_time = []
+        self.exp_time = 0
 	for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
@@ -77,9 +78,10 @@ class TangoVimbaCtrl(TwoDController):
     def StateOne(self,ind):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
-            if time.time() - self.start_time[ind-1] > self.exp_time:
+            if time.time() - self.start_time[ind-1] > self.exp_time and self.started == True:
                 try:
                     self.proxy[ind-1].command_inout("StopAcquisition")
+                    self.started = False
                 except:
                     pass
             sta = self.proxy[ind-1].command_inout("State")
@@ -124,6 +126,7 @@ class TangoVimbaCtrl(TwoDController):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].FileSaving = True
         self.proxy[ind-1].command_inout("StartAcquisition")
+        self.started = True
         self.start_time[ind-1] = time.time()
         
         
