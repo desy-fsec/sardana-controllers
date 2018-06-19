@@ -76,6 +76,8 @@ class PSCameraVHRCtrl(TwoDController):
                 tup = (sta,"Camera ready")
             elif sta == PyTango.DevState.MOVING:
                 tup = (sta,"Camera busy")
+            elif sta == PyTango.DevState.RUNNING:
+                tup = (sta,"Camera busy")
             elif sta == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
             return tup
