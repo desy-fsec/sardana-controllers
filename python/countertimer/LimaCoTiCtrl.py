@@ -260,6 +260,7 @@ class LimaCoTiCtrl(CounterTimerController):
                 if acq_ready == 'Ready':
                     self._expected_scan_images = 0
                     self._load_flag = False
+                    self._log.debug('StateAll set flag=%s' % self._load_flag)
             else:
                 if self._synchronization == AcqSynch.HardwareTrigger:
                     # Continuous scan
@@ -276,7 +277,9 @@ class LimaCoTiCtrl(CounterTimerController):
                             self._state = State.On
                             self._status = 'The LimaCCD is ready to acquire'
                             self._expected_scan_images = 0
-                            self._load_flag = 0
+                            self._load_flag = False
+                            self._log.debug('StateAll set flag=%s' % 
+                                            self._load_flag)
                     else:
                         self._state = State.Moving
                         self._status = 'The LimaCCD is acquiring'
@@ -287,6 +290,7 @@ class LimaCoTiCtrl(CounterTimerController):
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions):
+        self.StateAll()
         self._log.debug('LoadOne flag=%s images=%s' %
                         (self._load_flag, self._expected_scan_images))
         if self._load_flag:
@@ -298,8 +302,12 @@ class LimaCoTiCtrl(CounterTimerController):
             self._load_flag = False
         else:
             self._load_flag = True
-            acq_nb_frames = self._expected_scan_images
+            if repetitions == 1:
+                acq_nb_frames = repetitions
+            else:
+                acq_nb_frames = self._expected_scan_images
 
+        self._log.debug('LoadOne set flag=%s' % self._load_flag)
         self._clean_acquisition()
         if axis != 1:
             raise RuntimeError('The master channel should be the axis 1')
@@ -354,17 +362,14 @@ class LimaCoTiCtrl(CounterTimerController):
         self._log.debug('Leaving ReadAll %r' % len(self._data_buff[axis]))
 
     def ReadOne(self, axis):
-        self._log.debug('Entering in  ReadOnly')
-        if self._repetitions == 1:
-            value = self._data_buff[axis][0]
-        else:
-            value = self._data_buff[axis]
-        return value
+        self._log.debug('Entering in  ReadOne')
+        return self._data_buff[axis]
 
     def AbortOne(self, axis):
         self._log.debug('AbortOne in')
         self._abort_flg = True
         self._load_flag = False
+        self._log.debug('AbortOne set flag=%s' % self._load_flag)
         self._expected_scan_images = 0
         self._clean_acquisition()
 
@@ -420,6 +425,7 @@ class LimaCoTiCtrl(CounterTimerController):
         if param == 'expectedscanimages':
             self._expected_scan_images = value
             self._load_flag = False
+            self._log.debug('expectedscanimages set flag=%s' % self._load_flag)
 
         elif param in LIMA_ATTRS:
             attr = LIMA_ATTRS[param]
