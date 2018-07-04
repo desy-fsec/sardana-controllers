@@ -378,7 +378,7 @@ class BL22ClearTrajectory (MotorController):
             result = vel / self._step_per_unit
         elif attr_name == 'acceleration' or attr_name == 'deceleration':
             acctime = self._ipap[self._master_name].paracct
-            result = acctime / self._step_per_unit
+            result = acctime
         elif attr_name == 'base_rate':
             result = 0
         else:
