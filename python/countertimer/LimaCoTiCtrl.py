@@ -415,8 +415,13 @@ class LimaCoTiCtrl(CounterTimerController):
 
     def setSavingImageHeaders(self, values):
         print 'Headers %r' % values
-        self._limaccd.resetCommonHeader()
-        self._limaccd.resetFrameHeaders()
+        try:
+            self._limaccd.resetCommonHeader()
+            self._limaccd.resetFrameHeaders()
+        except Exception as e:
+            self._log.debug(
+                "Lima version incompatible with reset header methods")
+            self._log.debug(e)
         self._limaccd.setImageHeader(values)
     
     def SetCtrlPar(self, parameter, value):
