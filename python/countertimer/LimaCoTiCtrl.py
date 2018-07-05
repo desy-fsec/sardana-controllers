@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os, shutil
 import PyTango
 
 from sardana import State
@@ -163,6 +164,8 @@ class LimaCoTiCtrl(CounterTimerController):
         'LatencyTime': {Type: float,
                         Description: 'Latency time use on the synchronization',
                         DefaultValue: 0},
+        'TrashDir': {Type: str, Description: 'Detector device name',
+                     DefaultValue: None},
         }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -190,6 +193,7 @@ class LimaCoTiCtrl(CounterTimerController):
         self._expected_scan_images = 0
         self._hardware_trigger = self.HardwareSync
         self._synchronization = AcqSynch.SoftwareTrigger
+        self._hasTrashDir = os.path.isdir(str(self.TrashDir))
         self._abort_flg = False
         self._load_flag = False
         self._start_flg = False
@@ -296,15 +300,27 @@ class LimaCoTiCtrl(CounterTimerController):
         if self._load_flag:
             return
 
-        # Detect if is using the recorder
+        # if it is not using the recorder or the detector is ready
         if self._expected_scan_images == 0:
-            acq_nb_frames = repetitions
-            self._load_flag = False
+            # but TrashDir is defined and no acquisition is running
+            if self._hasTrashDir and not self._start_flg:
+                shutil.rmtree(self.TrashDir)
+                os.makedirs(self.TrashDir)
+                acq_nb_frames = 1
+                self._limaccd.write_attribute('saving_directory',
+                                              self.TrashDir)
+                self._limaccd.write_attribute('saving_mode', 'AUTO_FRAME')
+                self._load_flag = False
+            else:
+                acq_nb_frames = repetitions
+                self._load_flag = False
         else:
             self._load_flag = True
+            # Step scan or Continuous scan by software synchronization
             if repetitions == 1:
                 acq_nb_frames = repetitions
             else:
+                #get repetitions from recorder expected images
                 acq_nb_frames = self._expected_scan_images
 
         self._log.debug('LoadOne set flag=%s' % self._load_flag)
@@ -338,6 +354,7 @@ class LimaCoTiCtrl(CounterTimerController):
         if self._expected_scan_images > 0 and self._repetitions > 1 and \
                 self._start_flg:
             return
+        self._log.debug("Start Acquisition")
         self._limaccd.startAcq()
         self._start_flg = True
 
@@ -434,6 +451,7 @@ class LimaCoTiCtrl(CounterTimerController):
 
         elif param in LIMA_ATTRS:
             attr = LIMA_ATTRS[param]
+            self._log.debug('Set %s = %s' % (attr, value))
             self._limaccd.write_attribute(attr, value)
         else:
             super(LimaCoTiCtrl, self).SetCtrlPar(parameter, value)
