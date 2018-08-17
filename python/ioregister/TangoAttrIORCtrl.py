@@ -47,6 +47,7 @@ LABELS = 'Labels'
 POSITIONS = 'Positions'
 CALIBRATION = 'Calibration'
 READFAILED = 'readFailed'
+VALUE = 'Value'
 
 #def agrupate(l,n):
 #    #print "agrupate(%s,%s) "%(l,n)
@@ -120,7 +121,11 @@ class TangoAttrIORController(IORegisterController):
                          Description : 'String list with the meaning of each discrete position',
                          Access : DataAccess.ReadWrite,
                          'fget' : 'get%s' % LABELS,
-                         'fset' : 'set%s' % LABELS}
+                         'fset' : 'set%s' % LABELS},
+                      VALUE:
+                          {Type: long,
+                          Description: 'Value',
+                          Access: DataAccess.ReadWrite},
                       }
     MaxDevice = 1024
 

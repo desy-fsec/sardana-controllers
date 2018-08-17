@@ -32,7 +32,7 @@ def eval_state(state):
 class Ni660XTriggerGateController(TriggerGateController):
 
     MaxDevice = 32
-    min_time = 25e-7
+    # min_time = 25e-7
 
     ctrl_properties = {
         'channelDevNames': {
@@ -139,9 +139,6 @@ class Ni660XTriggerGateController(TriggerGateController):
         channel = self.channels[axis]          
         if self._getState(axis) is State.On:
             channel.stop()
-                  
-        if passive < self.min_time:
-            passive = self.min_time
 
         channel.write_attribute("HighTime", active)
         channel.write_attribute("LowTime", passive)

@@ -121,9 +121,8 @@ cdef double encoder2bragg(long encoder, double bragg_spu, double bragg_offset,
     offset = <double>(bragg_pos - bragg_enc + braggMotorOffsetEncCounts)
 
     enc_value = <double> (encoder + offset)
-    if enc_value > -PMAC_OVERFLOW and enc_value < 0:
+    if enc_value < 0:
         enc_value = enc_value + 2 * PMAC_OVERFLOW
-
 
     return enc_value/bragg_spu
 

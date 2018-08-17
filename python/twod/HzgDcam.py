@@ -9,15 +9,15 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-class PSCameraVHRCtrl(TwoDController):
-    "This class is the Tango Sardana Two D controller for the PSCameraVHR"
+class HzgDcamCtrl(TwoDController):
+    "This class is the Tango Sardana Two D controller for the HzgDcam"
 
 
     ctrl_extra_attributes = {
                              'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
                              }
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PSCameraVHR Tango devices'},
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the HzgDcam Tango devices'},
                   'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
@@ -26,7 +26,7 @@ class PSCameraVHRCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "PSCameraVHRCtrl/" + self.inst_name
+        self.ct_name = "HzgDcamCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -76,8 +76,10 @@ class PSCameraVHRCtrl(TwoDController):
                 tup = (sta,"Camera ready")
             elif sta == PyTango.DevState.MOVING:
                 tup = (sta,"Camera busy")
+            elif sta == PyTango.DevState.EXTRACT:
+                tup = (PyTango.DevState.MOVING,"Camera busy")
             elif sta == PyTango.DevState.RUNNING:
-                tup = (sta,"Camera busy")
+                tup = (PyTango.DevState.MOVING,"Camera busy")
             elif sta == PyTango.DevState.FAULT:
                 tup = (sta,"Camera in FAULT state")
             return tup
@@ -103,13 +105,13 @@ class PSCameraVHRCtrl(TwoDController):
         return True
             
     def StartOne(self,ind, position=None):
-        self.proxy[ind-1].command_inout("StartAcquisition")
+        self.proxy[ind-1].command_inout("StartAcq")
         
     def AbortOne(self,ind):
         pass
 
     def LoadOne(self, ind, value):
-        self.proxy[ind-1].write_attribute("ExposureTime",value)
+        self.proxy[ind-1].write_attribute("EXPOSURE_TIME",value)
 
     def GetAxisPar(self, ind, par_name):
         pass
@@ -124,7 +126,7 @@ class PSCameraVHRCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> PSCameraVHRCtrl/",self.inst_name,": dying"
+        print "PYTHON -> HzgDcamCtrl/",self.inst_name,": dying"
 
         
 if __name__ == "__main__":

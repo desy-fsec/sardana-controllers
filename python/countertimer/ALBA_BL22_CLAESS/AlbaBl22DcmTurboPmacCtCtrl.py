@@ -9,15 +9,16 @@ from sardana.pool.controller import (CounterTimerController, Type, Access,
 
 from bl22dcmlib import enegies4encoders
 
-PMAC_REGS = {'MotorDir': 4080, 'StartBuffer': 4081, 'RunProgram': 4082,
-             'NrTriggers': 4083, 'Index': 4084, 'StartPos': 4085,
-             'PulseWidth': 4086, 'AutoInc': 4087}
+PMAC_REGISTERS = {'MotorDir': 4080, 'StartBuffer': 4081, 'RunProgram': 4082,
+                  'NrTriggers': 4083, 'Index': 4084, 'StartPos': 4085,
+                  'PulseWidth': 4086, 'AutoInc': 4087}
 
 
 class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     """
     This class is the Sardana CounterTimer controller for TurboPmac controller.
-    It is used to """
+    It is used to
+    """
 
     MaxDevice = 1
     class_prop = {
@@ -54,7 +55,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         self.xtal = PyTango.DeviceProxy(self.XtalIORDSName)
 
         self.start_buffer = int(self.pmac.GetPVariable(
-            PMAC_REGS['StartBuffer']))
+            PMAC_REGISTERS['StartBuffer']))
         self._int_trigger = False
         self._latency_time = 0.005
 
@@ -69,7 +70,8 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             m = int(self.pmac.GetMVariable(3300))
         except PyTango.DevFailed, e:
             msg = "StateAll(): Could not verify state of the " \
-                  "device: %s.\nException: %s" % (self.TurboPmacDeviceName, e)
+                  "device: %s.\nException: %s" % \
+                            (self.TurboPmacDeviceName, e)
             self._log.error(msg)
             self.state = State.Unknown
             self.status = msg
@@ -85,7 +87,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     def StateOne(self, axis):
         self._log.debug("StateOne(%d): Leaving...%s %s", axis, self.state,
                         self.status)
-        return self.state, self.status
+        return (self.state, self.status)
 
     def ReadOne(self, axis):
         if self._synchronization in [AcqSynch.SoftwareTrigger,
@@ -94,10 +96,12 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             return_value = SardanaValue(energy)
 
         else:
+
             try:
                 # Hardware synchronization
                 register_ranges = []
-                current_idx = int(self.pmac.GetPVariable(PMAC_REGS['Index']))
+                current_idx = int(self.pmac.GetPVariable(
+                    PMAC_REGISTERS['Index']))
                 new_data = current_idx - self.start_idx
 
                 if new_data == 0 or ((new_data < self.ChunkSize) and
@@ -120,17 +124,11 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
                 self.start_idx = current_idx
 
                 rawCounts = rawCounts.astype(long)
-
-                msg = '%r %r %r %r %r %r %r %r' % (rawCounts,
-                                                   self.vcm_pitch_rad,
-                                                   self.xtal_d,
-                                                   self.xtal_offset,
-                                                   self.bragg_spu,
-                                                   self.bragg_offset,
-                                                   self.bragg_pos,
-                                                   self.bragg_enc)
-                self._log.debug(msg)
-
+                self._log.debug('%r %r %r %r %r %r %r %r' %
+                                (rawCounts, self.vcm_pitch_rad, self.xtal_d,
+                                 self.xtal_offset, self.bragg_spu,
+                                 self.bragg_offset, self.bragg_pos,
+                                 self.bragg_enc))
                 return_value = enegies4encoders(rawCounts,
                                                 self.vcm_pitch_rad,
                                                 self.xtal_d,
@@ -139,7 +137,6 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
                                                 self.bragg_offset,
                                                 self.bragg_pos,
                                                 self.bragg_enc).tolist()
-
             except Exception as e:
                 self._log.error('PmacCT %r' % e)
 
@@ -165,26 +162,28 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
             self.bragg_offset = self.bragg.read_attribute('offset').value
             self.bragg_pos = float(self.pmac.SendCtrlChar("P").split()[0])
             self.bragg_enc = float(self.pmac.GetMVariable(101))
-            vcm_pitch = self.vcm_pitch.read_attribute('position').value
-            self.vcm_pitch_rad = vcm_pitch/1000.0
+            self.vcm_pitch_rad = self.vcm_pitch.read_attribute(
+                'position').value/1000.0
             xtal_value = self.xtal.read_attribute('value').value
             if xtal_value == 311:
-                d_attr = 'dSi311'
-                offset_attr = 'angularOffsetSi311'
+                xtal_d_attr = 'dSi311'
+                xtal_offset_attr = 'angularOffsetSi311'
             else:
-                d_attr = 'dSi111'
-                offset_attr = 'angularOffsetSi111'
-            self.xtal_d = self.energy.read_attribute(d_attr).value
-            self.xtal_offset = self.energy.read_attribute(offset_attr).value
+                xtal_d_attr = 'dSi111'
+                xtal_offset_attr = 'angularOffsetSi111'
+            self.xtal_d = self.energy.read_attribute(xtal_d_attr).value
+            self.xtal_offset = self.energy.read_attribute(
+                xtal_offset_attr).value
 
-            self.pmac.SetPVariable([PMAC_REGS['RunProgram'], 3])
+            self.pmac.SetPVariable([PMAC_REGISTERS['RunProgram'], 3])
             self.pmac.DisablePLC(0)
             # configuring position capture control
             self.pmac.SetIVariable([7012, 2])
             # configuring position capture flag select
             self.pmac.SetIVariable([7013, 3])
-            # after enabling position capture, M117 is set to 1, forcing
-            # readout of M103, to reset it, so PLC0 won't copy outdated data
+            # after enabling position capture, M117 is set to 1,
+            # forcing readout
+            # of M103, to reset it, so PLC0 won't copy outdated data
             self.pmac.GetMVariable(103)
             # enabling plc0 execution
             self.pmac.SetIVariable([5, 3])
@@ -193,7 +192,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     def LoadOne(self, axis, value, repetitions):
         try:
             self.repetitions = repetitions
-            self.pmac.SetPVariable([PMAC_REGS['NrTriggers'], repetitions])
+            self.pmac.SetPVariable([PMAC_REGISTERS['NrTriggers'], repetitions])
         except PyTango.DevFailed, e:
             self._log.error("LoadOne(%d, %f): Could not configure device.\n"
                             "Exception: %s", axis, value, e)

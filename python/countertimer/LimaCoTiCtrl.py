@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+import os, shutil
 import PyTango
 
 from sardana import State
 from sardana.pool import AcqSynch
 from sardana.pool.controller import CounterTimerController, Type, \
     Description, Access, DataAccess, Memorize, NotMemorized, \
-    Memorized, DefaultValue
+    Memorized, DefaultValue, MaxDimSize
 
 # TODO: WIP version.
 
@@ -141,6 +142,17 @@ class LimaCoTiCtrl(CounterTimerController):
                          'saving_suffix',
             Access: DataAccess.ReadOnly,
             Memorize: NotMemorized},
+        'SavingImageHeaders': {
+            Type: [str, ],
+            Description: 'Headers for each image',
+            Access: DataAccess.ReadWrite,
+            Memorize: NotMemorized,
+            MaxDimSize: (1000000,) },
+        'LastImageFullName': {
+            Type: str,
+            Description: 'Image Full Name',
+            Access: DataAccess.ReadOnly,
+            Memorize: NotMemorized},
         }
 
     axis_attributes = {}
@@ -149,6 +161,11 @@ class LimaCoTiCtrl(CounterTimerController):
         'LimaCCDDeviceName': {Type: str, Description: 'Detector device name'},
         'HardwareSync': {Type: str,
                          Description: 'acq_trigger_mode for hardware mode'},
+        'LatencyTime': {Type: float,
+                        Description: 'Latency time use on the synchronization',
+                        DefaultValue: 0},
+        'TrashDir': {Type: str, Description: 'Detector device name',
+                     DefaultValue: None},
         }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -172,10 +189,11 @@ class LimaCoTiCtrl(CounterTimerController):
         self._status = None
         self._new_data = False
         self._int_time = 0
-        self._latency_time = 0
+        self._latency_time = self.LatencyTime
         self._expected_scan_images = 0
         self._hardware_trigger = self.HardwareSync
         self._synchronization = AcqSynch.SoftwareTrigger
+        self._hasTrashDir = os.path.isdir(str(self.TrashDir))
         self._abort_flg = False
         self._load_flag = False
         self._start_flg = False
@@ -246,6 +264,7 @@ class LimaCoTiCtrl(CounterTimerController):
                 if acq_ready == 'Ready':
                     self._expected_scan_images = 0
                     self._load_flag = False
+                    self._log.debug('StateAll set flag=%s' % self._load_flag)
             else:
                 if self._synchronization == AcqSynch.HardwareTrigger:
                     # Continuous scan
@@ -262,7 +281,9 @@ class LimaCoTiCtrl(CounterTimerController):
                             self._state = State.On
                             self._status = 'The LimaCCD is ready to acquire'
                             self._expected_scan_images = 0
-                            self._load_flag = 0
+                            self._load_flag = False
+                            self._log.debug('StateAll set flag=%s' % 
+                                            self._load_flag)
                     else:
                         self._state = State.Moving
                         self._status = 'The LimaCCD is acquiring'
@@ -273,19 +294,36 @@ class LimaCoTiCtrl(CounterTimerController):
         return self._state, self._status
 
     def LoadOne(self, axis, value, repetitions):
+        self.StateAll()
         self._log.debug('LoadOne flag=%s images=%s' %
                         (self._load_flag, self._expected_scan_images))
         if self._load_flag:
             return
 
-        # Detect if is using the recorder
+        # if it is not using the recorder or the detector is ready
         if self._expected_scan_images == 0:
-            acq_nb_frames = repetitions
-            self._load_flag = False
+            # but TrashDir is defined and no acquisition is running
+            if self._hasTrashDir and not self._start_flg:
+                shutil.rmtree(self.TrashDir)
+                os.makedirs(self.TrashDir)
+                acq_nb_frames = 1
+                self._limaccd.write_attribute('saving_directory',
+                                              self.TrashDir)
+                self._limaccd.write_attribute('saving_mode', 'AUTO_FRAME')
+                self._load_flag = False
+            else:
+                acq_nb_frames = repetitions
+                self._load_flag = False
         else:
             self._load_flag = True
-            acq_nb_frames = self._expected_scan_images
+            # Step scan or Continuous scan by software synchronization
+            if repetitions == 1:
+                acq_nb_frames = repetitions
+            else:
+                #get repetitions from recorder expected images
+                acq_nb_frames = self._expected_scan_images
 
+        self._log.debug('LoadOne set flag=%s' % self._load_flag)
         self._clean_acquisition()
         if axis != 1:
             raise RuntimeError('The master channel should be the axis 1')
@@ -316,6 +354,7 @@ class LimaCoTiCtrl(CounterTimerController):
         if self._expected_scan_images > 0 and self._repetitions > 1 and \
                 self._start_flg:
             return
+        self._log.debug("Start Acquisition")
         self._limaccd.startAcq()
         self._start_flg = True
 
@@ -340,17 +379,14 @@ class LimaCoTiCtrl(CounterTimerController):
         self._log.debug('Leaving ReadAll %r' % len(self._data_buff[axis]))
 
     def ReadOne(self, axis):
-        self._log.debug('Entering in  ReadOnly')
-        if self._repetitions == 1:
-            value = self._data_buff[axis][0]
-        else:
-            value = self._data_buff[axis]
-        return value
+        self._log.debug('Entering in  ReadOne')
+        return self._data_buff[axis]
 
     def AbortOne(self, axis):
         self._log.debug('AbortOne in')
         self._abort_flg = True
         self._load_flag = False
+        self._log.debug('AbortOne set flag=%s' % self._load_flag)
         self._expected_scan_images = 0
         self._clean_acquisition()
 
@@ -375,15 +411,47 @@ class LimaCoTiCtrl(CounterTimerController):
                                             'saving_format')
         return modes
 
+    def getLastImageFullName(self):
+        try:
+            path = self._limaccd.read_attribute('saving_directory').value
+            prefix = self._limaccd.read_attribute('saving_prefix').value
+            suffix = self._limaccd.read_attribute('saving_suffix').value
+            nr = self._limaccd.read_attribute('saving_next_number').value - 1
+            attr = 'saving_index_format'
+            index_format = self._limaccd.read_attribute(attr).value
+            nr_format = index_format % nr
+            value = '%s/%s%s%s' % (path, prefix, nr_format, suffix)
+        except Exception as e:
+            value = "Error on read the last image name"
+            self._log.debug(e)
+
+        return value
+
+    def getSavingImageHeaders(self):
+        raise RuntimeError('It is not possible to read the value')
+
+    def setSavingImageHeaders(self, values):
+        print 'Headers %r' % values
+        try:
+            self._limaccd.resetCommonHeader()
+            self._limaccd.resetFrameHeaders()
+        except Exception as e:
+            self._log.debug(
+                "Lima version incompatible with reset header methods")
+            self._log.debug(e)
+        self._limaccd.setImageHeader(values)
+    
     def SetCtrlPar(self, parameter, value):
         self._log.debug('SetCtrlPar %s %s' % (parameter, value))
         param = parameter.lower()
         if param == 'expectedscanimages':
             self._expected_scan_images = value
             self._load_flag = False
+            self._log.debug('expectedscanimages set flag=%s' % self._load_flag)
 
         elif param in LIMA_ATTRS:
             attr = LIMA_ATTRS[param]
+            self._log.debug('Set %s = %s' % (attr, value))
             self._limaccd.write_attribute(attr, value)
         else:
             super(LimaCoTiCtrl, self).SetCtrlPar(parameter, value)
@@ -396,6 +464,8 @@ class LimaCoTiCtrl(CounterTimerController):
             # TODO: Verify instrument_name attribute
             attr = LIMA_ATTRS[param]
             value = self._limaccd.read_attribute(attr).value
+        elif param == 'lastimagefullname':
+            value = self.getLastImageFullName()
         else:
             value = super(LimaCoTiCtrl, self).GetCtrlPar(parameter)
 

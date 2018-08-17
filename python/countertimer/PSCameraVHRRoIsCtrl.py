@@ -14,21 +14,19 @@ ReadWrite = DataAccess.ReadWrite
 # This controller has to be used with another controller for the sis3302 in the MG
 # It only reads the counts.
 
-class SIS3302RoisCtrl(CounterTimerController):
+class PSCameraVHRRoIsCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3302 RoIs"
 	
 
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
-                       'RoIIndex':{Type:int,Access:ReadWrite},
                        }
 		     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3302Rois Tango devices'},
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PSCameraVHRRoIs Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
-                       "FlagMaster": {Type: int, Description: '1 if controlling SIS3302Master', DefaultValue: 0},
                        }
 
     gender = "CounterTimer"
-    model = "SIS3302Rois"
+    model = "PSCameraVHRRoIs"
     organization = "DESY"
     state = ""
     status = ""
@@ -44,19 +42,15 @@ class SIS3302RoisCtrl(CounterTimerController):
                 self.node = lst[0]
                 self.port = int( lst[1])
         self.started = False
-        self.dft_Offset = 0
-        self.Offset = []
-        self.RoIIndexes = []
+        self.RoIAttributeName = []
         proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
-        self.acqStartTime = None 
 
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
-        self.Offset.append(self.dft_Offset)
-        self.RoIIndexes.append(-1)
+        self.RoIAttributeName.append("")
         
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
@@ -64,19 +58,12 @@ class SIS3302RoisCtrl(CounterTimerController):
         
 		
     def StateOne(self,ind):
-        if self.FlagMaster == 1:
-            if self.acqStartTime != None:
-                now = time.time()
-                elapsedTime = now - self.acqStartTime
-                if elapsedTime > self.exp_time:
-                    self.proxy.command_inout("Stop")
-                    self.acqStartTime == None
         sta = self.proxy.command_inout("State")
         if sta == PyTango.DevState.ON:
-            status_string = "MCA is in ON state"
-        elif sta == PyTango.DevState.MOVING:
+            status_string = "Device in ON state"
+        elif sta == PyTango.DevState.RUNNING:
             sta = PyTango.DevState.MOVING
-            status_string = "MCA is busy"
+            status_string = "Device MOVING"
         elif sta == PyTango.DevState.OFF:
             sta = PyTango.DevState.FAULT
             status_string = "Error detected" 
@@ -91,8 +78,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
 
     def ReadAll(self):
-        if self.FlagMaster == 0:
-            self.counts = self.proxy.read_attribute("Count").value
+        pass
 
     def PreStartOne(self,ind,pos):
         return True
@@ -101,10 +87,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         return True
             
     def ReadOne(self,ind):
-        if self.FlagMaster == 0:
-            value = self.counts[self.RoIIndexes[ind-1]-1]
-        else:
-            value = self.proxy.read_attribute("CountsOfAllChannels").value
+        value = self.proxy.read_attribute("RoICounts").value
         return  value
 	
     def AbortOne(self,ind):
@@ -117,31 +100,23 @@ class SIS3302RoisCtrl(CounterTimerController):
         pass
 	
     def StartAllCT(self):
-        if self.FlagMaster == 1:
-            self.acqStartTime = time.time()
-            self.proxy.command_inout("Clear")
-            self.proxy.command_inout("Stop")
-            self.proxy.command_inout("Start")
-            
+        pass
 		     	
     def LoadOne(self,ind,value):
-        self.exp_time = value
+        pass
 	
     def GetExtraAttributePar(self,ind,name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
-        if name == "RoIIndex":
-            return self.RoIIndexes[ind-1]
         
             
     def SetExtraAttributePar(self,ind,name,value):
-        if name == "RoIIndex":
-            self.RoIIndexes[ind-1] = value
+        pass
 			
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> SIS3302RoisCtrl/",self.inst_name,": dying"
+        print "PYTHON -> PSCameraVHRRoIsCtrl/",self.inst_name,": dying"
 
