@@ -120,17 +120,19 @@ class pilcTimerCtrl(CounterTimerController):
 
         
     def PreStartAllCT(self):
-        pass
+        self.wantedCT = []
 
     def PreStartOneCT(self,ind):
         pass
         
     def StartOneCT(self,ind):
         if self.device_available[ind-1] == 1:
-            self.proxy[index-1].write_attribute('Arm',1)
-    
+            self.wantedCT.append(ind)
+
+            
     def StartAllCT(self):
-        pass
+        for index in self.wantedCT:
+            self.proxy[index-1].write_attribute('Arm',1)
 
 
     def LoadOne(self,ind,value):
