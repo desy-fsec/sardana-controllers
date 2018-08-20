@@ -29,7 +29,20 @@ class pilcTimerCtrl(CounterTimerController):
     organization = "DESY"
     state = ""
     status = ""
-    
+
+
+    #############
+    ## __del__ ##
+    #############
+
+    def __del__(self):
+        print "PYTHON -> pilcTimerCtrl/",self.inst_name,": dying"
+
+
+    ##############
+    ## __init__ ##
+    ##############
+
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
@@ -50,36 +63,196 @@ class pilcTimerCtrl(CounterTimerController):
         self.proxy = []
         self.device_available = []
         for name in self.devices.value_string:
-                self.tango_device.append(name)
-                self.proxy.append(None)
-                self.device_available.append(0)
-                self.max_device =  self.max_device + 1
-        self.started = False
-        self.preset_mode = 0 # Trigger with counts
+            self.tango_device.append(name)
+            self.proxy.append(None)
+            self.device_available.append(0)
+            self.max_device += 1
+
+    ##############
+    ## AbortOne ##
+    ##############
+
+    def AbortOne(self,ind):
+        if self.device_available[ind - 1] == 1:
+            self.proxy[ind - 1].write_attribute('Arm',0)
+
+
+    ###############
+    ## AddDevice ##
+    ###############
 
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         if ind > self.max_device:
             print "False index"
             return
-        proxy_name = self.tango_device[ind-1]
-        if self.TangoHost == None:
-            proxy_name = self.tango_device[ind-1]
-        else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
-        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
-        self.device_available[ind-1] = 1
 
+        proxy_name = self.tango_device[ind - 1]
+
+        if self.TangoHost == None:
+            proxy_name = self.tango_device[ind - 1]
+        else:
+            proxy_name = (
+                            str(self.node)
+                            + (":%s/" % self.port)
+                            + str(self.tango_device[ind - 1])
+                            )
+
+        self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
+        self.device_available[ind - 1] = 1
+
+
+    ##################
+    ## DeleteDevice ##
+    ##################
 
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
-        self.proxy[ind-1] =  None
-        self.device_available[ind-1] = 0
+        self.proxy[ind - 1] =  None
+        self.device_available[ind - 1] = 0
 
+
+    ##########################
+    ## GetExtraAttributePar ##
+    ##########################
+
+    def GetExtraAttributePar(self,ind,name):
+        if self.device_available[ind - 1]:
+            if name == "TangoDevice":
+                tango_device = (self.node
+                                + ":"
+                                + str(self.port)
+                                + "/"
+                                + self.proxy[ind - 1].name() 
+                                )
+                return tango_device
+
+
+    #############
+    ## LoadOne ##
+    #############
+
+    def LoadOne(self,ind,value):
+        if self.device_available[ind - 1] == 1:
+            self.proxy[ind - 1].write_attribute("TimeTriggerStepSize",value)
+
+
+    ################
+    ## PreReadAll ##
+    ################
+
+    def PreReadAll(self):
+        pass
+
+
+    ################
+    ## PreReadOne ##
+    ################
+
+    def PreReadOne(self,ind):
+        pass
+
+
+    #################
+    ## PreStartAll ##
+    #################
+
+    def PreStartAll(self):
+        self.wantedCT = []
+        self.startTime = [0.0 for _ in range(len(self.proxy))]
+
+
+    #################
+    ## PreStartOne ##
+    #################
+
+    def PreStartOne(self,ind,value):
+        self.proxy[ind - 1].write_attribute('TriggerPulseLength',0.00005)
+        self.proxy[ind - 1].write_attribute('TriggerMode',2)
+        self.proxy[ind - 1].write_attribute('FileDir','/tmp')
+        self.proxy[ind - 1].write_attribute('FilePrefix','.timer' + str(ind))
+        self.proxy[ind - 1].write_attribute('NbTriggers',1)
+
+        return True
+
+
+    #############
+    ## ReadAll ##
+    #############
+
+    def ReadAll(self):
+        pass
+
+
+    #############
+    ## ReadOne ##
+    #############
+
+    def ReadOne(self,ind):
+        if self.device_available[ind - 1] == 1:
+            ## Elapsed time can not be read from the device
+            ## so it is calculated by software.
+
+            setTime = (
+                        self.proxy[ind - 1].
+                        read_attribute("TimeTriggerStepSize").
+                        value
+                        )
+
+            exposureTime = (
+                            time.time()
+                            - self.startTime[ind - 1]
+                            )
+
+            if exposureTime > setTime:
+                exposureTime = setTime
+
+            return exposureTime
+
+
+    ################
+    ## SendToCtrl ##
+    ################
+
+    def SendToCtrl(self,in_data):
+        return "Nothing sent"
+
+
+    ##########################
+    ## SetExtraAttributePar ##
+    ##########################
+
+    def SetExtraAttributePar(self,ind,name,value):
+        pass
+
+
+    ##############
+    ## StartAll ##
+    ##############
+
+    def StartAll(self):
+        for i in self.wantedCT:
+            self.proxy[i].write_attribute('Arm',1)
+            self.startTime[i] = time.time()
+
+
+
+    ##############
+    ## StartOne ##
+    ##############
+
+    def StartOne(self,ind,val):
+        if self.device_available[ind - 1] == 1:
+            self.wantedCT.append(ind - 1)
+
+
+    ##############
+    ## StateOne ##
+    ##############
 
     def StateOne(self,ind):
-        if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].command_inout("State")
+        if  self.device_available[ind - 1] == 1:
+            sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
                 status_string = "Timer is in ON state"
             elif sta == PyTango.DevState.MOVING:
@@ -87,71 +260,4 @@ class pilcTimerCtrl(CounterTimerController):
 
             return (sta, status_string)
 
-    def PreReadAll(self):
-        pass
-        
-
-    def PreReadOne(self,ind):
-        pass
-
-    def ReadAll(self):
-        pass
-
-    def PreStartOne(self,ind,pos):
-
-        ## Set the gate down time.
-        self.proxy[ind-1].write_attribute('TriggerPulseLength',0.00005)
-        
-        return True
-
-    def ReadOne(self,ind):
-        if self.device_available[ind-1] == 1:
-            ## Sample time can not be calculated at the moment.
-            sample_time = (self.
-                           proxy[ind-1].
-                           read_attribute("TimeTriggerStepSize").
-                           value
-            )
-            return  sample_time
-    
-    def AbortOne(self,ind):
-        if self.device_available[ind-1] == 1:
-            self.proxy[ind-1].write_attribute('Arm',0)
-
-        
-    def PreStartAllCT(self):
-        self.wantedCT = []
-
-    def PreStartOneCT(self,ind):
-        pass
-        
-    def StartOneCT(self,ind):
-        if self.device_available[ind-1] == 1:
-            self.wantedCT.append(ind)
-
-            
-    def StartAllCT(self):
-        for index in self.wantedCT:
-            self.proxy[index-1].write_attribute('Arm',1)
-
-
-    def LoadOne(self,ind,value):
-        if self.device_available[ind-1] == 1:
-            self.proxy[ind-1].write_attribute("TimeTriggerStepSize",value)
-    
-    def GetExtraAttributePar(self,ind,name):
-        if self.device_available[ind-1]:
-            if name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
-                return tango_device
-        
-            
-    def SetExtraAttributePar(self,ind,name,value):
-        pass
-            
-    def SendToCtrl(self,in_data):
-        return "Nothing sent"
-
-    def __del__(self):
-        print "PYTHON -> pilcTimerCtrl/",self.inst_name,": dying"
 
