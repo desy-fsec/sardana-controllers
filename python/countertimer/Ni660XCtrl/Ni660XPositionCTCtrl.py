@@ -27,7 +27,7 @@ class Ni660XPositionCTCtrl(Ni660XCTCtrl, CounterTimerController):
         "pulsesPerRevolution": {
             Type: long,
             Access: ReadWrite,
-            Memorize: NotMemorized
+            Memorize: Memorized
         },
         "initialPos": {
             Type: float,
