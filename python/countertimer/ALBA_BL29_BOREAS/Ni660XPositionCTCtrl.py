@@ -1,1 +1,1 @@
-../Ni660XPositionCTCtrl.py
+../Ni660XCtrl/Ni660XPositionCTCtrl.py

@@ -181,7 +181,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
                                                               data_len))
                 data = eval(raw_data)
                 for chn_name, values in data:
-                    self.new_data.append(eval(values))
+                    self.new_data.append(values)
                 time_data = [self.itime] * len(self.new_data[0])
                 self.new_data.insert(0, time_data)
                 if self._repetitions != 1:
