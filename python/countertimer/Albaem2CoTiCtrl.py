@@ -11,50 +11,58 @@ from sardana.pool.controller import CounterTimerController, Type, Access, \
 
 __all__ = ['Albaem2CoTiCtrl']
 
-TRIGGER_INPUTS = {'DIO_1': 0, 'DIO_2': 1, 'DIO_3': 2, 'DIO_4': 3,
-                  'DIFF_IO_1': 4, 'DIFF_IO_2': 5, 'DIFF_IO_3': 6,
-                  'DIFF_IO_4': 7, 'DIFF_IO_5': 8, 'DIFF_IO_6': 9,
-                  'DIFF_IO_7': 10, 'DIFF_IO_8': 11, 'DIFF_IO_9': 12}
-
 
 class Albaem2CoTiCtrl(CounterTimerController):
-
     MaxDevice = 5
 
-    ctrl_properties = {'AlbaEmHost': {'Description': 'AlbaEm Host name',
-                                      'Type': 'PyTango.DevString'},
-                       'Port': {'Description': 'AlbaEm Host name',
-                                'Type': 'PyTango.Integer'},
-                       }
+    ctrl_properties = {
+        'AlbaEmHost': {
+            'Description': 'AlbaEm Host name',
+            'Type': 'PyTango.DevString'
+        },
+        'Port': {
+            'Description': 'AlbaEm Host name',
+            'Type': 'PyTango.Integer'
+        },
+    }
 
     ctrl_attributes = {
         'ExtTriggerInput': {
             Type: str,
             Description: 'ExtTriggerInput',
             Access: DataAccess.ReadWrite,
-            Memorize: Memorized},
-        }
+            Memorize: Memorized
+        },
+        'AcquisitionMode': {
+            Type: str,
+            # TODO define the modes names ?? (I_AVGCURR_A, Q_CHARGE_C)
+            Description: 'Acquisition Mode: CHARGE, INTEGRATION',
+            Access: DataAccess.ReadWrite,
+            Memorize: Memorized
+        },
+    }
 
-    axis_attributes = {"Range": {
-                            Type: str,
-                            Description: 'Range for the channel',
-                            Memorize: NotMemorized,
-                            Access: DataAccess.ReadWrite,
-                            },
-                       "Inversion": {
-                            Type: bool,
-                            Description: 'Channel Digital inversion',
-                            Memorize: NotMemorized,
-                            Access: DataAccess.ReadWrite,
+    axis_attributes = {
+        "Range": {
+            Type: str,
+            Description: 'Range for the channel',
+            Memorize: NotMemorized,
+            Access: DataAccess.ReadWrite,
+        },
+        "Inversion": {
+            Type: bool,
+            Description: 'Channel Digital inversion',
+            Memorize: NotMemorized,
+            Access: DataAccess.ReadWrite,
 
-                            },
-                       }
+        },
+    }
 
     def __init__(self, inst, props, *args, **kwargs):
         """Class initialization."""
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
-        self._log.debug("__init__(%s, %s): Entering...", repr(inst),
-                        repr(props))
+        msg = "__init__(%s, %s): Entering...", repr(inst), repr(props)
+        self._log.debug(msg)
 
         self.ip_config = (self.AlbaEmHost, self.Port)
         self.albaem_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -177,8 +185,10 @@ class Albaem2CoTiCtrl(CounterTimerController):
                 data_len = data_ready - self.index
                 # THIS CONTROLLER IS NOT YET READY FOR TIMESTAMP DATA
                 self.sendCmd('TMST 0', rw=False)
-                raw_data = self.sendCmd('ACQU:MEAS? %r,%r' % (self.index-1,
-                                                              data_len))
+
+                msg = 'ACQU:MEAS? %r,%r' % (self.index - 1, data_len)
+                raw_data = self.sendCmd(msg)
+
                 data = eval(raw_data)
                 for chn_name, values in data:
                     self.new_data.append(values)
@@ -188,7 +198,8 @@ class Albaem2CoTiCtrl(CounterTimerController):
                     self.index += len(time_data)
 
         except Exception as e:
-            raise Exception("ReadAll error: %s: "+str(e))
+            print e
+            raise Exception("ReadAll error: %s: " + str(e))
 
     def ReadOne(self, axis):
         # self._log.debug("ReadOne(%d): Entering...", axis)
@@ -197,9 +208,9 @@ class Albaem2CoTiCtrl(CounterTimerController):
 
         if self._synchronization in [AcqSynch.SoftwareTrigger,
                                      AcqSynch.SoftwareGate]:
-            return SardanaValue(self.new_data[axis-1][0])
+            return SardanaValue(self.new_data[axis - 1][0])
         else:
-            val = self.new_data[axis-1]
+            val = self.new_data[axis - 1]
             return val
 
     def AbortOne(self, axis):
@@ -253,15 +264,19 @@ class Albaem2CoTiCtrl(CounterTimerController):
                             data += self.albaem_socket.recv(size)
                             break
                         except socket.timeout:
-                            self._log.debug('Socket timeout! reconnecting and commanding again %s'% cmd[:-2])
-                            self.albaem_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            self._log.debug(
+                                'Socket timeout! reconnecting and commanding '
+                                'again %s' % cmd[:-2])
+                            self.albaem_socket = socket.socket(
+                                socket.AF_INET, socket.SOCK_STREAM)
                             self.albaem_socket.settimeout(2.5)
                             self.albaem_socket.connect(self.ip_config)
                             self.albaem_socket.sendall(cmd)
                             pass
                     if data[-1] == '\n':
                         break
-                # NOTE: EM MAY ANSWER WITH MULTIPLE ANSWERS IN CASE OF AN EXCEPTION
+                # NOTE: EM MAY ANSWER WITH MULTIPLE ANSWERS IN CASE OF AN
+                # EXCEPTION
                 # SIMPLY GET THE LAST ONE
                 if data.count(';') > 1:
                     data = data.rsplit(';')[-2:]
@@ -305,7 +320,9 @@ class Albaem2CoTiCtrl(CounterTimerController):
     def SetCtrlPar(self, parameter, value):
         param = parameter.lower()
         if param == 'exttriggerinput':
-            self.sendCmd('TRIG:INPU %r' % TRIGGER_INPUTS[value], rw=False)
+            self.sendCmd('TRIG:INPU %s' % value, rw=False)
+        elif param == 'acquisitionmode':
+            self.sendCmd('ACQU:MODE %s' % value, rw=False)
         else:
             CounterTimerController.SetCtrlPar(self, parameter, value)
 
@@ -313,13 +330,15 @@ class Albaem2CoTiCtrl(CounterTimerController):
         param = parameter.lower()
         if param == 'exttriggerinput':
             value = self.sendCmd('TRIG:INPU?')
+        elif param == 'acquisitionmode':
+            value = self.sendCmd('ACQU:MODE?')
         else:
             value = CounterTimerController.GetCtrlPar(self, parameter)
         return value
 
 
 if __name__ == '__main__':
-    host = 'electproto22'
+    host = 'electproto19'
     port = 5025
     ctrl = Albaem2CoTiCtrl('test', {'AlbaEmHost': host, 'Port': port})
     ctrl.AddDevice(1)
