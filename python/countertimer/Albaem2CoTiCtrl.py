@@ -11,6 +11,10 @@ from sardana.pool.controller import CounterTimerController, Type, Access, \
 
 __all__ = ['Albaem2CoTiCtrl']
 
+TRIGGER_INPUTS = {'DIO_1': 0, 'DIO_2': 1, 'DIO_3': 2, 'DIO_4': 3,
+                  'DIFF_IO_1': 4, 'DIFF_IO_2': 5, 'DIFF_IO_3': 6,
+                  'DIFF_IO_4': 7, 'DIFF_IO_5': 8, 'DIFF_IO_6': 9,
+                  'DIFF_IO_7': 10, 'DIFF_IO_8': 11, 'DIFF_IO_9': 12}
 
 class Albaem2CoTiCtrl(CounterTimerController):
     MaxDevice = 5
@@ -320,6 +324,9 @@ class Albaem2CoTiCtrl(CounterTimerController):
     def SetCtrlPar(self, parameter, value):
         param = parameter.lower()
         if param == 'exttriggerinput':
+            val_cap = value.capilatize()
+            if val_cap in TRIGGER_INPUTS.keys():
+                value = TRIGGER_INPUTS[val_cap]
             self.sendCmd('TRIG:INPU %s' % value, rw=False)
         elif param == 'acquisitionmode':
             self.sendCmd('ACQU:MODE %s' % value, rw=False)
