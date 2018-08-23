@@ -4,7 +4,7 @@ from taurus import Attribute
 from sardana import DataAccess
 from sardana.pool import AcqSynch
 from sardana.pool.controller import (CounterTimerController,
-                                     Memorize, NotMemorized)
+                                     Memorize, NotMemorized, Memorized)
 from sardana.pool.controller import Type, Access
 
 ReadWrite = DataAccess.ReadWrite
