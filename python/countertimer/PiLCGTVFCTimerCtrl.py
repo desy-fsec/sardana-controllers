@@ -10,7 +10,7 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-class PiLCGTVFCTimerCtrl.py(CounterTimerController):
+class PiLCGTVFCTimerCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the PiLCGateTriggeredVFC used as timer"
     
 
