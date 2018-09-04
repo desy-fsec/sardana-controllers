@@ -143,6 +143,7 @@ class BL22ClearTrajectory (MotorController):
         self._out_pos = []
         self._state = State.On
         self._status = 'State OK'
+        self._motors_states = []
 
     @property
     def motor_names(self):
@@ -230,6 +231,19 @@ class BL22ClearTrajectory (MotorController):
                                               master_pos))
         self._out_pos = out_pos
 
+    def _motor_state_check(self):
+        motors_states = []
+        msg = '{0} PowerOn({1}) LimNeg({2}) LimPos({3}) StopCode: {4}\n'
+        for motor_name in self.motor_names:
+            state = self._ipap[motor_name].state
+            lim_neg = state.is_limit_negative()
+            lim_pos = state.is_limit_positive()
+            power = state.is_poweron()
+            if any([not power, lim_neg, lim_pos]):
+                motors_states.append(msg.format(motor_name, power, lim_neg,
+                                                lim_pos, state.get_stop_str()))
+        self._motors_states = motors_states
+
     def AddDevice(self, axis):
         """ Set default values for the axis and try to connect to it
         @param axis to be added
@@ -281,11 +295,12 @@ class BL22ClearTrajectory (MotorController):
         @param axis to read the state
         @return the state value: {ALARM|ON|MOVING}
         """
-
+        self._motor_state_check()
         self._sync_check()
         if len(self._sync) == 0:
             self._out_pos_check()
-        if len(self._sync) > 0 or len(self._out_pos) > 0:
+        if len(self._sync) > 0 or len(self._out_pos) > 0 or \
+                len(self._motors_states) > 0:
             state = State.Alarm
             status = 'There are motors not synchronized, use ' \
                      'clearStatus for more details.'
@@ -392,14 +407,26 @@ class BL22ClearTrajectory (MotorController):
             return self._max_vel
 
     def getStatusDetails(self, axis):
+        status = ''
+        if len(self._motors_states) > 0:
+            motors_err = ' '.join(self._motors_states)
+            status += 'There are motors in OFF or touching ' \
+                      'the limits:\n {0}\n'.format(motors_err)
+
         if len(self._sync) > 0:
             sync_err = ' '.join(self._sync)
-            return 'There are motors not synchronized (use clearSync ' \
-                   'macro):\n {0}'.format(sync_err)
+            status += 'There are motors not synchronized (use ' \
+                      'clearSync macro):\n {0}'.format(sync_err)
+            return status
+
         if len(self._out_pos) > 0:
             out_pos_err = ' '.join(self._out_pos)
-            return 'There are motors out of position (use clearMoveTo ' \
-                   'macro):\n {0}'.format(out_pos_err)
+            status += 'There are motors out of position (use ' \
+                      'clearMoveTo macro):\n {0}'.format(out_pos_err)
+            return status
+
+        if status != '':
+            return status
 
         return 'The motors are synchronized.'
 
