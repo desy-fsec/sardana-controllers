@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-import time
 import socket
+import time
 from threading import Lock
 
 from sardana import State, DataAccess
-from sardana.sardanavalue import SardanaValue
 from sardana.pool import AcqSynch
 from sardana.pool.controller import CounterTimerController, Type, Access, \
     Description, Memorize, Memorized, NotMemorized
+from sardana.sardanavalue import SardanaValue
 
 __all__ = ['Albaem2CoTiCtrl']
 
@@ -224,7 +224,23 @@ class Albaem2CoTiCtrl(CounterTimerController):
     def sendCmd(self, cmd, rw=True, size=8096):
         with self.lock:
             cmd += ';\n'
-            self.albaem_socket.sendall(cmd)
+
+            # Protection in case of reconnect the device in the network.
+            # It send the command and in case of broken socket it creates a
+            # new one.
+            retries = 2
+            for i in range(retries):
+                try:
+                    self.albaem_socket.sendall(cmd)
+                    break
+                except socket.timeout:
+                    self._log.debug(
+                        'Socket timeout! reconnecting and commanding '
+                        'again %s' % cmd)
+                    self.albaem_socket = socket.socket(
+                        socket.AF_INET, socket.SOCK_STREAM)
+                    self.albaem_socket.settimeout(2.5)
+                    self.albaem_socket.connect(self.ip_config)
             if rw:
                 # WARNING...
                 # socket.recv(size) IS NEVER ENOUGH TO RECEIVE DATA !!!
@@ -286,9 +302,10 @@ class Albaem2CoTiCtrl(CounterTimerController):
                     data = data.rsplit(';')[-2:]
                 return data[:-2]
 
-###############################################################################
-#                Axis Extra Attribute Methods
-###############################################################################
+                ###############################################################################
+                #                Axis Extra Attribute Methods
+                ###############################################################################
+
     def GetExtraAttributePar(self, axis, name):
         self._log.debug("GetExtraAttributePar(%d, %s): Entering...", axis,
                         name)
@@ -318,15 +335,13 @@ class Albaem2CoTiCtrl(CounterTimerController):
             self.sendCmd(cmd, rw=False)
 
 
-###############################################################################
-#                Controller Extra Attribute Methods
-###############################################################################
+            ###############################################################################
+            #                Controller Extra Attribute Methods
+            ###############################################################################
+
     def SetCtrlPar(self, parameter, value):
         param = parameter.lower()
         if param == 'exttriggerinput':
-            val_cap = value.capilatize()
-            if val_cap in TRIGGER_INPUTS.keys():
-                value = TRIGGER_INPUTS[val_cap]
             self.sendCmd('TRIG:INPU %s' % value, rw=False)
         elif param == 'acquisitionmode':
             self.sendCmd('ACQU:MODE %s' % value, rw=False)
