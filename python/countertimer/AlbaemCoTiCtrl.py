@@ -307,7 +307,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
             self.sampleRate = self.AemDevice[attr].value
             return self.sampleRate
         if name.lower() == "autorange":
-            attr = 'Autorange'
+            attr = 'Autorange_ch{0}'.format(axis-1)
             autoRange = self.AemDevice[attr].value
             return autoRange
         if name.lower() == 'inversion':
@@ -358,7 +358,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
             attr = 'sampleRate'
             self.AemDevice[attr]= value
         if name.lower() == "autorange":
-            attr = 'AutoRange'
+            attr = 'Autorange_ch{0}'.format(axis-1)
             self.AemDevice[attr] = value
         if name.lower() == 'inversion':
             if axis == 1:
