@@ -366,8 +366,11 @@ class HasyMotorCtrl(MotorController):
 
     def AbortOne(self, ind):
         if self.device_available[ind-1] == 1:
-            self.proxy[ind-1].command_inout(self.cmdName_Abort[ind-1])
-
+            try:
+                self.proxy[ind-1].command_inout(self.cmdName_Abort[ind-1])
+            except:
+                pass
+            
     def DefinePosition(self, ind, position):
         if self.device_available[ind-1] == 1:
             position = float(position)
