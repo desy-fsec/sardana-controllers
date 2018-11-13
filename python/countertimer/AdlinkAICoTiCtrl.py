@@ -61,7 +61,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
     MaxDevice = 5
 
-    class_prop = {'AdlinkAIDeviceName': {'Description': 'AdlinkAI Tango device',
+    class_prop = {'AdlinkAIDeviceName': {'Description': 'AdlinkAI Tango '
+                                                        'device',
                                          'Type': 'PyTango.DevString'},
                   'SampleRate': {'Description': 'SampleRate set for AIDevice',
                                  'Type': 'PyTango.DevLong'},
@@ -89,7 +90,6 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                         },
                        }
 
-
     def __init__(self, inst, props, *args, **kwargs):
         #        self._log.setLevel(logging.DEBUG)
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
@@ -100,12 +100,12 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             self.AIDevice = PyTango.DeviceProxy(self.AdlinkAIDeviceName)
             cmdlist = [c.cmd_name for c in self.AIDevice.command_list_query()]
             if 'ClearBuffer' not in cmdlist:
-                msg = ("__init__(): Looks like ADlink device server version is "
-                    "too old for this controller version. Please upgrade "
-                    "Device server\n")
+                msg = ("__init__(): Looks like ADlink device server "
+                       "version is too old for this controller version. "
+                       "Please upgrade Device server\n")
                 raise RuntimeError(msg)
 
-        except PyTango.DevFailed, e:
+        except PyTango.DevFailed as e:
             self._log.error("__init__(): Could not create a device proxy from "
                             "following device name: %s.\nException: %s",
                             self.AdlinkAIDeviceName, e)
@@ -129,10 +129,9 @@ class AdlinkAICoTiCtrl(CounterTimerController):
         self._status = 'The Device is in ON.'
         self._synchronization = None
         self._repetitions = 0
-        self._latency_time = 1e-6 # 1 us
+        self._latency_time = 1e-6  # 1 us
         self._start_wait_time = 0.05
         self._skip_start = self.SkipStart.lower() == 'true'
-
 
     def _unsubcribe_data_ready(self):
         if self._id_callback is not None:
@@ -159,7 +158,7 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 self.AIDevice.set_timeout_millis(10000)
                 self.AIDevice.stop()
                 self.AIDevice.set_timeout_millis(3000)
-        except PyTango.DevFailed, e:
+        except PyTango.DevFailed as e:
             msg = 'Can not stop the Device: %s. Exception %r' % \
                    (self.AdlinkAIDeviceName, e)
             self._log.error(msg)
@@ -289,19 +288,18 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                     mean = self.AIDevice[mean_attr].value
                     self.sd[axis] = self.AIDevice[std_attr].value
                     if self._apply_formulas[axis]:
-                        formula = self.formulas[axis]                        
+                        formula = self.formulas[axis]
                         mean = eval(formula, {'value': mean})
                     self.dataBuff[axis] = [mean]
-                
 
         elif self._synchronization == AcqSynch.HardwareTrigger:
-            flg_warning = False
+            # flg_warning = False
             new_index = self._last_index_read
             if self._hw_state == PyTango.DevState.ON:
                 self._log.debug('ReadAll HW Synch: Adlinkg State ON')
                 new_index = self._repetitions-1
-                if self._last_index_read != (self._repetitions-1):
-                    flg_warning = True
+                # if self._last_index_read != (self._repetitions-1):
+                #     flg_warning = True
             else:
 
                 # Read last index received by the data ready event
@@ -312,12 +310,12 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                             new_index = data_ready_index
                 except Exception as e:
                     print e
-    
+
             if new_index == self._last_index_read:
                 self._new_data = False
                 return
 
-            self._last_index_read +=1
+            self._last_index_read += 1
             self._log.debug('ReadAll HW Synch: reading indexes [%r, %r]',
                             self._last_index_read, new_index)
 
@@ -330,7 +328,8 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                 else:
                     mean_attr = 'C0%s_MeanValues' % (axis - 2)
                     raw_data = self.AIDevice.getData(([self._last_index_read,
-                                                       new_index], [mean_attr]))
+                                                       new_index], [mean_attr])
+                                                     )
                     means = raw_data
                     if self._apply_formulas[axis]:
                         formula = self.formulas[axis]
@@ -338,15 +337,16 @@ class AdlinkAICoTiCtrl(CounterTimerController):
                     self.dataBuff[axis] = means.tolist()
 
             self._last_index_read = new_index
- 
-           # TODO implement the warning flag msg             
-           #if flg_warning:
-                #current_values = (self._repetitions-1) - self._last_index_read
-                #chunck_value = self.AIDevice['chuck'].value
-                #if (current_values/chunck_value > 1):
-                    #msg = "WARNING: Lost DataReady Events"
-                    #self._log.warning(msg)
-            
+
+            # TODO implement the warning flag msg
+            # if flg_warning:
+            #      current_values = (self._repetitions-1) - \
+            #                        self._last_index_read
+            #      chunck_value = self.AIDevice['chuck'].value
+            #      if (current_values/chunck_value > 1):
+            #          msg = "WARNING: Lost DataReady Events"
+            #          self._log.warning(msg)
+
     def ReadOne(self, axis):
         if self._synchronization == AcqSynch.SoftwareTrigger:
             if not self._new_data:
@@ -390,5 +390,3 @@ class AdlinkAICoTiCtrl(CounterTimerController):
             if value:
                 for i in self.formulas:
                     self.formulas[i] = self.formulas[axis]
-
-
