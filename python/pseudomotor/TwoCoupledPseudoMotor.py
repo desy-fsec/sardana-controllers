@@ -92,11 +92,3 @@ class TwoCoupledPseudoMotor(PseudoMotorController):
         pos = physical_pos[0]
 
         return pos
-
-    # Introduce here attribute setter.
-    def SetAxisExtraPar(self, axis, parameter, value):
-        pass
-
-    # Introduce here attribute getter.
-    def GetAxisExtraPar(self, axis, parameter):
-        pass
