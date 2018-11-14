@@ -16,6 +16,7 @@ TRIGGER_INPUTS = {'DIO_1': 0, 'DIO_2': 1, 'DIO_3': 2, 'DIO_4': 3,
                   'DIFF_IO_4': 7, 'DIFF_IO_5': 8, 'DIFF_IO_6': 9,
                   'DIFF_IO_7': 10, 'DIFF_IO_8': 11, 'DIFF_IO_9': 12}
 
+
 class Albaem2CoTiCtrl(CounterTimerController):
     MaxDevice = 5
 
@@ -302,9 +303,9 @@ class Albaem2CoTiCtrl(CounterTimerController):
                     data = data.rsplit(';')[-2:]
                 return data[:-2]
 
-                ###############################################################################
-                #                Axis Extra Attribute Methods
-                ###############################################################################
+###############################################################################
+#                Axis Extra Attribute Methods
+###############################################################################
 
     def GetExtraAttributePar(self, axis, name):
         self._log.debug("GetExtraAttributePar(%d, %s): Entering...", axis,
@@ -335,9 +336,9 @@ class Albaem2CoTiCtrl(CounterTimerController):
             self.sendCmd(cmd, rw=False)
 
 
-            ###############################################################################
-            #                Controller Extra Attribute Methods
-            ###############################################################################
+###############################################################################
+#                Controller Extra Attribute Methods
+###############################################################################
 
     def SetCtrlPar(self, parameter, value):
         param = parameter.lower()
