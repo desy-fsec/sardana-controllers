@@ -299,12 +299,12 @@ class IcepapController(MotorController):
         # ReadAll HAS ALSO TO BE REIMPLEMENTED AND self.positionMultiple HAS
         # TO BE SPLITTED IN ORDER TO QUERY SOME AXIS TO ICEPAP
         # SOME OTHERS TO ONE DEVICE, SOME OTHERS TO ANOTHER DEVICE, ETC....
-        if self.attributes[axis]['motor_enabled'] is True and not \
-                self.attributes[axis]['use_encoder_source']:
+        motor_enabled = self.attributes[axis]['motor_enabled']
+        use_encoder_source = self.attributes[axis]['use_encoder_source']
+        if motor_enabled and not use_encoder_source:
             self.position_multiple.append(axis)
-        else:
-            self._log.debug('PreReadOne: driver board %s not '
-                            'present or using specific encoder source.' % axis)
+        elif not motor_enabled:
+            self._log.debug('PreReadOne: driver board %s not present.' % axis)
 
     def ReadAll(self):
         """ We connect to the Icepap system for each axis. """
