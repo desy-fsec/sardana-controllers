@@ -331,7 +331,7 @@ class IcepapController(MotorController):
                 try:
                     return self.getEncoder(axis)
                 except Exception as e:
-                    log.error('ReadOne (%s): Error %s' %(axis, repr(e)))
+                    log.error('ReadOne (%s): Error %s' % (axis, repr(e)))
                     raise
             else:
                 log.warning('ReadOne(%s(%d)) Not enabled. Check the Driver '
@@ -399,7 +399,7 @@ class IcepapController(MotorController):
         # are not stoppable
         try:
             factor = self.ipap[axis].velocity / self.ipap[axis].acctime
-        except Exception, e:
+        except Exception as e:
             msg = 'Problems while trying to determine velocity to ' + \
                   'acceleration factor'
             self._log.error('StopOne(%d): %s. Trying to abort...' %
