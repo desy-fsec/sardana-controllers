@@ -58,33 +58,6 @@ class AlbaemCoTiCtrl(CounterTimerController):
                       'memorized': NotMemorized,
                       'R/W Type': 'PyTango.READ_WRITE'},
 
-        # attributes added for continuous acquisition mode
-        "NrOfTriggers":
-            {'Type': 'PyTango.DevLong',
-             'Description': 'Nr of triggers',
-             'memorized': NotMemorized,
-             'R/W Type': 'PyTango.READ_WRITE'},
-        "SamplingFrequency":
-            {'Type': 'PyTango.DevDouble',
-             'Description': 'Sampling frequency',
-             'memorized': NotMemorized,
-             'R/W Type': 'PyTango.READ_WRITE'},
-        "AcquisitionTime":
-            {'Type': 'PyTango.DevDouble',
-             'Description': 'Acquisition time per trigger',
-             'memorized': NotMemorized,
-             'R/W Type': 'PyTango.READ_WRITE'},
-        "TriggerMode":
-            {'Type': 'PyTango.DevString',
-             'Description': 'Trigger mode: soft or gate',
-             'memorized': NotMemorized,
-             'R/W Type': 'PyTango.READ_WRITE'},
-        "Data":
-            {'Type': [float],
-             'Description': 'Trigger mode: soft or gate',
-             'memorized': NotMemorized,
-             'R/W Type': 'PyTango.READ',
-             MaxDimSize: (1000000,)}
         }
 
     def __init__(self, inst, props, *args, **kwargs):
