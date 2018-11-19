@@ -1,4 +1,5 @@
-from sardana.pool.controller import PseudoMotorController
+from sardana.pool.controller import PseudoMotorController, Description, \
+    DataAccess, Type, Access, DefaultValue
 
 
 class RadiusController(PseudoMotorController):
@@ -9,13 +10,14 @@ class RadiusController(PseudoMotorController):
     motor_roles = ('bender',)
 
     class_prop = {
-        'conversion': {'Type': 'PyTango.DevDouble',
-                       'Description': 'Conversion factor (half steps to 1/km)',
-                       'DefaultValue': 1.0}}
+        'conversion': {Type: float,
+                       Description: 'Conversion factor (half steps to 1/km)',
+                       DefaultValue: 1.0}}
 
     ctrl_extra_attributes = {
-        "PusherOffset": {"Type": "PyTango.DevDouble",
-                         "R/W Type": "PyTango.READ_WRITE"}}
+        "PusherOffset": {Type: float,
+                         Access: DataAccess.ReadWrite}
+    }
 
     def __init__(self, inst, props, *args, **kwargs):
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)

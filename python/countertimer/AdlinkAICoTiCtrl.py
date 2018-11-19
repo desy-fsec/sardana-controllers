@@ -5,8 +5,8 @@ import time
 
 from sardana import State, DataAccess
 from sardana.pool import AcqSynch
-from sardana.pool.controller import (CounterTimerController, Type, Access,
-                                     Description, DefaultValue)
+from sardana.pool.controller import CounterTimerController, Type, Access, \
+    Description, DefaultValue
 from sardana.sardanavalue import SardanaValue
 from sardana.tango.core.util import from_tango_state_to_state
 
@@ -61,11 +61,10 @@ class AdlinkAICoTiCtrl(CounterTimerController):
 
     MaxDevice = 5
 
-    class_prop = {'AdlinkAIDeviceName': {'Description': 'AdlinkAI Tango '
-                                                        'device',
-                                         'Type': 'PyTango.DevString'},
-                  'SampleRate': {'Description': 'SampleRate set for AIDevice',
-                                 'Type': 'PyTango.DevLong'},
+    class_prop = {'AdlinkAIDeviceName': {Description: 'AdlinkAI Tango device',
+                                         Type: str},
+                  'SampleRate': {Description: 'SampleRate set for AIDevice',
+                                 Type: int},
                   'SkipStart': {Description: 'Flag to skip if DS does not '
                                              'start',
                                 Type: str,

@@ -1,6 +1,6 @@
 import math
 from sardana.pool import PoolUtil
-from sardana.pool.controller import PseudoMotorController
+from sardana.pool.controller import PseudoMotorController, Description, Type
 
 
 class DCM_ExitOffset_Controller(PseudoMotorController):
@@ -12,10 +12,10 @@ class DCM_ExitOffset_Controller(PseudoMotorController):
     motor_roles = ('perp',)
 
     class_prop = {
-        'DCMBraggName': {'Type': 'PyTango.DevString',
-                         'Description': 'DCM bragg motor name'},
-        'EnergyName': {'Type': 'PyTango.DevString',
-                       'Description': 'Energy motor name'}
+        'DCMBraggName': {Type: str,
+                         Description: 'DCM bragg motor name'},
+        'EnergyName': {Type: str,
+                       Description: 'Energy motor name'}
         }
 
     def __init__(self, inst, props, *args, **kwargs):

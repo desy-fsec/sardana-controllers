@@ -29,7 +29,7 @@ __all__ = ["TwoCoupledPseudoMotor"]
 
 __docformat__ = 'restructuredtext'
 
-from sardana.pool.controller import PseudoMotorController
+from sardana.pool.controller import PseudoMotorController, Description, Type
 
 
 class TwoCoupledPseudoMotor(PseudoMotorController):
@@ -51,10 +51,10 @@ class TwoCoupledPseudoMotor(PseudoMotorController):
 
     # Introduce properties here.
     ctrl_properties = {
-        'tolerance': {'Type': 'PyTango.DevFloat',
-                      'Description': 'Tolerance is the maximum difference '
-                                     'between motor positions. If it is -1, '
-                                     'we will not check it'},
+        'tolerance': {Type: float,
+                      Description: 'Tolerance is the maximum difference '
+                                   'between motor positions. If it is -1, '
+                                   'we will not check it'},
     }
 
     # Introduce attributes here.

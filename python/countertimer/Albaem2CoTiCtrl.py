@@ -22,12 +22,12 @@ class Albaem2CoTiCtrl(CounterTimerController):
 
     ctrl_properties = {
         'AlbaEmHost': {
-            'Description': 'AlbaEm Host name',
-            'Type': 'PyTango.DevString'
+            Description: 'AlbaEm Host name',
+            Type: str
         },
         'Port': {
-            'Description': 'AlbaEm Host name',
-            'Type': 'PyTango.Integer'
+            Description: 'AlbaEm Host name',
+            Type: int
         },
     }
 
@@ -107,8 +107,8 @@ class Albaem2CoTiCtrl(CounterTimerController):
 
         else:
             self.state = State.Fault
-            self._log.debug("StateAll(): %r %r UNKNWON STATE: %s" % (
-                self.state, self.status), state)
+            self._log.debug("StateAll(): %r %r UNKNWON STATE: "
+                            "%s" % self.state, self.status, state)
         self.status = state
         # self._log.debug("StateAll(): %r %r" %(self.state, self.status))
 
@@ -203,7 +203,6 @@ class Albaem2CoTiCtrl(CounterTimerController):
                     self.index += len(time_data)
 
         except Exception as e:
-            print e
             raise Exception("ReadAll error: %s: " + str(e))
 
     def ReadOne(self, axis):
@@ -380,6 +379,6 @@ if __name__ == '__main__':
     while ctrl.StateOne(1)[0] != State.On:
         ctrl.StateAll()
         time.sleep(0.1)
-    print time.time() - t0 - acqtime
+    print(time.time() - t0 - acqtime)
     ctrl.ReadAll()
-    print ctrl.ReadOne(2)
+    print(ctrl.ReadOne(2))

@@ -1,5 +1,6 @@
 import math
-from sardana.pool.controller import PseudoMotorController
+from sardana.pool.controller import PseudoMotorController, Description, \
+    DefaultValue, Type
 
 
 class TwoXStageController(PseudoMotorController):
@@ -22,15 +23,15 @@ class TwoXStageController(PseudoMotorController):
 
     class_prop = {
         'Tx1Coordinates':
-            {'Type': 'PyTango.DevString',
-             'Description': 'tx1 coordination: x,y in local system'},
+            {Type: str,
+             Description: 'tx1 coordination: x,y in local system'},
         'Tx2Coordinates':
-            {'Type': 'PyTango.DevString',
-             'Description': 'tx2 coordination: x,y in local system'},
+            {Type: str,
+             Description: 'tx2 coordination: x,y in local system'},
         'Dx':
-            {'Type': 'PyTango.DevDouble',
-             'Description': 'nominal x shift of the center in local system',
-             'DefaultValue': 0}
+            {Type: str,
+             Description: 'nominal x shift of the center in local system',
+             DefaultValue: 0}
     }
 
     def __init__(self, inst, props, *args, **kwargs):

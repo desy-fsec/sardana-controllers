@@ -1,6 +1,6 @@
 import math
 import PyTango
-from sardana.pool.controller import PseudoMotorController
+from sardana.pool.controller import PseudoMotorController, Description, Type
 
 
 def rotate_x(y, z, cosangle, sinangle):
@@ -60,16 +60,16 @@ class TripodTableController(PseudoMotorController):
     motor_roles = ('jack1', 'jack2', 'jack3')
 
     class_prop = {
-        'Jack1Coordinates': {'Type': 'PyTango.DevString',
-                             'Description': 'jack1 coordination: x,y,z'},
-        'Jack2Coordinates': {'Type': 'PyTango.DevString',
-                             'Description': 'jack2 coordination: x,y,z'},
-        'Jack3Coordinates': {'Type': 'PyTango.DevString',
-                             'Description': 'jack3 coordination: x,y,z'},
-        'CenterCoordinates': {'Type': 'PyTango.DevString',
-                              'Description': 'center coordination: x,y,z'},
-        'CrossedPMLimitsCheck': {'Type': 'PyTango.DevBoolean',
-                                 'Description': 'checks the crossed PM limits'}
+        'Jack1Coordinates': {Type: str,
+                             Description: 'jack1 coordination: x,y,z'},
+        'Jack2Coordinates': {Type: str,
+                             Description: 'jack2 coordination: x,y,z'},
+        'Jack3Coordinates': {Type: str,
+                             Description: 'jack3 coordination: x,y,z'},
+        'CenterCoordinates': {Type: str,
+                              Description: 'center coordination: x,y,z'},
+        'CrossedPMLimitsCheck': {Type: bool,
+                                 Description: 'checks the crossed PM limits'}
         }
 
     # This is azimuth angle for BL22-CLAESS (Synchrotron ALBA) which is 45

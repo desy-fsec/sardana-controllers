@@ -1,7 +1,8 @@
 import math
 import PyTango
 from sardana.pool import PoolUtil
-from sardana.pool.controller import PseudoMotorController
+from sardana.pool.controller import PseudoMotorController, Description, \
+    Type, DataAccess, Access
 
 
 class DCM_Energy_Controller(PseudoMotorController):
@@ -13,23 +14,17 @@ class DCM_Energy_Controller(PseudoMotorController):
     motor_roles = ('bragg', 'perp')
 
     class_prop = {
-        'VCMPitchName': {'Type': 'PyTango.DevString',
-                         'Description': 'VCM_pitch pseudomotor'},
-        'DCMCrystalIORName': {'Type': 'PyTango.DevString',
-                              'Description': 'DCM_crystal IOR'},
-        'ExitOffsetName': {'Type': 'PyTango.DevString',
-                           'R/W Type': 'PyTango.READ_WRITE'}
+        'VCMPitchName': {Type: str, Description: 'VCM_pitch pseudomotor'},
+        'DCMCrystalIORName': {Type: str, Description: 'DCM_crystal IOR'},
+        'ExitOffsetName': {Type: str}
     }
 
     ctrl_extra_attributes = {
-        "dSi111": {"Type": "PyTango.DevDouble",
-                   "R/W Type": "PyTango.READ_WRITE"},
-        "dSi311": {"Type": "PyTango.DevDouble",
-                   "R/W Type": "PyTango.READ_WRITE"},
-        "angularOffsetSi111": {"Type": "PyTango.DevDouble",
-                               "R/W Type": "PyTango.READ_WRITE"},
-        "angularOffsetSi311": {"Type": "PyTango.DevDouble",
-                               "R/W Type": "PyTango.READ_WRITE"}}
+        "dSi111": {Type: float, Access: DataAccess.ReadWrite},
+        "dSi311": {Type: float, Access: DataAccess.ReadWrite},
+        "angularOffsetSi111": {Type: float, Access: DataAccess.ReadWrite},
+        "angularOffsetSi311": {Type: float, Access: DataAccess.ReadWrite}
+    }
 
     hc = 12398.419  # eV *Angstroms
 
@@ -152,7 +147,7 @@ class DCM_Energy_Controller(PseudoMotorController):
         except ZeroDivisionError:
             energy = float('nan')
         self._log.debug("Leaving calc_all_pseudo")
-        return (energy,)
+        return energy,
 
     def GetExtraAttributePar(self, axis, name):
         """Get Energy pseudomotor extra attribute.

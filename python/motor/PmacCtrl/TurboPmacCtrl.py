@@ -34,7 +34,8 @@
 
 import PyTango
 
-from sardana.pool.controller import MotorController
+from sardana.pool.controller import MotorController, Description, Type, \
+    Access, DataAccess
 
 
 class TurboPmacController(MotorController):
@@ -45,108 +46,110 @@ class TurboPmacController(MotorController):
 
     MaxDevice = 32
     class_prop = {
-        'PmacEthDevName': {
-            'Type': 'PyTango.DevString',
-            'Description': 'Device name of the PmacEth DS'}}
+        'PmacEthDevName': {Type: str,
+                           Description: 'Device name of the PmacEth DS'}
+    }
 
     motor_extra_attributes = {  # First Word
-        "MotorActivated": {'Type': 'PyTango.DevBoolean',
-                           'R/W Type': 'PyTango.READ'},
-        "NegativeEndLimitSet": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "PositiveEndLimitSet": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "ExtendedServoAlgorithmEnabled": {'Type': 'PyTango.DevBoolean',
-                                          'R/W Type': 'PyTango.READ'},
+        "MotorActivated": {Type: bool,
+                           Access: DataAccess.ReadOnly},
+        "NegativeEndLimitSet": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "PositiveEndLimitSet": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "ExtendedServoAlgorithmEnabled": {Type: bool,
+                                          Access: DataAccess.ReadOnly},
 
-        "AmplifierEnabled": {'Type': 'PyTango.DevBoolean',
-                             'R/W Type': 'PyTango.READ_WRITE'},
-        "OpenLoopMode": {'Type': 'PyTango.DevBoolean',
-                         'R/W Type': 'PyTango.READ'},
-        "MoveTimerActive": {'Type': 'PyTango.DevBoolean',
-                            'R/W Type': 'PyTango.READ'},
-        "IntegrationMode": {'Type': 'PyTango.DevBoolean',
-                            'R/W Type': 'PyTango.READ'},
+        "AmplifierEnabled": {Type: bool,
+                             Access: DataAccess.ReadWrite},
+        "OpenLoopMode": {Type: bool,
+                         Access: DataAccess.ReadOnly},
+        "MoveTimerActive": {Type: bool,
+                            Access: DataAccess.ReadOnly},
+        "IntegrationMode": {Type: bool,
+                            Access: DataAccess.ReadOnly},
 
-        "DwellInProgress": {'Type': 'PyTango.DevBoolean',
-                            'R/W Type': 'PyTango.READ'},
-        "DataBlockError": {'Type': 'PyTango.DevBoolean',
-                           'R/W Type': 'PyTango.READ'},
-        "DesiredVelocityZero": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "AbortDeceleration": {'Type': 'PyTango.DevBoolean',
-                              'R/W Type': 'PyTango.READ'},
+        "DwellInProgress": {Type: bool,
+                            Access: DataAccess.ReadOnly},
+        "DataBlockError": {Type: bool,
+                           Access: DataAccess.ReadOnly},
+        "DesiredVelocityZero": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "AbortDeceleration": {Type: bool,
+                              Access: DataAccess.ReadOnly},
 
-        "BlockRequest": {'Type': 'PyTango.DevBoolean',
-                         'R/W Type': 'PyTango.READ'},
-        "HomeSearchInProgress": {'Type': 'PyTango.DevBoolean',
-                                 'R/W Type': 'PyTango.READ'},
-        "User-WrittenPhaseEnable": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
-        "User-WrittenServoEnable": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
+        "BlockRequest": {Type: bool,
+                         Access: DataAccess.ReadOnly},
+        "HomeSearchInProgress": {Type: bool,
+                                 Access: DataAccess.ReadOnly},
+        "User-WrittenPhaseEnable": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
+        "User-WrittenServoEnable": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
 
-        "AlternateSource_Destination": {'Type': 'PyTango.DevBoolean',
-                                        'R/W Type': 'PyTango.READ'},
-        "PhasedMotor": {'Type': 'PyTango.DevBoolean',
-                        'R/W Type': 'PyTango.READ'},
-        "FollowingOffsetMode": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "FollowingEnabled": {'Type': 'PyTango.DevBoolean',
-                             'R/W Type': 'PyTango.READ'},
+        "AlternateSource_Destination": {Type: bool,
+                                        Access: DataAccess.ReadOnly},
+        "PhasedMotor": {Type: bool,
+                        Access: DataAccess.ReadOnly},
+        "FollowingOffsetMode": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "FollowingEnabled": {Type: bool,
+                             Access: DataAccess.ReadOnly},
 
-        "ErrorTriger": {'Type': 'PyTango.DevBoolean',
-                        'R/W Type': 'PyTango.READ'},
-        "SoftwarePositionCapture": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
-        "IntegratorInVelocityLoop": {'Type': 'PyTango.DevBoolean',
-                                     'R/W Type': 'PyTango.READ'},
-        "AlternateCommand-OutputMode": {'Type': 'PyTango.DevBoolean',
-                                        'R/W Type': 'PyTango.READ'},
+        "ErrorTriger": {Type: bool,
+                        Access: DataAccess.ReadOnly},
+        "SoftwarePositionCapture": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
+        "IntegratorInVelocityLoop": {Type: bool,
+                                     Access: DataAccess.ReadOnly},
+        "AlternateCommand-OutputMode": {Type: bool,
+                                        Access: DataAccess.ReadOnly},
         # Second Word
-        "CoordinateSystem": {'Type': 'PyTango.DevLong',
-                             'R/W Type': 'PyTango.READ'},
+        "CoordinateSystem": {Type: int,
+                             Access: DataAccess.ReadOnly},
 
-        "CoordinateDefinition": {'Type': 'PyTango.DevString',
-                                 'R/W Type': 'PyTango.READ'},
+        "CoordinateDefinition": {Type: str,
+                                 Access: DataAccess.ReadOnly},
 
-        "AssignedToCoordinateSystem": {'Type': 'PyTango.DevBoolean',
-                                       'R/W Type': 'PyTango.READ'},
+        "AssignedToCoordinateSystem": {Type: bool,
+                                       Access: DataAccess.ReadOnly},
         # Reserved for future use
-        "ForegroundInPosition": {'Type': 'PyTango.DevBoolean',
-                                 'R/W Type': 'PyTango.READ'},
-        "StoppedOnDesiredPositionLimit": {'Type': 'PyTango.DevBoolean',
-                                          'R/W Type': 'PyTango.READ'},
+        "ForegroundInPosition": {Type: bool,
+                                 Access: DataAccess.ReadOnly},
+        "StoppedOnDesiredPositionLimit": {Type: bool,
+                                          Access: DataAccess.ReadOnly},
 
-        "StoppedOnPositionLimit": {'Type': 'PyTango.DevBoolean',
-                                   'R/W Type': 'PyTango.READ'},
-        "HomeComplete": {'Type': 'PyTango.DevBoolean',
-                         'R/W Type': 'PyTango.READ'},
-        "PhasingSearch_ReadActive": {'Type': 'PyTango.DevBoolean',
-                                     'R/W Type': 'PyTango.READ'},
-        "PhasingReferenceError": {'Type': 'PyTango.DevBoolean',
-                                  'R/W Type': 'PyTango.READ'},
+        "StoppedOnPositionLimit": {Type: bool,
+                                   Access: DataAccess.ReadOnly},
+        "HomeComplete": {Type: bool,
+                         Access: DataAccess.ReadOnly},
+        "PhasingSearch_ReadActive": {Type: bool,
+                                     Access: DataAccess.ReadOnly},
+        "PhasingReferenceError": {Type: bool,
+                                  Access: DataAccess.ReadOnly},
 
-        "TriggerMove": {'Type': 'PyTango.DevBoolean',
-                        'R/W Type': 'PyTango.READ'},
-        "IntegratedFatalFollowingError": {'Type': 'PyTango.DevBoolean',
-                                          'R/W Type': 'PyTango.READ'},
-        "I2T_amplifierFaultError": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
-        "BacklashDirectionFlag": {'Type': 'PyTango.DevBoolean',
-                                  'R/W Type': 'PyTango.READ'},
+        "TriggerMove": {Type: bool,
+                        Access: DataAccess.ReadOnly},
+        "IntegratedFatalFollowingError": {Type: bool,
+                                          Access: DataAccess.ReadOnly},
+        "I2T_amplifierFaultError": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
+        "BacklashDirectionFlag": {Type: bool,
+                                  Access: DataAccess.ReadOnly},
 
-        "AmplifierFaultError": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "FatalFollowingError": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "WarningFollowingError": {'Type': 'PyTango.DevBoolean',
-                                  'R/W Type': 'PyTango.READ'},
-        "InPosition": {'Type': 'PyTango.DevBoolean',
-                       'R/W Type': 'PyTango.READ'}}
+        "AmplifierFaultError": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "FatalFollowingError": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "WarningFollowingError": {Type: bool,
+                                  Access: DataAccess.ReadOnly},
+        "InPosition": {Type: bool,
+                       Access: DataAccess.ReadOnly}}
 
-    cs_extra_attributes = {"MotionProgramRunning": {
-        'Type': 'PyTango.DevBoolean', 'R/W Type': 'PyTango.READ'}}
+    cs_extra_attributes = {
+        "MotionProgramRunning": {Type: bool,
+                                 Access: DataAccess.ReadOnly}
+    }
 
     ctrl_extra_attributes = {}
     ctrl_extra_attributes.update(motor_extra_attributes)

@@ -4,8 +4,8 @@ import PyTango
 from sardana import State, DataAccess
 from sardana.sardanavalue import SardanaValue
 from sardana.pool import AcqSynch
-from sardana.pool.controller import (CounterTimerController, Type, Access,
-                                     Description)
+from sardana.pool.controller import CounterTimerController, Type, Access, \
+    Description
 
 from bl22dcmlib import enegies4encoders
 
@@ -22,18 +22,18 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
 
     MaxDevice = 1
     class_prop = {
-        'TurboPmacDSName': {'Description': 'TurboPmac controller Tango device',
-                            'Type': 'PyTango.DevString'},
-        'EnergyDSName': {'Description': 'Energy pseudomotor Tango device',
-                         'Type': 'PyTango.DevString'},
-        'BraggDSName': {'Description': 'Bragg motor Tango device',
-                        'Type': 'PyTango.DevString'},
-        'XtalIORDSName': {'Description': 'Crystal IORegister Tango device',
-                          'Type': 'PyTango.DevString'},
-        'VCMPitchDSName': {'Description': 'VCM pitch pseudomotor Tango device',
-                           'Type': 'PyTango.DevString'},
-        'ChunkSize': {'Description': 'Chunk size to read from the pmac',
-                      'Type': 'PyTango.DevLong'}}
+        'TurboPmacDSName': {Description: 'TurboPmac controller Tango device',
+                            Type: str},
+        'EnergyDSName': {Description: 'Energy pseudomotor Tango device',
+                         Type: str},
+        'BraggDSName': {Description: 'Bragg motor Tango device',
+                        Type: str},
+        'XtalIORDSName': {Description: 'Crystal IORegister Tango device',
+                          Type: str},
+        'VCMPitchDSName': {Description: 'VCM pitch pseudomotor Tango device',
+                           Type: str},
+        'ChunkSize': {Description: 'Chunk size to read from the pmac',
+                      Type: long}}
 
     axis_attributes = {'InternalTriggers':
                        {Type: bool,
@@ -68,7 +68,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     def StateAll(self):
         try:
             m = int(self.pmac.GetMVariable(3300))
-        except PyTango.DevFailed, e:
+        except PyTango.DevFailed as e:
             msg = "StateAll(): Could not verify state of the " \
                   "device: %s.\nException: %s" % \
                             (self.TurboPmacDeviceName, e)
@@ -87,7 +87,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
     def StateOne(self, axis):
         self._log.debug("StateOne(%d): Leaving...%s %s", axis, self.state,
                         self.status)
-        return (self.state, self.status)
+        return self.state, self.status
 
     def ReadOne(self, axis):
         if self._synchronization in [AcqSynch.SoftwareTrigger,
@@ -193,7 +193,7 @@ class AlbaBl22DcmTurboPmacCoTiCtrl(CounterTimerController):
         try:
             self.repetitions = repetitions
             self.pmac.SetPVariable([PMAC_REGISTERS['NrTriggers'], repetitions])
-        except PyTango.DevFailed, e:
+        except PyTango.DevFailed as e:
             self._log.error("LoadOne(%d, %f): Could not configure device.\n"
                             "Exception: %s", axis, value, e)
             raise

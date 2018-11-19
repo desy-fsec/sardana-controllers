@@ -36,7 +36,7 @@ import PyTango
 import time
 from copy import copy
 from sardana import State
-from sardana.pool.controller import CounterTimerController
+from sardana.pool.controller import CounterTimerController, Description, Type
 
 hackish_IBAProcessSleep = 0.5
 hackish_IBAInitSleep = 0.5
@@ -49,11 +49,11 @@ class ImgBeamAnalyzerController(CounterTimerController):
     and each counter channel responds to one specific device attribute.
     """
 
-    class_prop = {'devName': {'Description': 'ImgBeamAnalyzer Tango device',
-                              'Type': 'PyTango.DevString'},
-                  'attrList': {'Description': 'List of attributes to read '
-                                              'after the master channel',
-                               'Type': 'PyTango.DevVarStringArray'},
+    class_prop = {'devName': {Description: 'ImgBeamAnalyzer Tango device',
+                              Type: str},
+                  'attrList': {Description: 'List of attributes to read '
+                                            'after the master channel',
+                               Type: (str,)},
                   # for example any one of: '[Chamber]Centroid{X,
                   # Y},Rms{X,Y},...'
                   # The master channel is the Exp.Time of the ccd
@@ -140,7 +140,7 @@ class ImgBeamAnalyzerController(CounterTimerController):
 
     ###
     # Data acquisition area:
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions):
         if ind == 1:
             self.expTimeValue = value  # seconds
             self.__flag_loadOne = True

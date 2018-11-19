@@ -1,6 +1,6 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController, NotMemorized, \
-    MaxDimSize
+    MaxDimSize, Memorized, Type, Description, Access, DataAccess
 from sardana.pool import AcqTriggerType
 
 
@@ -23,41 +23,40 @@ class AlbaemCoTiCtrl(CounterTimerController):
     """
     MaxDevice = 5
     class_prop = {
-        'Albaemname': {'Description': 'Albaem DS name',
-                       'Type': 'PyTango.DevString'},
+        'Albaemname': {Description: 'Albaem DS name',
+                       Type: str},
     }
 
     ctrl_extra_attributes = {
-        "Range": {'Type': 'PyTango.DevString',
-                  'Description': 'Range for the channel',
-                  'memorized': NotMemorized,
-                  'R/W Type': 'PyTango.READ_WRITE'},
-        "Filter": {'Type': 'PyTango.DevString',
-                   'Description': 'Filter for the channel',
-                   'memorized': NotMemorized,
-                   'R/W Type': 'PyTango.READ_WRITE'},
-        "DInversion": {'Type': 'PyTango.DevString',
-                       'Description': 'Digital inversion for the channel',
-                       'memorized': NotMemorized,
-                       'R/W Type': 'PyTango.READ_WRITE'},
-        "Offset": {'Type': 'PyTango.DevDouble',
-                   'Description': 'Offset in % for the channel',
-                   'memorized': NotMemorized,
-                   'R/W Type': 'PyTango.READ_WRITE'},
-        "SampleRate": {'Type': 'PyTango.DevDouble',
-                       'Description': 'Albaem sample rate',
-                       'memorized': NotMemorized,
-                       'R/W Type': 'PyTango.READ_WRITE'},
-        "AutoRange": {'Type': 'PyTango.DevBoolean',
-                      'Description': 'Enable/Disable electrometer autorange',
-                      'memorized': NotMemorized,
-                      'R/W Type': 'PyTango.READ_WRITE'},
-        "Inversion": {'Type': 'PyTango.DevBoolean',
-                      'Description': 'Enable/Disable electrometer analog '
-                                     'inversion',
-                      'memorized': NotMemorized,
-                      'R/W Type': 'PyTango.READ_WRITE'},
-
+        "Range": {Type: str,
+                  Description: 'Range for the channel',
+                  Memorized: NotMemorized,
+                  Access: DataAccess.ReadWrite},
+        "Filter": {Type: str,
+                   Description: 'Filter for the channel',
+                   Memorized: NotMemorized,
+                   Access: DataAccess.ReadWrite},
+        "DInversion": {Type: str,
+                       Description: 'Digital inversion for the channel',
+                       Memorized: NotMemorized,
+                       Access: DataAccess.ReadWrite},
+        "Offset": {Type: float,
+                   Description: 'Offset in % for the channel',
+                   Memorized: NotMemorized,
+                   Access: DataAccess.ReadWrite},
+        "SampleRate": {Type: float,
+                       Description: 'Albaem sample rate',
+                       Memorized: NotMemorized,
+                       Access: DataAccess.ReadWrite},
+        "AutoRange": {Type: bool,
+                      Description: 'Enable/Disable electrometer autorange',
+                      Memorized: NotMemorized,
+                      Access: DataAccess.ReadWrite},
+        "Inversion": {Type: bool,
+                      Description: 'Enable/Disable electrometer analog '
+                                   'inversion',
+                      Memorized: NotMemorized,
+                      Access: DataAccess.ReadWrite},
         }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -175,7 +174,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
                             self.Albaemname, e)
             raise
 
-    def PreLoadOne(self, axis, value):
+    def PreLoadOne(self, axis, value, repetitions):
         """Here we are keeping a reference to the master channel, so later
         in StartAll() we can distinguish if we are starting only the master
         channel."""
@@ -183,7 +182,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         self.master = None
         return True
 
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions):
         self._log.debug("LoadOne(%d, %f): Entering...", axis, value)
         self.master = axis
 
