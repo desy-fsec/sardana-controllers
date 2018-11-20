@@ -33,7 +33,6 @@ class SIS3302Ctrl(OneDController):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
                 self.port = int( lst[1])
-        self.started = False
         self.proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             self.proxy_name = str(self.node) + (":%s/" % self.port) + str(self.proxy_name)
@@ -53,7 +52,7 @@ class SIS3302Ctrl(OneDController):
         
     def StateOne(self,ind):
         #print "SIS3302Ctrl.StatOne",self.inst_name,"index",ind
-        if self.acqStartTime != None: #acquisition was started
+        if self.acqStartTime != None: #acquisition was started, equivalent to self.started == True
             now = time.time()
             elapsedTime = now - self.acqStartTime - 0.2
             if elapsedTime < self.acqTime: #acquisition has probably not finished yet
@@ -85,10 +84,6 @@ class SIS3302Ctrl(OneDController):
 
     def PreReadAll(self):
         #print "SIS3302Ctrl.PreReadAll",self.inst_name
-        #if self.started == True:
-        #    self.proxy.command_inout("Stop")
-        #    self.started = False
-        #    time.sleep(0.2)
         pass
         
     def PreReadOne(self,ind):
@@ -115,7 +110,7 @@ class SIS3302Ctrl(OneDController):
         return True
         
     def StartAll(self):
-        if self.started == False:
+        if self.started == False: # equivalent to self.acqStartTime == None
             self.proxy.command_inout("Stop")
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
