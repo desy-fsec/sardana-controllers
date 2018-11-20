@@ -39,6 +39,8 @@ class SIS3302Ctrl(OneDController):
             self.proxy_name = str(self.node) + (":%s/" % self.port) + str(self.proxy_name)
         self.proxy = PyTango.DeviceProxy(self.proxy_name)
         self.started = False
+        self.acqTime = 0
+        self.acqStartTime = None
         
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
@@ -51,8 +53,22 @@ class SIS3302Ctrl(OneDController):
         
     def StateOne(self,ind):
         #print "SIS3302Ctrl.StatOne",self.inst_name,"index",ind
-        sta = PyTango.DevState.ON
-        tup = (sta, "Device always in ON")
+        if self.acqStartTime != None: #acquisition was started
+            now = time.time()
+            elapsedTime = now - self.acqStartTime - 0.2
+            if elapsedTime < self.acqTime: #acquisition has probably not finished yet
+                self.sta = State.Moving
+                self.status = "Acqusition time has not elapsed yet."
+            else:
+                self.proxy.command_inout("Stop")
+                self.started = False
+                self.acqStartTime = None
+                self.sta = PyTango.DevState.ON
+                self.status = "Device is ON"
+        else:
+            self.sta = PyTango.DevState.ON
+            self.status = "Device is ON"
+        tup = (self.sta, self.status)
         return tup
     
     def LoadOne(self, axis, value):
@@ -64,15 +80,17 @@ class SIS3302Ctrl(OneDController):
         else:
             self.integ_time = None
             self.monitor_count = -value
+        self.acqTime = value
         
 
     def PreReadAll(self):
         #print "SIS3302Ctrl.PreReadAll",self.inst_name
-        if self.started == True:
-            self.proxy.command_inout("Stop")
-            self.started = False
-            time.sleep(0.2)
-
+        #if self.started == True:
+        #    self.proxy.command_inout("Stop")
+        #    self.started = False
+        #    time.sleep(0.2)
+        pass
+        
     def PreReadOne(self,ind):
         #print "SIS3302Ctrl.PreReadOne",self.inst_name,"index",ind
         pass
@@ -102,6 +120,7 @@ class SIS3302Ctrl(OneDController):
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
             self.started = True
+            self.acqStartTime = time.time()
         
     def StartOne(self,ind, value):
         pass
