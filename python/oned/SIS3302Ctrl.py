@@ -57,7 +57,7 @@ class SIS3302Ctrl(OneDController):
             elapsedTime = now - self.acqStartTime - 0.2
             if elapsedTime < self.acqTime: #acquisition has probably not finished yet
                 self.sta = State.Moving
-                self.status = "Acqusition time has not elapsed yet."
+                self.status = "Acquisition time has not elapsed yet."
             else:
                 self.proxy.command_inout("Stop")
                 self.started = False
