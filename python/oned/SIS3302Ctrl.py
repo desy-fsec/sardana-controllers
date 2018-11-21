@@ -15,7 +15,8 @@ class SIS3302Ctrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
     ctrl_extra_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},     
+                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}, 
+                             'FlagReadSpectrum':{Type:'PyTango.DevLong',Access:ReadWrite},     
                          }
     
     class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
@@ -33,13 +34,13 @@ class SIS3302Ctrl(OneDController):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
                 self.port = int( lst[1])
+        self.started = False
         self.proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             self.proxy_name = str(self.node) + (":%s/" % self.port) + str(self.proxy_name)
         self.proxy = PyTango.DeviceProxy(self.proxy_name)
         self.started = False
-        self.acqTime = 0
-        self.acqStartTime = None
+        self.flagreadspectrum = 1
         
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
@@ -52,22 +53,8 @@ class SIS3302Ctrl(OneDController):
         
     def StateOne(self,ind):
         #print "SIS3302Ctrl.StatOne",self.inst_name,"index",ind
-        if self.acqStartTime != None: #acquisition was started, equivalent to self.started == True
-            now = time.time()
-            elapsedTime = now - self.acqStartTime - 0.2
-            if elapsedTime < self.acqTime: #acquisition has probably not finished yet
-                self.sta = State.Moving
-                self.status = "Acquisition time has not elapsed yet."
-            else:
-                self.proxy.command_inout("Stop")
-                self.started = False
-                self.acqStartTime = None
-                self.sta = PyTango.DevState.ON
-                self.status = "Device is ON"
-        else:
-            self.sta = PyTango.DevState.ON
-            self.status = "Device is ON"
-        tup = (self.sta, self.status)
+        sta = PyTango.DevState.ON
+        tup = (sta, "Device always in ON")
         return tup
     
     def LoadOne(self, axis, value):
@@ -79,13 +66,15 @@ class SIS3302Ctrl(OneDController):
         else:
             self.integ_time = None
             self.monitor_count = -value
-        self.acqTime = value
         
 
     def PreReadAll(self):
         #print "SIS3302Ctrl.PreReadAll",self.inst_name
-        pass
-        
+        if self.started == True:
+            self.proxy.command_inout("Stop")
+            self.started = False
+            time.sleep(0.2)
+
     def PreReadOne(self,ind):
         #print "SIS3302Ctrl.PreReadOne",self.inst_name,"index",ind
         pass
@@ -97,8 +86,11 @@ class SIS3302Ctrl(OneDController):
 
     def ReadOne(self,ind):
         #print "SIS3302Ctrl.ReadOne",self.inst_name,"index",ind
-        if ind == 1:            
-            data = self.proxy.Data
+        if ind == 1:
+            if self.flagreadspectrum == 1:
+                data = self.proxy.Data
+            else:
+                data = [0.]
         else:
             data = [self.counts[ind - 2]]
         return data
@@ -110,12 +102,11 @@ class SIS3302Ctrl(OneDController):
         return True
         
     def StartAll(self):
-        if self.started == False: # equivalent to self.acqStartTime == None
+        if self.started == False:
             self.proxy.command_inout("Stop")
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
             self.started = True
-            self.acqStartTime = time.time()
         
     def StartOne(self,ind, value):
         pass
@@ -143,12 +134,17 @@ class SIS3302Ctrl(OneDController):
             else:
                 datalength = 1
             return datalength
+        elif name == "FlagReadSpectrum":
+            return self.flagreadspectrum
+            
 
     def SetExtraAttributePar(self,ind,name,value):
         #print "SIS3302Ctrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if name == "DataLength":
             if ind == 1:
                 self.proxy.write_attribute("DataLength",value)
+        elif name == "FlagReadSpectrum":
+            self.flagreadspectrum = value
                 
     def SendToCtrl(self,in_data):
         #print "Received value =",in_data
