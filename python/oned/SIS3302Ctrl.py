@@ -142,7 +142,7 @@ class SIS3302Ctrl(OneDController):
                 datalength = int(self.proxy.read_attribute("DataLength").value)
             else:
                 datalength = 1
-                return datalength
+            return datalength
 
     def SetExtraAttributePar(self,ind,name,value):
         #print "SIS3302Ctrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
