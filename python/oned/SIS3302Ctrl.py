@@ -15,7 +15,8 @@ class SIS3302Ctrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
     ctrl_extra_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},     
+                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}, 
+                             'FlagReadSpectrum':{Type:'PyTango.DevLong',Access:ReadWrite},     
                          }
     
     class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
@@ -41,6 +42,7 @@ class SIS3302Ctrl(OneDController):
         self.started = False
         self.acqTime = 0
         self.acqStartTime = None
+        self.flagreadspectrum = 1
         
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
@@ -102,9 +104,11 @@ class SIS3302Ctrl(OneDController):
 
     def ReadOne(self,ind):
         #print "SIS3302Ctrl.ReadOne",self.inst_name,"index",ind
-        if ind == 1:            
-            #data = self.proxy.Data           
-            data = [1]
+        if ind == 1: 
+            if self.flagreadspectrum == 1:
+                data = self.proxy.Data
+            else:
+                data = [0.]
         else:
             data = [self.counts[ind - 2]]
         return data
@@ -148,13 +152,17 @@ class SIS3302Ctrl(OneDController):
                 datalength = int(self.proxy.read_attribute("DataLength").value)
             else:
                 datalength = 1
-                return datalength
+            return datalength
+        elif name == "FlagReadSpectrum":
+            return self.flagreadspectrum
 
     def SetExtraAttributePar(self,ind,name,value):
         #print "SIS3302Ctrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if name == "DataLength":
             if ind == 1:
                 self.proxy.write_attribute("DataLength",value)
+        elif name == "FlagReadSpectrum":
+            self.flagreadspectrum = value
                 
     def SendToCtrl(self,in_data):
         #print "Received value =",in_data
