@@ -61,6 +61,13 @@ class Albaem2CoTiCtrl(CounterTimerController):
             Access: DataAccess.ReadWrite,
 
         },
+        "FORMULA":
+            {
+                Type: str,
+                Description: 'The formula to get the real value.\n '
+                             'e.g. "(value/10)*1e-06"',
+                Access: DataAccess.ReadWrite
+            },
     }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -251,7 +258,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
                         'again %s' % cmd)
                     self.albaem_socket = socket.socket(
                         socket.AF_INET, socket.SOCK_STREAM)
-                    self.albaem_socket.settimeout(2.5)
+                    self.albaem_socket.settimeout(.5)
                     self.albaem_socket.connect(self.ip_config)
             if rw:
                 # WARNING...
@@ -301,7 +308,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
                                 'again %s' % cmd[:-2])
                             self.albaem_socket = socket.socket(
                                 socket.AF_INET, socket.SOCK_STREAM)
-                            self.albaem_socket.settimeout(2.5)
+                            self.albaem_socket.settimeout(.5)
                             self.albaem_socket.connect(self.ip_config)
                             self.albaem_socket.sendall(cmd)
                             pass
