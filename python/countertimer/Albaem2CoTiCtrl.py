@@ -304,8 +304,8 @@ class Albaem2CoTiCtrl(CounterTimerController):
                             break
                         except socket.timeout:
                             self._log.debug(
-                                'Socket timeout! reconnecting and commanding '
-                                'again %s' % cmd[:-2])
+                                'Socket timeout! Reading... from  %s '
+                                'command' %cmd[:-2])
                             self.albaem_socket = socket.socket(
                                 socket.AF_INET, socket.SOCK_STREAM)
                             self.albaem_socket.settimeout(.5)
