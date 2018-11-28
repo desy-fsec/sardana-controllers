@@ -78,7 +78,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
 
         self.ip_config = (self.AlbaEmHost, self.Port)
         self.albaem_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.albaem_socket.settimeout(.5)
+        self.albaem_socket.settimeout(1)
         self.albaem_socket.connect(self.ip_config)
         self.index = 0
         self.master = None
@@ -227,7 +227,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
     def ReadOne(self, axis):
         # self._log.debug("ReadOne(%d): Entering...", axis)
         if len(self.new_data) == 0:
-            return []
+            return None
 
         if self._synchronization in [AcqSynch.SoftwareTrigger,
                                      AcqSynch.SoftwareGate]:
@@ -258,7 +258,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
                         'again %s' % cmd)
                     self.albaem_socket = socket.socket(
                         socket.AF_INET, socket.SOCK_STREAM)
-                    self.albaem_socket.settimeout(.5)
+                    self.albaem_socket.settimeout(1)
                     self.albaem_socket.connect(self.ip_config)
             if rw:
                 # WARNING...
@@ -308,7 +308,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
                                 'command' %cmd[:-2])
                             self.albaem_socket = socket.socket(
                                 socket.AF_INET, socket.SOCK_STREAM)
-                            self.albaem_socket.settimeout(.5)
+                            self.albaem_socket.settimeout(1)
                             self.albaem_socket.connect(self.ip_config)
                             self.albaem_socket.sendall(cmd)
                             pass
