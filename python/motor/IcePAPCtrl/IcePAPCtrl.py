@@ -547,7 +547,9 @@ class IcepapController(MotorController):
             if enc_src_tango_attr is not None:
                 value = float(enc_src_tango_attr.read().value)
                 eval_globals = numpy.__dict__
-                eval_locals = {'VALUE': value, 'value': value}
+                spu = float(self.attributes[axis]['step_per_unit'])
+                eval_locals = {'VALUE': value, 'value': value,
+                               'SPU': spu, 'spu': spu}
                 enc_src_formula = self.attributes[axis][
                     'encoder_source_formula']
                 current_source_pos = eval(enc_src_formula,
