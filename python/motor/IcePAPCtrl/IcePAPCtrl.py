@@ -177,10 +177,10 @@ class IcepapController(MotorController):
         self.attributes[axis]['position_value'] = None
         self.attributes[axis]['motor_enabled'] = True
         self.attributes[axis]['use_encoder_source'] = False
-        self.attributes[axis]['encoder_source'] = 'attr://EncEncIn'
-        self.attributes[axis]['encoder_source_formula'] = 'VALUE'
+        self.attributes[axis]['encoder_source'] = 'attr://PosEncIn'
+        self.attributes[axis]['encoder_source_formula'] = 'VALUE/SPU'
         self.attributes[axis]['encoder_source_tango_attribute'] = \
-            FakedAttributeProxy(self, axis, 'attr://EncEncIn')
+            FakedAttributeProxy(self, axis, 'attr://PosEncIn')
 
         if axis in self.ipap:
             self._log.info('Added axis %d.' % axis)
