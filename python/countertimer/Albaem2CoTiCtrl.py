@@ -84,7 +84,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
         self.master = None
         self._latency_time = 0.001  # In fact, it is just 320us
         self._repetitions = 0
-        self.formulas = {}
+        self.formulas = {1: 'value', 2: 'value', 3: 'value', 4:'value'}
 
         self.lock = Lock()
 
@@ -94,13 +94,11 @@ class Albaem2CoTiCtrl(CounterTimerController):
         # count buffer for the continuous scan
         if axis != 1:
             self.index = 0
-        self.formulas[axis] = 'value'
 
     def DeleteDevice(self, axis):
         """Delete device from the controller."""
         self._log.debug("DeleteDevice(%d): Entering...", axis)
         # self.albaem_socket.close()
-        self.formulas.pop(axis)
 
     def StateAll(self):
         """Read state of all axis."""
