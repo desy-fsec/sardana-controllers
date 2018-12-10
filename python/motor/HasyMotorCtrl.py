@@ -129,12 +129,13 @@ class HasyMotorCtrl(MotorController):
             self.set_for_memorized_max.append(1)
         
             self.max_device = self.max_device + 1
+            
         
-
     def AddDevice(self, ind):
         MotorController.AddDevice(self, ind)
         if ind > self.max_device:
             print "False index"
+            self.device_available[ind-1] = 0
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -365,6 +366,8 @@ class HasyMotorCtrl(MotorController):
         return "Nothing sent"
 
     def AbortOne(self, ind):
+        if ind > self.max_device:
+            pass
         if self.device_available[ind-1] == 1:
             try:
                 self.proxy[ind-1].command_inout(self.cmdName_Abort[ind-1])
