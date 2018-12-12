@@ -137,7 +137,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
 
         # Set Integration time in ms
         val = int(self.itime * 1000)
-        self.sendCmd('ACQU:TIME %r' % val, rw=False)
+        self.sendCmd('ACQU:TIME %r' % val)
 
         if self._synchronization in [AcqSynch.SoftwareTrigger,
                                      AcqSynch.SoftwareGate]:
@@ -151,10 +151,10 @@ class Albaem2CoTiCtrl(CounterTimerController):
             #                 "to HardwareTrigger")
             source = 'HARDWARE'
             self._repetitions = repetitions
-        self.sendCmd('TRIG:MODE %s' % source, rw=False)
+        self.sendCmd('TRIG:MODE %s' % source)
 
         # Set Number of Triggers
-        self.sendCmd('ACQU:NTRI %r' % self._repetitions, rw=False)
+        self.sendCmd('ACQU:NTRI %r' % self._repetitions)
 
     def PreStartOneCT(self, axis):
         # self._log.debug("PreStartOneCT(%d): Entering...", axis)
@@ -176,7 +176,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
             # TRIG:SWSEt
             cmd += ' SWTRIG'
 
-        self.sendCmd(cmd, rw=False)
+        self.sendCmd(cmd)
         # THIS PROTECTION HAS TO BE REVIEWED
         # FAST INTEGRATION TIMES MAY RAISE WRONG EXCEPTIONS
         # e.g. 10ms ACQTIME -> self.state MAY BE NOT MOVING BECAUSE
@@ -198,7 +198,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
             if self.index < data_ready:
                 data_len = data_ready - self.index
                 # THIS CONTROLLER IS NOT YET READY FOR TIMESTAMP DATA
-                self.sendCmd('TMST 0', rw=False)
+                self.sendCmd('TMST 0')
 
                 msg = 'ACQU:MEAS? %r,%r' % (self.index - 1, data_len)
                 raw_data = self.sendCmd(msg)
@@ -236,7 +236,7 @@ class Albaem2CoTiCtrl(CounterTimerController):
 
     def AbortOne(self, axis):
         # self._log.debug("AbortOne(%d): Entering...", axis)
-        self.sendCmd('ACQU:STOP', rw=False)
+        self.sendCmd('ACQU:STOP')
 
     def sendCmd(self, cmd, rw=True, size=8096):
         with self.lock:
@@ -346,10 +346,10 @@ class Albaem2CoTiCtrl(CounterTimerController):
         axis -= 1
         if name == "range":
             cmd = 'CHAN{0:02d}:CABO:RANGE {1}'.format(axis, value)
-            self.sendCmd(cmd, rw=False)
+            self.sendCmd(cmd)
         elif name == 'inversion':
             cmd = 'CHAN{0:02d}:CABO:INVE {1}'.format(axis, int(value))
-            self.sendCmd(cmd, rw=False)
+            self.sendCmd(cmd)
 
 
 ###############################################################################
@@ -359,9 +359,9 @@ class Albaem2CoTiCtrl(CounterTimerController):
     def SetCtrlPar(self, parameter, value):
         param = parameter.lower()
         if param == 'exttriggerinput':
-            self.sendCmd('TRIG:INPU %s' % value, rw=False)
+            self.sendCmd('TRIG:INPU %s' % value)
         elif param == 'acquisitionmode':
-            self.sendCmd('ACQU:MODE %s' % value, rw=False)
+            self.sendCmd('ACQU:MODE %s' % value)
         else:
             CounterTimerController.SetCtrlPar(self, parameter, value)
 
