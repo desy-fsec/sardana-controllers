@@ -29,19 +29,19 @@ def encoder2bragg(encoder, bragg_spu, bragg_offset,
     # translations from raw counts to degrees
     # getting an offset between position and encoder register (offset =
     # 2683367)
-
-
     braggMotorOffsetEncCounts = bragg_offset * bragg_spu
 
     bragg_pos += braggMotorOffsetEncCounts
     delta_encoder = abs(encoder - bragg_enc)
     if delta_encoder >= PMAC_OVERFLOW:
         if encoder < bragg_enc:
-            new_encoder = PMAC_OVERFLOW + abs(-8388606.5 - encoder)
-            delta_encoder = abs(new_encoder - bragg_pos)
+            # positive overflow
+            new_encoder = PMAC_OVERFLOW + abs(8388606.5 - abs(encoder))
+            delta_encoder = abs(new_encoder - bragg_enc)
             enc_value = bragg_pos + delta_encoder
         else:
-            new_encoder = -8388606.5 - (PMAC_OVERFLOW - encoder)
+            # negative overflow
+            new_encoder = -8388606.5 - abs(PMAC_OVERFLOW - encoder)
             delta_encoder = abs(new_encoder - bragg_enc)
             enc_value = bragg_pos - delta_encoder
     else:
