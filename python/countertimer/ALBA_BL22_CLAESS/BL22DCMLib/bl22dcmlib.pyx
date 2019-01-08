@@ -8,6 +8,7 @@ import numpy as np
 cdef extern from "math.h" nogil:
     double sin(double x)
     double asin(double x)
+    double abs(double x)
 
 cdef double degrees(double radian) nogil:
     return radian * 180 / 3.14159265359
@@ -106,26 +107,36 @@ cdef double encoder2bragg(long encoder, double bragg_spu, double bragg_offset,
     """
 
 
-    #translations from raw counts to degrees
-    #getting an offset between position and encoder register (offset = 2683367)
 
     cdef:
         double braggMotorOffsetEncCounts, enc_value, d
-        double offset
+        double delta_encoder
         long PMAC_OVERFLOW = 8388608 #2**23 encoder register 24 bits overflow
 
-    braggMotorOffsetEncCounts = <double> (bragg_offset * bragg_spu)
-    if bragg_enc < 0:
-        bragg_enc = 2 * PMAC_OVERFLOW + bragg_enc
+    #translations from raw counts to degrees
+    #getting an offset between position and encoder register (offset = 2683367)
+    braggMotorOffsetEncCounts = bragg_offset * bragg_spu
 
-    offset = <double>(bragg_pos - bragg_enc + braggMotorOffsetEncCounts)
-
-    enc_value = <double> (encoder + offset)
-    if enc_value < 0:
-        enc_value = enc_value + 2 * PMAC_OVERFLOW
+    bragg_pos += <long> braggMotorOffsetEncCounts
+    delta_encoder = abs(encoder - bragg_enc)
+    if delta_encoder >= PMAC_OVERFLOW:
+        if encoder < bragg_enc:
+            # positive overflow
+            new_encoder = PMAC_OVERFLOW + abs(8388606.5 - abs(encoder))
+            delta_encoder = abs(new_encoder - bragg_enc)
+            enc_value = bragg_pos + delta_encoder
+        else:
+            # negative overflow
+            new_encoder = -8388606.5 - abs(PMAC_OVERFLOW - encoder)
+            delta_encoder = abs(new_encoder - bragg_enc)
+            enc_value = bragg_pos - delta_encoder
+    else:
+        if encoder < bragg_enc:
+            enc_value = bragg_pos - delta_encoder
+        else:
+            enc_value = bragg_pos + delta_encoder
 
     return enc_value/bragg_spu
-
 
 cdef long energy2encoder (double energy, double vcm_pitch_rad, double d,
                           double offset, double bragg_spu,
