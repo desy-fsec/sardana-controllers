@@ -108,6 +108,8 @@ class IcepapController(MotorController):
         'StatusInfo': {Type: int, Access: ReadOnly},
         'StatusLimPos': {Type: bool, Access: ReadOnly},
         'StatusLimNeg': {Type: bool, Access: ReadOnly},
+        'StatusLim+': {Type: bool, Access: ReadOnly},
+        'StatusLim-': {Type: bool, Access: ReadOnly},
         'StatusMode': {Type: str, Access: ReadOnly},
         'StatusMoving': {Type: bool, Access: ReadOnly},
         'StatusOutOfWin': {Type: bool, Access: ReadOnly},
@@ -624,6 +626,15 @@ class IcepapController(MotorController):
         @param name of the parameter to retrive
         @return the value of the parameter
         """
+        if parameter.lower() == 'statuslim-':
+            parameter = 'statuslimneg'
+            self._log.warning('Deprecation warning! ipython 5.5.0 is not '
+                              'compatible.')
+        elif parameter.lower() == 'statuslim+':
+            parameter = 'statuslimpos'
+            self._log.warning('Deprecation warning! ipython 5.5.0 is not '
+                              'compatible.')
+
         attr = self.param2attr[parameter.lower()]
         return self.ipap[axis].__getattribute__(attr)
 
