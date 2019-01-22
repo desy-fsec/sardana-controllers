@@ -69,9 +69,9 @@ class IcepapController(MotorController):
     axis_attributes = {
         'Indexer': {Type: str, Access: ReadWrite},
         'PowerOn': {Type: bool, Access: ReadWrite},
-        'InfoA': {Type: [str], Access: ReadWrite},
-        'InfoB': {Type: [str], Access: ReadWrite},
-        'InfoC': {Type: [str], Access: ReadWrite},
+        'InfoA': {Type: str, Access: ReadWrite},
+        'InfoB': {Type: str, Access: ReadWrite},
+        'InfoC': {Type: str, Access: ReadWrite},
         'EnableEncoder_5V': {Type: bool, Access: ReadWrite},
         'ClosedLoop': {Type: bool, Access: ReadWrite},
         'PosAxis': {Type: float, Access: ReadOnly},
@@ -636,9 +636,15 @@ class IcepapController(MotorController):
                               'compatible.')
 
         attr = self.param2attr[parameter.lower()]
-        return self.ipap[axis].__getattribute__(attr)
+        result = self.ipap[axis].__getattribute__(attr)
+        if parameter.lower().startswith('info'):
+            result = ' '.join(result)
+        return result
 
     def SetAxisExtraPar(self, axis, parameter, value):
+        if parameter.lower().startswith('info'):
+            value = value.split()
+
         attr = self.param2attr[parameter.lower()]
         self.ipap[axis].__setattr__(attr, value)
 

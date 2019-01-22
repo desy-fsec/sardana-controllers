@@ -114,7 +114,8 @@ class IcePAPTriggerController(TriggerGateController):
             self._motor['syncaux'] = [out, 'normal']
         else:
             for info_out in self._axis_info_list:
-                self._motor[info_out] = [out, 'normal']
+                value = '{0} normal'.format(out)
+                self._motor[info_out] = value
 
     def StateOne(self, axis):
         """Get the trigger/gate state"""
