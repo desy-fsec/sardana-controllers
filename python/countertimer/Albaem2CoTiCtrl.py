@@ -293,12 +293,14 @@ class Albaem2CoTiCtrl(CounterTimerController):
                 # yours, (but some ways are righter than others).
                 ################################################
                 data = ""
+                acquired = False
                 while True:
                     # SOME TIMEOUTS OCCUR WHEN USING THE WEBPAGE
                     retries = 5
                     for i in range(retries):
                         try:
                             data += self.albaem_socket.recv(size)
+                            acquired = True
                             break
                         except socket.timeout:
                             self._log.debug(
@@ -310,6 +312,12 @@ class Albaem2CoTiCtrl(CounterTimerController):
                             self.albaem_socket.connect(self.ip_config)
                             self.albaem_socket.sendall(cmd)
                             pass
+
+                    if acquired == False:
+                        msg = "Unable to communicate with AlbaEm2, try to " \
+                              "restart the Device"
+                        raise RuntimeError(msg)
+
                     if data[-1] == '\n':
                         break
                 # NOTE: EM MAY ANSWER WITH MULTIPLE ANSWERS IN CASE OF AN
@@ -336,7 +344,12 @@ class Albaem2CoTiCtrl(CounterTimerController):
             return self.sendCmd(cmd)
         elif name == 'inversion':
             cmd = 'CHAN{0:02d}:CABO:INVE?'.format(axis)
-            return eval(self.sendCmd(cmd))
+            val = self.sendCmd(cmd)
+            if val.lower() == 'off':
+                ret = False
+            elif val.lower() == 'on':
+                ret = True
+            return ret
 
     def SetExtraAttributePar(self, axis, name, value):
         if axis == 1:
