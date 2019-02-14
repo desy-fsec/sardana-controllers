@@ -1,6 +1,6 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController, NotMemorized, \
-    MaxDimSize, Memorized, Type, Description, Access, DataAccess
+    Memorize, Type, Description, Access, DataAccess
 from sardana.pool import AcqTriggerType
 
 
@@ -27,35 +27,35 @@ class AlbaemCoTiCtrl(CounterTimerController):
                        Type: str},
     }
 
-    ctrl_extra_attributes = {
+    axis_attributes = {
         "Range": {Type: str,
                   Description: 'Range for the channel',
-                  Memorized: NotMemorized,
+                  Memorize: NotMemorized,
                   Access: DataAccess.ReadWrite},
         "Filter": {Type: str,
                    Description: 'Filter for the channel',
-                   Memorized: NotMemorized,
+                   Memorize: NotMemorized,
                    Access: DataAccess.ReadWrite},
         "DInversion": {Type: str,
                        Description: 'Digital inversion for the channel',
-                       Memorized: NotMemorized,
+                       Memorize: NotMemorized,
                        Access: DataAccess.ReadWrite},
         "Offset": {Type: float,
                    Description: 'Offset in % for the channel',
-                   Memorized: NotMemorized,
+                   Memorize: NotMemorized,
                    Access: DataAccess.ReadWrite},
         "SampleRate": {Type: float,
                        Description: 'Albaem sample rate',
-                       Memorized: NotMemorized,
+                       Memorize: NotMemorized,
                        Access: DataAccess.ReadWrite},
         "AutoRange": {Type: bool,
                       Description: 'Enable/Disable electrometer autorange',
-                      Memorized: NotMemorized,
+                      Memorize: NotMemorized,
                       Access: DataAccess.ReadWrite},
         "Inversion": {Type: bool,
                       Description: 'Enable/Disable electrometer analog '
                                    'inversion',
-                      Memorized: NotMemorized,
+                      Memorize: NotMemorized,
                       Access: DataAccess.ReadWrite},
         }
 
@@ -240,7 +240,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
         else:
             self._log.debug('Wrong state: %s', state)
 
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         self._log.debug("GetExtraAttributePar(%d, %s): Entering...",
                         axis, name)
         if name.lower() == "range":
@@ -291,7 +291,7 @@ class AlbaemCoTiCtrl(CounterTimerController):
             data = self.AemDevice["BufferI%d" % (axis - 1)].value
             return data
 
-    def SetExtraAttributePar(self, axis, name, value):
+    def SetAxisExtraPar(self, axis, name, value):
         if name.lower() == "range":
             self.ranges[axis-2] = value
             attr = 'range_ch' + str(axis-1)
