@@ -160,6 +160,12 @@ class Albaem2CoTiCtrl(CounterTimerController):
         # self._log.debug("PreStartOneCT(%d): Entering...", axis)
         if axis != 1:
             self.index = 0
+
+        #Check if the communication is stable before start
+        state = self.sendCmd('ACQU:STAT?')
+        if state is None:
+            return False
+
         return True
 
     def StartAllCT(self):
@@ -317,9 +323,13 @@ class Albaem2CoTiCtrl(CounterTimerController):
                         msg = "Unable to communicate with AlbaEm2, try to " \
                               "restart the Device"
                         raise RuntimeError(msg)
+                    try:
+                        if data[-1] == '\n':
+                            break
+                    except Exception as e:
+                        self._log.error(e)
+                        return None
 
-                    if data[-1] == '\n':
-                        break
                 # NOTE: EM MAY ANSWER WITH MULTIPLE ANSWERS IN CASE OF AN
                 # EXCEPTION
                 # SIMPLY GET THE LAST ONE
