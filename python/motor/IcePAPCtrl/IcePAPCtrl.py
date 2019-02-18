@@ -67,6 +67,10 @@ class IcepapController(MotorController):
             Memorize: NotMemorized},
     }
     axis_attributes = {
+        'MoveInGroup': {Type: bool, Access: ReadWrite,
+                        Description: 'Attribute to set the group flag '
+                                     'on the movement',
+                        DefaultValue: True},
         'Indexer': {Type: str, Access: ReadWrite},
         'PowerOn': {Type: bool, Access: ReadWrite},
         'InfoA': {Type: str, Access: ReadWrite},
@@ -157,7 +161,8 @@ class IcepapController(MotorController):
         self.attributes = {}
         self.state_multiple = []
         self.position_multiple = []
-        self.move_multiple = []
+        self.move_multiple_grouped = []
+        self.move_multiple_not_grouped = []
         self.stop_multiple = []
         self.abort_multiple = []
 
@@ -183,6 +188,7 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source_formula'] = 'VALUE/SPU'
         self.attributes[axis]['encoder_source_tango_attribute'] = \
             FakedAttributeProxy(self, axis, 'attr://PosEncIn')
+        self.attributes[axis]['move_in_group'] = True
 
         if axis in self.ipap:
             self._log.info('Added axis %d.' % axis)
@@ -351,7 +357,8 @@ class IcepapController(MotorController):
 
     def PreStartAll(self):
         """ If there is no connection, to the Icepap system, return False"""
-        self.move_multiple = []
+        self.move_multiple_grouped = []
+        self.move_multiple_not_grouped = []
 
     def StartOne(self, axis, pos):
         """ Store all positions in a variable and then react on the StartAll
@@ -376,19 +383,50 @@ class IcepapController(MotorController):
             steps_increment = pos_increment * spu
             desired_absolute_steps_pos = current_steps_pos + steps_increment
 
-        self.move_multiple.append((axis, desired_absolute_steps_pos))
+        if self.attributes[axis]['move_in_group']:
+            self.move_multiple_grouped.append((axis,
+                                               desired_absolute_steps_pos))
+        else:
+            self.move_multiple_not_grouped.append((axis,
+                                                   desired_absolute_steps_pos))
+
         return True
 
     def StartAll(self):
         """ Move all axis at all position with just one command to the Icepap
         Controller. """
-        try:
-            self.ipap.move(self.move_multiple)
-            self._log.info('moveMultiple: ' + str(self.move_multiple))
-        except Exception as e:
-            self._log.error('StartAll(%s).\nException:\n%s' %
-                            (str(self.move_multiple), str(e)))
-            raise
+        # Optimize the synchronization in case of have one motor in the
+        # group mode.
+        move_not_grouped = len(self.move_multiple_not_grouped) != 0
+        if len(self.move_multiple_grouped) == 1 and move_not_grouped:
+            self.move_multiple_not_grouped.append(
+                self.move_multiple_grouped.pop())
+
+        if len(self.move_multiple_grouped) > 0:
+            try:
+                self.ipap.move(self.move_multiple_grouped)
+                self._log.info('moveMultiple: '
+                               + str(self.move_multiple_grouped))
+            except Exception as e:
+                self._log.error('StartAll(%s).\nException:\n%s' %
+                                (str(self.move_multiple_grouped), str(e)))
+                raise
+
+        if len(self.move_multiple_not_grouped) > 0:
+            try:
+                self.ipap.move(self.move_multiple_not_grouped, group=False)
+                self._log.info('moveMultiple not grouped: '
+                               + str(self.move_multiple_not_grouped))
+            except Exception as e:
+                self._log.error('StartAll(%s).\nException:\n%s' %
+                                (str(self.move_multiple_grouped), str(e)))
+                axes_grouped = []
+                for axis, _ in self.move_multiple_grouped:
+                    axes_grouped.append(axis)
+                if len(axes_grouped) > 0:
+                    self.ipap.stop(axes_grouped)
+
+                raise
 
     def PreStopAll(self):
         self.stop_multiple = []
@@ -485,6 +523,12 @@ class IcepapController(MotorController):
     # -------------------------------------------------------------------------
     #               Axis Extra Parameters
     # -------------------------------------------------------------------------
+    def getMoveInGroup(self, axis):
+        return self.attributes[axis]['move_in_group']
+
+    def setMoveInGroup(self, axis, value):
+        self.attributes[axis]['move_in_group'] = value
+
     def getPowerInfo(self, axis):
         # TODO: Analyze if it is included on the lib.
         return '\n'.join(self.ipap[axis].send_cmd('?ISG ?PWRINFO'))
