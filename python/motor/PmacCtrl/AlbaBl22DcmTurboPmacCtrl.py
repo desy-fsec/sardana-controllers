@@ -78,6 +78,7 @@ class DcmTurboPmacController(TurboPmacController):
         self.move_bragg_only = False
         self.user_qExafs = False
         self.next_position = []
+        self.move_started = {1: False, 3: False}
 
     def StateOne(self, axis):
         switchstate = 0
@@ -89,14 +90,19 @@ class DcmTurboPmacController(TurboPmacController):
             state = PyTango.DevState.FAULT
             status = "Motor is deactivated - it is not under Pmac control (" \
                      "Check Ix00 variable)."
+        elif not self.move_started[axis]:
+            state = PyTango.DevState.ON
+            status = "Motor is in ON state.\nMotor is stopped in position"
         else:
             state = PyTango.DevState.MOVING
             # state = PyTango.DevState.ON
             status = "Motor is in MOVING state."
             # motion cases
-            if self.attributes[axis]["ForegroundInPosition"] and \
+            if self.move_started[axis] and \
+                    self.attributes[axis]["ForegroundInPosition"] and \
                     (not self.attributes[axis]["MotionProgramRunning"]):
                 state = PyTango.DevState.ON
+                self.move_started[axis] = False
                 status = "Motor is in ON state.\nMotor is stopped in position"
             else:
                 if self.attributes[axis]["HomeSearchInProgress"]:
@@ -168,6 +174,8 @@ class DcmTurboPmacController(TurboPmacController):
             self.pmacEth.command_inout("RunMotionProg", program)
         else:
             super(DcmTurboPmacController, self).StartAll()
+        for axis in self.startMultiple:
+            self.move_started[axis] = True
         self._log.debug("Leaving StartAll")
 
     def set_move_bragg(self, value):
