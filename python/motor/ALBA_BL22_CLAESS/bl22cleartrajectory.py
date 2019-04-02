@@ -152,7 +152,7 @@ class BL22ClearTrajectory (MotorController):
         else:
             return self._motors_names
 
-    def _load_trajectories(self, filename):
+    def _load_trajectories(self, filename, load=True):
         with open(filename) as f:
             self._trajdic = pickle.load(f)
         par = list(self._trajdic['bragg'])
@@ -161,9 +161,13 @@ class BL22ClearTrajectory (MotorController):
         max_vels = []
         for motor_name in self._all_motor_names:
             motor_table = list(self._trajdic[motor_name])
-            self._ipap[motor_name].clear_parametric_table()
-            self._ipap[motor_name].set_parametric_table(par, motor_table,
-                                                        mode='SPLINE')
+            if load:
+                self._ipap[motor_name].clear_parametric_table()
+                self._ipap[motor_name].set_parametric_table(par, motor_table,
+                                                            mode='SPLINE')
+            else:
+                self._log.debug('Skipped load trajectory '
+                                'table motor {0}'.format(motor_name))
             motor_vel = self._ipap[motor_name].velocity
             max_vel = get_max_vel(par, motor_table, motor_vel)
             max_vels.append(max_vel)
@@ -462,11 +466,8 @@ class BL22ClearTrajectory (MotorController):
             pos = args[1]
             motors = map(int, args[2:])
             self._ipap.pmove(pos, motors)
-        elif cmd_type == 'MAX_VEL':
-            res = ''
-            for motor in self._motors_names:
-                max_par_vel = self._ipap[motor].send_cmd('?parvel max')[0]
-                res += '{0} {1};'.format(motor, max_par_vel)
+        elif cmd_type == 'CALCVEL':
+            self._load_trajectories(self.DataFile, load=False)
         else:
             res = 'Wrong command'
         return res
