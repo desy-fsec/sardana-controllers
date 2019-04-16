@@ -16,9 +16,18 @@ class HasyOneDCtrl(OneDController):
 
     ctrl_extra_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
                              'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-                             'RoIStart':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'RoIEnd':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                             'CountsRoI':{Type:'PyTango.DevDouble',Access:ReadOnly},     
+                             'RoI1Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'RoI1End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                             'CountsRoI1':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
+                             'RoI2Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'RoI2End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                             'CountsRoI2':{Type:'PyTango.DevDouble',Access:ReadOnly},  
+                             'RoI3Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'RoI3End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                             'CountsRoI3':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
+                             'RoI4Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                             'RoI4End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                             'CountsRoI4':{Type:'PyTango.DevDouble',Access:ReadOnly},        
                              }
                  
     class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
@@ -57,9 +66,18 @@ class HasyOneDCtrl(OneDController):
         self.flagIsSIS3302 = []
         self.flagIsKromo = []
         self.device_available = []
-        self.RoIs_start = []
-        self.RoIs_end = []
-        self.Counts_RoI = []
+        self.RoI1_start = []
+        self.RoI1_end = []
+        self.Counts_RoI1 = []
+        self.RoI2_start = []
+        self.RoI2_end = []
+        self.Counts_RoI2 = []
+        self.RoI3_start = []
+        self.RoI3_end = []
+        self.Counts_RoI3 = []
+        self.RoI4_start = []
+        self.RoI4_end = []
+        self.Counts_RoI4 = []
         for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
@@ -68,11 +86,23 @@ class HasyOneDCtrl(OneDController):
             self.flagIsSIS3302.append(False)
             self.flagIsKromo.append(False)
             self.device_available.append(False)
-            self.RoIs_start.append(0)
-            self.RoIs_end.append(0)
-            self.Counts_RoI.append(0)
+            self.RoI1_start.append(0)
+            self.RoI1_end.append(0)
+            self.Counts_RoI1.append(0)
+            self.RoI2_start.append(0)
+            self.RoI2_end.append(0)
+            self.Counts_RoI2.append(0)
+            self.RoI3_start.append(0)
+            self.RoI3_end.append(0)
+            self.Counts_RoI3.append(0)
+            self.RoI4_start.append(0)
+            self.RoI4_end.append(0)
+            self.Counts_RoI4.append(0)
             self.max_device =  self.max_device + 1
         self.started = False
+        self.acqTime = 0
+        self.acqStartTime = None
+
 
         
     def AddDevice(self,ind):
@@ -112,24 +142,28 @@ class HasyOneDCtrl(OneDController):
     def StateOne(self,ind):
         #if self.debugFlag: print "HasyOneDCtrl.StatOne",self.inst_name,"index",ind
         if  self.device_available[ind-1] == 1: 
-            sta = self.proxy[ind-1].command_inout("State")
-            if self.flagIsSIS3302[ind-1] == True or self.flagIsXIA[ind - 1] == True: # Use this for the mca if they need to be stopped
-                if sta == PyTango.DevState.ON:
-                    tup = (sta,"The MCA is ready")
-                elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
-                    tup = (PyTango.DevState.ON,"Device is acquiring data")
+            if self.acqStartTime != None: #acquisition was started
+                now = time.time()
+                elapsedTime = now - self.acqStartTime - 0.2
+                if elapsedTime < self.acqTime: #acquisition has probably not finished yet
+                    self.sta = PyTango.DevState.MOVING
+                    self.status = "Acqusition time has not elapsed yet."
                 else:
-                    tup = (sta, "")
+                    if self.flagIsKromo[ind-1] == False:
+                        self.proxy[ind-1].command_inout("Stop")
+                        if self.flagIsXIA[ind-1] == 0:
+                            self.proxy[ind-1].command_inout("Read")
+                    self.started = False
+                    self.acqStartTime = None
+                    self.sta = PyTango.DevState.ON
+                    self.status = "Device is ON"
             else:
-                if sta == PyTango.DevState.ON:
-                    tup = (sta,"The MCA is ready")
-                elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
-                    tup = (sta,"Device is acquiring data")
-                else:
-                    tup = (sta, "")
+                self.sta = PyTango.DevState.ON
+                self.status = "Device is ON"
         else:
             sta = PyTango.DevState.FAULT
             tup = (sta, "Device not available")
+        tup = (self.sta, self.status)
 
         return tup
     
@@ -143,6 +177,7 @@ class HasyOneDCtrl(OneDController):
         else:
             self.integ_time = None
             self.monitor_count = -value
+        self.acqTime = value
         
 
     def PreReadAll(self):
@@ -151,10 +186,6 @@ class HasyOneDCtrl(OneDController):
 
     def PreReadOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
-        if self.flagIsKromo[ind-1] == False:
-            self.proxy[ind-1].command_inout("Stop")
-            if self.flagIsXIA[ind-1] == 0:
-                self.proxy[ind-1].command_inout("Read")
             
 
     def ReadAll(self):
@@ -167,10 +198,10 @@ class HasyOneDCtrl(OneDController):
             data = self.proxy[ind-1].Spectrum
         else:
             data = self.proxy[ind-1].Data
-        self.Counts_RoI[ind-1] = 0
-        if self.RoIs_end[ind-1] > self.RoIs_start[ind-1]:
-            for j in range(self.RoIs_start[ind-1], self.RoIs_end[ind-1] + 1):
-                self.Counts_RoI[ind-1] = self.Counts_RoI[ind-1] + data[j]
+        self.Counts_RoI1[ind-1] = data[self.RoI1_start[ind-1]:self.RoI1_end[ind-1]].sum()
+        self.Counts_RoI2[ind-1] = data[self.RoI2_start[ind-1]:self.RoI2_end[ind-1]].sum()
+        self.Counts_RoI3[ind-1] = data[self.RoI3_start[ind-1]:self.RoI3_end[ind-1]].sum()
+        self.Counts_RoI4[ind-1] = data[self.RoI4_start[ind-1]:self.RoI4_end[ind-1]].sum()
         return data
 
     def PreStartAll(self):
@@ -193,6 +224,8 @@ class HasyOneDCtrl(OneDController):
                 self.proxy[ind-1].command_inout("Start")
             else:
                 self.proxy[ind-1].command_inout("StartAcquisition")
+            self.started = True
+            self.acqStartTime = time.time()
                 
     def AbortOne(self,ind):
         if self.debugFlag: print "HasyOneDCtrl.AbortOne",self.inst_name,"index",ind
@@ -226,12 +259,30 @@ class HasyOneDCtrl(OneDController):
                 else:
                     datalength = 255
                 return datalength
-        elif name == "RoIStart":
-            return self.RoIs_start[ind-1]
-        elif name == "RoIEnd":
-            return self.RoIs_end[ind-1]
-        elif name == "CountsRoI":
-            return self.Counts_RoI[ind-1]
+        elif name == "RoI1Start":
+            return self.RoI1_start[ind-1]
+        elif name == "RoI1End":
+            return self.RoI1_end[ind-1]
+        elif name == "CountsRoI1":
+            return self.Counts_RoI1[ind-1]
+        elif name == "RoI2Start":
+            return self.RoI2_start[ind-1]
+        elif name == "RoI2End":
+            return self.RoI2_end[ind-1]
+        elif name == "CountsRoI2":
+            return self.Counts_RoI2[ind-1]
+        elif name == "RoI3Start":
+            return self.RoI3_start[ind-1]
+        elif name == "RoI3End":
+            return self.RoI3_end[ind-1]
+        elif name == "CountsRoI3":
+            return self.Counts_RoI3[ind-1]
+        elif name == "RoI4Start":
+            return self.RoI4_start[ind-1]
+        elif name == "RoI4End":
+            return self.RoI4_end[ind-1]
+        elif name == "CountsRoI4":
+            return self.Counts_RoI4[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
         if self.debugFlag: print "HasyOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
@@ -242,10 +293,22 @@ class HasyOneDCtrl(OneDController):
                         self.proxy[ind-1].write_attribute("McaLength",value)
                     else:
                         self.proxy[ind-1].write_attribute("DataLength",value)
-            elif name == "RoIStart":
-                self.RoIs_start[ind-1] = value
-            elif name == "RoIEnd":
-                self.RoIs_end[ind-1] = value
+            elif name == "RoI1Start":
+                self.RoI1_start[ind-1] = value
+            elif name == "RoI1End":
+                self.RoI1_end[ind-1] = value
+            elif name == "RoI2Start":
+                self.RoI2_start[ind-1] = value
+            elif name == "RoI2End":
+                self.RoI2_end[ind-1] = value
+            elif name == "RoI3Start":
+                self.RoI3_start[ind-1] = value
+            elif name == "RoI3End":
+                self.RoI3_end[ind-1] = value
+            elif name == "RoI4Start":
+                self.RoI4_start[ind-1] = value
+            elif name == "RoI4End":
+                self.RoI4_end[ind-1] = value
 
     def SendToCtrl(self,in_data):
 #        if self.debugFlag: print "Received value =",in_data
