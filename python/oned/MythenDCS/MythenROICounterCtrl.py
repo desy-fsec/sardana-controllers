@@ -19,11 +19,13 @@ HARDWARE = [AcqSynch.HardwareTrigger, AcqSynch.HardwareGate]
 def debug(func):
     def new_fun(*args, **kwargs):
         klass = args[0]
-        klass._log.debug('Entering to: %s(%s)' % (func.func_name, repr(args)))
-        result = func(*args, **kwargs)
-        klass._log.debug('Leaving the function: %s .....' % func.func_name)
+        if klass._debug:
+            klass._log.debug('Entering to: %s(%s)' % (func.func_name,
+                                                      repr(args)))
+        result = func(*args,**kwargs)
+        if klass._debug:
+            klass._log.debug('Leaving the function: %s .....' % func.func_name)
         return result
-
     return new_fun
 
 
@@ -63,6 +65,7 @@ class MythenROICounterController(CounterTimerController):
         self._last_frame_readed = {}
         self._flg_abort = False
         self._rois = []
+        self._debug = False
 
     @debug
     def AddDevice(self, axis):
@@ -89,8 +92,8 @@ class MythenROICounterController(CounterTimerController):
 
     @debug
     def StateOne(self, axis):
-        self._log.debug('Status(%d): %s State %s' % (axis, self.status,
-                                                     self.state))
+        # self._log.debug('Status(%d): %s State %s' % (axis, self.status,
+        #                                              self.state))
         return self.state, self.status
 
     @debug

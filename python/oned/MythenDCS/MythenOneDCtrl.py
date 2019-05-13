@@ -23,9 +23,12 @@ HARDWARE = [AcqSynch.HardwareTrigger, AcqSynch.HardwareGate]
 def debug(func):
     def new_fun(*args, **kwargs):
         klass = args[0]
-        klass._log.debug('Entering to: %s(%s)' % (func.func_name, repr(args)))
+        if klass._debug:
+            klass._log.debug('Entering to: %s(%s)' % (func.func_name,
+                                                      repr(args)))
         result = func(*args,**kwargs)
-        klass._log.debug('Leaving the function: %s .....' % func.func_name)
+        if klass._debug:
+            klass._log.debug('Leaving the function: %s .....' % func.func_name)
         return result
     return new_fun
 
@@ -59,7 +62,7 @@ class ListenerChangeEvent(object):
 
         else:
             self.log.debug('Listener DataReadyEvent error in event')
-            raise 'Error with the event.'
+            raise Exception('Error with the event.')
 
 
 class MythenController(OneDController):
@@ -171,7 +174,7 @@ class MythenController(OneDController):
     axis_attributes = {}
 
     def __init__(self, inst, props, *args, **kwargs):
-        OneDController.__init__(self,inst, props, *args, **kwargs)
+        OneDController.__init__(self, inst, props, *args, **kwargs)
         self.mythen = Device(self.MythenDCS)
         self.raw_queue = Queue.Queue()
         self.ext_trigger = False
@@ -183,7 +186,8 @@ class MythenController(OneDController):
                                                        self.raw_listener)
         self._latency_time = self.LatencyTime
         self.repetitions = 0
-        self.flg_abort = False 
+        self.flg_abort = False
+        self._debug = False
 
     @debug
     def AddDevice(self, axis):
@@ -202,6 +206,7 @@ class MythenController(OneDController):
 
         if self._synchronization in HARDWARE:
             frames_readies = self.mythen.read_attribute('FramesReadies').value
+            self._log.debug('Frames_readies {}'.format(frames_readies))
             if frames_readies < self.repetitions and not self.flg_abort:
                 self.state = State.Running
             else:
@@ -218,8 +223,8 @@ class MythenController(OneDController):
 
     @debug
     def StateOne(self, axis):
-        self._log.debug('Status(%d): %s State %s' %(axis, self.status, 
-                                                    self.state))
+        # self._log.debug('Status({}): {} State {}'.format(axis, self.status,
+        #                                                  self.state))
         return self.state, self.status
 
     @debug
@@ -251,7 +256,7 @@ class MythenController(OneDController):
 
 
     @debug
-    def LoadOne(self, axis, value, repetitions):
+    def LoadOne(self, axis, value, repetitions, latency):
         self.state = self.mythen.state()
         live_mode = self.mythen.read_attribute('LiveMode').value
         if self.state == State.Running:
@@ -283,6 +288,8 @@ class MythenController(OneDController):
         self.mythen.write_attribute('Frames', repetitions)
         self.mythen.write_attribute('TriggerMode', self.ext_trigger)
         self.mythen.write_attribute('ContinuousTrigger', self.ext_trigger)
+        # Activate trigger to use rising edge
+        self.mythen.write_attribute('InputHigh', False)
 
     @debug
     def AbortOne(self, axis):
@@ -314,4 +321,4 @@ class MythenController(OneDController):
         return value
 
 
-  
+
