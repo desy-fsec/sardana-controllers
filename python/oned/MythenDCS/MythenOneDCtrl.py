@@ -206,7 +206,6 @@ class MythenController(OneDController):
 
         if self._synchronization in HARDWARE:
             frames_readies = self.mythen.read_attribute('FramesReadies').value
-            self._log.debug('Frames_readies {}'.format(frames_readies))
             if frames_readies < self.repetitions and not self.flg_abort:
                 self.state = State.Running
             else:
