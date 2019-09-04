@@ -54,7 +54,10 @@ class SIS3820Ctrl(CounterTimerController):
         self.started = False
         self.dft_Offset = 0
         self.Offset = []
-
+        self._integ_time = None
+        self._start_time = None
+        self.intern_sta = []
+        
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -68,7 +71,7 @@ class SIS3820Ctrl(CounterTimerController):
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
         self.Offset.append(self.dft_Offset)
-		
+	self.intern_sta.append(State.On)
         
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
@@ -78,8 +81,7 @@ class SIS3820Ctrl(CounterTimerController):
 		
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].command_inout("State")
-            tup = (sta,"State from connected Tango device")
+            tup = (self.intern_sta[ind-1],"State from ReadOne")
             return tup
 
     def PreReadAll(self):
@@ -93,8 +95,18 @@ class SIS3820Ctrl(CounterTimerController):
         pass
 
     def ReadOne(self,ind):
-         if self.device_available[ind-1] == 1:
-             return self.proxy[ind-1].read_attribute("Counts").value
+        if self.device_available[ind-1] == 1:
+            now = time.time()
+            if self._start_time != None:
+                elapsed_time = now - self._start_time
+            else:
+                elapsed_time = 9999999999.
+            if  elapsed_time < self._integ_time:
+                self.intern_sta[ind - 1] = State.Moving
+            else:
+                self.intern_sta[ind -1] = self.proxy[ind-1].command_inout("State")
+            value = self.proxy[ind-1].read_attribute("Counts").value
+            return value
 	
     def AbortOne(self,ind):
 		pass
@@ -105,6 +117,7 @@ class SIS3820Ctrl(CounterTimerController):
     def PreStartOneCT(self,ind):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].command_inout("Reset")
+            self.intern_sta[ind-1] = State.Moving
             return True
         else:
             raise RuntimeError,"Ctrl Tango's proxy null!!!"
@@ -115,11 +128,11 @@ class SIS3820Ctrl(CounterTimerController):
 	
     def StartAllCT(self):
         self.started = True
-        self.start_time = time.time()
+        self._start_time = time.time()
 		     	
     def LoadOne(self,ind,value):
-		pass
-	
+        self._integ_time = value
+        
     def GetExtraAttributePar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "Offset":

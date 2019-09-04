@@ -55,7 +55,10 @@ class DGG2Ctrl(CounterTimerController):
         self.dft_Offset = 0
         self.Offset = []
         self.preset_mode = 0 # Trigger with counts
-
+        self._integ_time = None
+        self._start_time = None
+        self.intern_sta = []
+        
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -69,6 +72,7 @@ class DGG2Ctrl(CounterTimerController):
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
         self.Offset.append(self.dft_Offset)
+        self.intern_sta.append(State.On)
 		
         
     def DeleteDevice(self,ind):
@@ -79,12 +83,7 @@ class DGG2Ctrl(CounterTimerController):
 		
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].command_inout("State")
-            if sta == PyTango.DevState.ON:
-                status_string = "Timer is in ON state"
-            elif sta == PyTango.DevState.MOVING:
-                status_string = "Timer is busy"
-            tup = (sta, status_string)
+            tup = (self.intern_sta[ind-1], "State from ReadOne")
             return tup
 
     def PreReadAll(self):
@@ -102,6 +101,15 @@ class DGG2Ctrl(CounterTimerController):
 
     def ReadOne(self,ind):
          if self.device_available[ind-1] == 1:
+             now = time.time()
+             if self._start_time != None:
+                 elapsed_time = now - self._start_time
+             else:
+                 elapsed_time = 9999999999.
+             if  elapsed_time < self._integ_time:
+                 self.intern_sta[ind - 1] = State.Moving
+             else:
+                 self.intern_sta[ind -1 ] = self.proxy[ind-1].command_inout("State")
              sample_time = self.proxy[ind-1].read_attribute("SampleTime").value
              remaining_time = self.proxy[ind-1].read_attribute("RemainingTime").value
              v = sample_time - remaining_time
@@ -127,6 +135,8 @@ class DGG2Ctrl(CounterTimerController):
                 self.proxy[index-1].command_inout("StartPreset")
             else:
                 self.proxy[index-1].command_inout("Start")
+            self._start_time = time.time()
+            self.intern_sta[index-1] = State.Moving
 		     	
     def LoadOne(self,ind,value):
         if self.device_available[ind-1] == 1:
@@ -135,6 +145,7 @@ class DGG2Ctrl(CounterTimerController):
                 value = -1. * value
             else:
                 self.preset_mode = 0
+            self._integ_time = value
             self.proxy[ind-1].write_attribute("SampleTime", value)
 	
     def GetExtraAttributePar(self,ind,name):
