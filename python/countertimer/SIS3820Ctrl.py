@@ -1,3 +1,6 @@
+#
+# 4.9.2019 TN modified ReadOne() to use the elapsed time trick
+#
 import PyTango
 from sardana.pool.controller import CounterTimerController
 import time
