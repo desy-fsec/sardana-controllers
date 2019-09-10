@@ -1,15 +1,18 @@
 import math
 import taurus
+import PyTango
 
 from sardana import pool
 from sardana.pool import PoolUtil
 from sardana.pool.controller import PseudoMotorController
 
+# TODO: constants should be accessed from bl13_constants module
 from scipy.constants import physical_constants
 
 import undulator
 import mono
 import diftab
+
 
 class MonoEnergyEPMController(PseudoMotorController):
     """ This controller provides E as a function of theta."""
@@ -18,25 +21,12 @@ class MonoEnergyEPMController(PseudoMotorController):
     motor_roles = ('theta',)
 
     axis_attributes = {'dspacing':
-                           {'Type':'PyTango.DevDouble',
-                            'R/W Type':'PyTango.READ',
-                            'DefaultValue':3.12542188}}
-
-    #class_prop = { 'temp_tgattr':{'Type':'PyTango.DevString', 'Description':'TangoAttribute for temperature d-spacing fine tuning'},
-    #               'phi_0_tgattr':{'Type':'PyTango.DevString', 'Description':'TangoAttribute for temperature d-spacing fine tuning'},
-    #               'psi_0_tgattr':{'Type':'PyTango.DevString', 'Description':'TangoAttribute for temperature d-spacing fine tuning'}}
-
+                           {'Type': 'PyTango.DevDouble',
+                            'R/W Type': 'PyTango.READ',
+                            'DefaultValue': 3.12542188}}
 
     def __init__(self, inst, props, *args, **kwargs):
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
-
-        ## Check properties
-        #if not hasattr(self, 'temp_tgattr'):
-        #    self.temp_tgattr = None
-        #if not hasattr(self, 'phi_0_tgattr'):
-        #    self.phi_0_tgattr = 0
-        #if not hasattr(self, 'psi_0_tgattr'):
-        #    self.psi_0_tgattr = 0
 
         # Vertical inclination of the undulator x-ray beam (in urad)
         self.phi_0 = 0
@@ -49,24 +39,25 @@ class MonoEnergyEPMController(PseudoMotorController):
         # 120506 Take into account energy calibration
         e_pm = mono.Ecorr(e_pm, 'mono')
 
-        hcva = physical_constants['inverse meter-electron volt relationship'][0]*1e7
-        wavelength_pm = hcva/e_pm
+        hcva = physical_constants['inverse meter-electron volt relationship'][
+                   0] * 1e7
+        wavelength_pm = hcva / e_pm
         phi_0_rad = self.phi_0 * 1e6
 
         d = self.calc_d_spacing_with_temp()
 
-        theta_minus_phi_0_rad = math.asin(wavelength_pm/(2 * d))
+        theta_minus_phi_0_rad = math.asin(wavelength_pm / (2 * d))
         theta_rad = theta_minus_phi_0_rad + phi_0_rad
-        theta = theta_rad * (180/math.pi)
+        theta = theta_rad * (180 / math.pi)
 
         return theta
 
     def CalcPseudo(self, index, physicals, curr_pseudos):
         theta, = physicals
-
-        hcva = physical_constants['inverse meter-electron volt relationship'][0]*1e7
+        hcva = physical_constants['inverse meter-electron volt relationship'][
+                   0] * 1e7
         d = self.calc_d_spacing_with_temp()
-        theta_rad = theta * (math.pi/180)
+        theta_rad = theta * (math.pi / 180)
         phi_0_rad = self.phi_0 * 1e6
         wavelength_pm = 2 * d * math.sin(theta_rad - phi_0_rad)
         e_pm = hcva / wavelength_pm
@@ -83,8 +74,9 @@ class MonoEnergyEPMController(PseudoMotorController):
             return self.calc_d_spacing_with_temp()
 
     def calc_d_spacing_with_temp(self):
-        #fake_temp = 273.15
-        mono_temp_C = taurus.Attribute("bl13/ct/eps-plc-01/mono_T4").read().value
+        # fake_temp = 273.15
+        mono_temp_C = taurus.Attribute(
+            "bl13/ct/eps-plc-01/mono_T4").read().value
         mono_temp_K = mono_temp_C + 273.15
         d = mono.d_spacing(mono_temp_K)
         return d
@@ -102,43 +94,43 @@ class MonoEnergyWavelengthPMController(PseudoMotorController):
     def CalcPhysical(self, index, pseudos, curr_physicals):
         wavelength_pm, = pseudos
 
-        hcva = physical_constants['inverse meter-electron volt relationship'][0]*1e7
+        hcva = physical_constants['inverse meter-electron volt relationship'][
+                   0] * 1e7
         e_pm = hcva / wavelength_pm
         return e_pm
 
     def CalcPseudo(self, index, physicals, curr_pseudos):
         e, = physicals
 
-        hcva = physical_constants['inverse meter-electron volt relationship'][0]*1e7
-        wavelength_pm = hcva/e
+        hcva = physical_constants['inverse meter-electron volt relationship'][
+                   0] * 1e7
+        wavelength_pm = hcva / e
         return wavelength_pm
-
 
 
 class MonoEugapPMController(PseudoMotorController):
     """ This controller provides Eugap as a function of E and ugap."""
 
     pseudo_motor_roles = ('Eugap',)
-    motor_roles = ('E','ugap')
+    motor_roles = ('E', 'ugap')
 
-    axis_attributes = {'tune':{'Type':'PyTango.DevDouble',
-                               'R/W Type':'PyTango.READ_WRITE',
-                               'DefaultValue':0.5},
-                       'harmonic':{'Type':'PyTango.DevLong',
-                                   'R/W Type':'PyTango.READ_WRITE',
-                                   'DefaultValue':7},
-                       'harmonicAutoSet':{'Type':bool,
-                                          'R/W Type':'PyTango.READ_WRITE',
-                                          'DefaultValue':False},
+    axis_attributes = {'tune': {'Type': 'PyTango.DevDouble',
+                                'R/W Type': 'PyTango.READ_WRITE',
+                                'DefaultValue': 0.5},
+                       'harmonic': {'Type': 'PyTango.DevLong',
+                                    'R/W Type': 'PyTango.READ_WRITE',
+                                    'DefaultValue': 7},
+                       'harmonicAutoSet': {'Type': bool,
+                                           'R/W Type': 'PyTango.READ_WRITE',
+                                           'DefaultValue': False},
                        }
-
 
     def __init__(self, inst, props, *args, **kwargs):
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
         self.tune = 0.5
         self.harmonic = 7
         self.harmonicAutoSet = False
-        
+
     def CalcPhysical(self, index, pseudos, curr_physicals):
         Eugap, = pseudos
         # New version of the library allows automatic change of the harmonic
@@ -177,7 +169,6 @@ class MonoEugapPMController(PseudoMotorController):
             return self.harmonic
         elif par == 'harmonicautoset':
             return self.harmonicAutoSet
-
 
 
 class MonoEalignPMController(PseudoMotorController):
@@ -337,7 +328,6 @@ class MonoEalignPMController(PseudoMotorController):
 
 
 class PitStrokePMController(PseudoMotorController):
-
     pseudo_motor_roles = ('pitang',)
     motor_roles = ('pitstroke',)
 
@@ -358,7 +348,6 @@ class PitStrokePMController(PseudoMotorController):
 
 
 class FaPitStrokePMController(PseudoMotorController):
-
     pseudo_motor_roles = ('fapitang',)
     motor_roles = ('fapitstroke',)
 
@@ -377,6 +366,7 @@ class FaPitStrokePMController(PseudoMotorController):
         fapitang = 0.106028 * fapitstroke
         return fapitang
 
+
 if __name__ == '__main__':
     """ Jordi unit tests info:
         5 keV ~ 23 deg
@@ -385,19 +375,18 @@ if __name__ == '__main__':
 
         Regarding wavelength, 12.658 keV should correspond to 0.979 A
         This is OK, in calc_all_pseudo: e = 12.39841 / wavelength_pm
-        
+
     """
     pass
     egy_ctrl = MonoEnergyEPMController('a_name', {})
     egy_ctrl.name = 'a_name'
-    
+
     tests = [(5, 23), (12.4, 9), (21, 5)]
- 
+
     for test in tests:
         bragg, e = test
- 
-        calc_bragg = egy_ctrl.CalcAllPhysical([e],[bragg])
-        calc_e = egy_ctrl.CalcAllPseudo([bragg],[e])
- 
 
-        print '\n',test,'->',calc_bragg,',',calc_e,'\n'
+        calc_bragg = egy_ctrl.CalcAllPhysical([e], [bragg])
+        calc_e = egy_ctrl.CalcAllPseudo([bragg], [e])
+
+        print '\n', test, '->', calc_bragg, ',', calc_e, '\n'
