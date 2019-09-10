@@ -181,69 +181,159 @@ class MonoEugapPMController(PseudoMotorController):
 
 
 class MonoEalignPMController(PseudoMotorController):
-    """ This controller provides Eugap as a function of E and ugap.
-    In spock can be created with:
-    %defctrl MonoEalignPMController oh_monoealignpm_ctrl Ealign=Ealign Eugap=Eugap diftabx=diftabx diftabz=diftabz EugapName Eugap
+    """ This controller provides Ealign as a function of Eugap. It
+    calculates the corresponding stripes for the vertical and horizontal
+    focusing mirrors according to the energy selected and calculates the
+    corrections for the position of the diffraction table. This corrections
+    provide the correct alignment of the diffraction table due to an energy
+    change. The automatic movement of the stripes and the application of the
+    table corrections due to a change on the stripes can be selected by the
+    controller properties.
     """
 
     pseudo_motor_roles = ('Ealign',)
-    motor_roles = ('Eugap', 'diftabx', 'diftabz')
+    motor_roles = ('Eugap', 'diftabx', 'diftabz', 'vfmx', 'hfmx')
 
-    class_prop = { 'EugapName':{'Type':'PyTango.DevString', 'Description':'Eugap motor name.'}}
+    class_prop = {'EugapName': {'Type': 'PyTango.DevString',
+                                'Description': 'Eugap motor name.'},
+                  'VfmIorName': {'Type': 'PyTango.DevString',
+                                 'Description': 'vfm ioregiter name.'},
+                  'HfmIorName': {'Type': 'PyTango.DevString',
+                                 'Description': 'hfm ioregister name.'}
+                  }
 
-    axis_attributes = {'diftabxCorrection':{'Type':bool,
-                                            'R/W Type':'PyTango.READ_WRITE',
-                                            'DefaultValue':False},
-                       'diftabzCorrection':{'Type':bool,
-                                            'R/W Type':'PyTango.READ_WRITE',
-                                            'DefaultValue':False},
+    axis_attributes = {'DiftabxCorrection': {'Type': bool,
+                                             'R/W Type': 'PyTango.READ_WRITE',
+                                             'DefaultValue': False},
+                       'DiftabzCorrection': {'Type': bool,
+                                             'R/W Type': 'PyTango.READ_WRITE',
+                                             'DefaultValue': False},
+                       'StripeChange': {'Type': bool,
+                                        'R/W Type': 'PyTango.READ_WRITE',
+                                        'DefaultValue': False},
+                       'StripeCorrection': {'Type': bool,
+                                            'R/W Type': 'PyTango.READ_WRITE',
+                                            'DefaultValue': False},
                        }
 
     def __init__(self, inst, props, *args, **kwargs):
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
-        self.eugap_motor =  PoolUtil().get_motor(self.inst_name, self.EugapName)
-        self.diftabxCorrection = False
-        self.diftabzCorrection = False
-        
+        self.eugap_motor = PyTango.DeviceProxy(self.EugapName)
+        self.vfmior = PyTango.DeviceProxy(self.VfmIorName)
+        self.hfmior = PyTango.DeviceProxy(self.HfmIorName)
+
     def CalcPhysical(self, index, pseudos, curr_physicals):
         Ealign, = pseudos
-        Eugap, diftabx, diftabz = curr_physicals
+        Eugap, diftabx, diftabz, vfmx, hfmx = curr_physicals
         physical_role = self.motor_roles[index - 1]
-
         harmonic = self.eugap_motor.harmonic
-        diftab_shifts_calc = diftab.getdiftab_E(E_curr=Eugap, E_final=Ealign, harmonic=harmonic)
-        diftabx_shift, diftabz_shift, diftabx_stripe_RhIr, diftabz_stripe_RhIr = diftab_shifts_calc
 
+        # Get current values for both stripes (ioregisters)
+        vfmior_pos = self.vfmior.value
+        hfmior_pos = self.hfmior.value
+
+        # 1.1 - Calculate corrections due to energy change
+        self._log.info('Calculating corrections due to energy change (E).')
+        diftabx_shift_e, diftabz_shift_e = diftab.getdiftabcorr_E(
+            e_curr=Eugap, e_final=Ealign, harmonic=harmonic)
+
+        # 1.2 - Applying corrections due to energy change
+        actionx = 'SKIPPED'
+        actionz = 'SKIPPED'
+
+        if self.DiftabxCorrection:
+            diftabx += diftabx_shift_e
+            actionx = 'applied'
+
+        if self.DiftabzCorrection:
+            diftabz += diftabz_shift_e
+            actionz = 'applied'
+
+        self._log.info('diftabx shift (E) = %8.6f, %s!' % (diftabx_shift_e,
+                                                           actionx))
+        self._log.info('diftabz shift (E) = %8.6f, %s!' % (diftabz_shift_e,
+                                                           actionz))
+
+        # if we want to change automatically the stripe positions:
+        if self.StripeChange:
+            self._log.info('Calculating corrections due to stripe change (S).')
+            diftabx_shift_s, diftabz_shift_s, ior_shift = \
+                diftab.getdiftabcorr_S(e_curr=Eugap, e_final=Ealign)
+
+            if ior_shift == 0:
+                self._log.info(
+                    'This change on energy does not require changing '
+                    'the stripes.')
+            else:
+                action = 'SKIPPED'
+                if self.StripeCorrection:
+                    diftabx += diftabx_shift_s
+                    diftabz += diftabz_shift_s
+                    action = 'applied'
+
+                self._log.info(
+                    'diftabx shift (S) = %8.6f, %s!' % (diftabx_shift_s,
+                                                        action))
+                self._log.info(
+                    'diftabz shift (S) = %8.6f, %s!' % (diftabz_shift_s,
+                                                        action))
+                # ATTENTION: vertical mirror is physically inverted!
+                vfmior_pos -= ior_shift
+                hfmior_pos += ior_shift
+
+                vlabels = self.vfmior.labels
+                hlabels = self.hfmior.labels
+                vlabel = vlabels[:vlabels.find(':%s' % vfmior_pos)].split(' ')[
+                    -1]
+                hlabel = hlabels[:hlabels.find(':%s' % hfmior_pos)].split(' ')[
+                    -1]
+
+                vfmx = eval(self.vfmior.calibration)[vfmior_pos - 1][1]
+                hfmx = eval(self.hfmior.calibration)[hfmior_pos - 1][1]
+                self._log.info('stripe %s (index = %s)' % (vlabel, vfmior_pos))
+                self._log.info('new vfmx position = %s' % vfmx)
+                self._log.info('stripe %s (index = %s)' % (hlabel, hfmior_pos))
+                self._log.info('new hfmx position = %s' % hfmx)
+        else:
+            self._log.warning('Auto stripe-change DISABLED:')
+
+        # return pseudo values according to role
         if physical_role == 'Eugap':
             return Ealign
         elif physical_role == 'diftabx':
-            if self.diftabxCorrection:
-                return diftabx + diftabx_shift
-            else:
-                return diftabx
+            return diftabx
         elif physical_role == 'diftabz':
-            if self.diftabzCorrection:
-                return diftabz + diftabz_shift
-            else:
-                return diftabz
+            return diftabz
+        elif physical_role == 'vfmx':
+            return vfmx
+        elif physical_role == 'hfmx':
+            return hfmx
 
     def CalcPseudo(self, index, physicals, curr_pseudos):
-        Eugap, diftabx, diftabz = physicals
+        Eugap, diftabx, diftabz, vfm, hfm = physicals
         return Eugap
 
     def SetAxisExtraPar(self, axis, name, value):
         par = name.lower()
         if par == 'diftabxcorrection':
-            self.diftabxCorrection = value
+            self.DiftabxCorrection = value
         elif par == 'diftabzcorrection':
-            self.diftabzCorrection = value
+            self.DiftabzCorrection = value
+        elif par == 'stripechange':
+            self.StripeChange = value
+        elif par == 'stripecorrection':
+            self.StripeCorrection = value
 
     def GetAxisExtraPar(self, axis, name):
         par = name.lower()
         if par == 'diftabxcorrection':
-            return self.diftabxCorrection
+            return self.DiftabxCorrection
         elif par == 'diftabzcorrection':
-            return self.diftabzCorrection
+            return self.DiftabzCorrection
+        elif par == 'stripechange':
+            return self.StripeChange
+        elif par == 'stripecorrection':
+            return self.StripeCorrection
 
 
 class PitStrokePMController(PseudoMotorController):
