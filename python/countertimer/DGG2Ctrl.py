@@ -1,4 +1,4 @@
-#
+# 
 # 4.9.2019 TN modified ReadOne() to use the elapsed time trick
 #
 import PyTango
@@ -104,6 +104,14 @@ class DGG2Ctrl(CounterTimerController):
 
     def ReadOne(self,ind):
          if self.device_available[ind-1] == 1:
+             v = None
+             try:
+                 sample_time = self.proxy[ind-1].read_attribute("SampleTime").value
+                 remaining_time = self.proxy[ind-1].read_attribute("RemainingTime").value
+                 v = sample_time - remaining_time
+             except:
+                 self.intern_sta[ind - 1] = State.Fault
+                 return v              
              now = time.time()
              if self._start_time != None:
                  elapsed_time = now - self._start_time
@@ -113,9 +121,6 @@ class DGG2Ctrl(CounterTimerController):
                  self.intern_sta[ind - 1] = State.Moving
              else:
                  self.intern_sta[ind -1 ] = self.proxy[ind-1].command_inout("State")
-             sample_time = self.proxy[ind-1].read_attribute("SampleTime").value
-             remaining_time = self.proxy[ind-1].read_attribute("RemainingTime").value
-             v = sample_time - remaining_time
              return  v
 	
     def AbortOne(self,ind):

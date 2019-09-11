@@ -99,6 +99,12 @@ class SIS3820Ctrl(CounterTimerController):
 
     def ReadOne(self,ind):
         if self.device_available[ind-1] == 1:
+            value = None
+            try:
+                value = self.proxy[ind-1].read_attribute("Counts").value
+            except:
+                self.intern_sta[ind - 1] = State.Fault
+                return value                
             now = time.time()
             if self._start_time != None:
                 elapsed_time = now - self._start_time
@@ -108,7 +114,6 @@ class SIS3820Ctrl(CounterTimerController):
                 self.intern_sta[ind - 1] = State.Moving
             else:
                 self.intern_sta[ind -1] = self.proxy[ind-1].command_inout("State")
-            value = self.proxy[ind-1].read_attribute("Counts").value
             return value
 	
     def AbortOne(self,ind):
