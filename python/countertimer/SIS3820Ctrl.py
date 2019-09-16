@@ -49,17 +49,16 @@ class SIS3820Ctrl(CounterTimerController):
         self.tango_device = []
         self.proxy = []
         self.device_available = []
+        self.intern_sta = []
 	for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
             self.max_device =  self.max_device + 1
+            self.intern_sta.append(State.On)
         self.started = False
-        self.dft_Offset = 0
-        self.Offset = []
         self._integ_time = None
         self._start_time = None
-        self.intern_sta = []
         
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
@@ -73,8 +72,7 @@ class SIS3820Ctrl(CounterTimerController):
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        self.Offset.append(self.dft_Offset)
-	self.intern_sta.append(State.On)
+        
         
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
