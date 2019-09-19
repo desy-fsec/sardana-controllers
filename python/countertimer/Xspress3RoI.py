@@ -92,13 +92,7 @@ class Xspress3RoIsCtrl(CounterTimerController):
     
     def LoadOne(self, axis, value):
         if self.debugFlag: print "Xspress3RoIsCtrl.LoadOne",self.inst_name,"axis", axis
-        idx = axis - 1
-        if value > 0:
-            self.integ_time = value
-            self.monitor_count = None
-        else:
-            self.integ_time = None
-            self.monitor_count = -value
+        self.proxy.ExposureTime = value
         
     def PreReadAll(self):
         pass
