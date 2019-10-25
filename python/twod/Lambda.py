@@ -150,8 +150,11 @@ class LambdaCtrl(TwoDController):
         
     def AbortOne(self,ind):
 #        print "PYTHON -> LambdaCtrl/",self.inst_name,": In AbortOne method for index",ind
-        self.proxy[ind-1].command_inout("StopAcq")
-
+        try:
+            self.proxy[ind-1].command_inout("StopAcq")
+        except:
+            print "Not able to stop lambda if in ON state"
+            
     def LoadOne(self, ind, value):
         self.proxy[ind-1].write_attribute("ShutterTime",value*1000) # Shutter Time is in ms
 
