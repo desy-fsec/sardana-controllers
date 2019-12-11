@@ -105,7 +105,7 @@ class Xspress3RoIsCtrl(CounterTimerController):
 
     def ReadOne(self,ind):
         if self.debugFlag: print "Xspress3RoIsCtrl.ReadOne",self.inst_name,"index",ind
-        attr_name = "DataCh" + str(ind-1)
+        attr_name = "DataCh" + str(self.channel[ind-1])
         data = self.proxy.read_attribute(attr_name).value
         self.value[ind - 1] = 0
         for j in range(self.RoIs_start[ind -1], self.RoIs_end[ind - 1] + 1):
