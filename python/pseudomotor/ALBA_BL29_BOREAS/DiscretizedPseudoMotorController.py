@@ -108,7 +108,7 @@ class DiscretizedPseudoMotorController(PseudoMotorController):
             Access: DataAccess.ReadWrite,
         },
         USER_IDX_OFFSET: {
-            Type: DataType.Double,
+            Type: DataType.Integer,
             Description: 'Some users requested the pseudo motor values to'
                 'start in 1 instead of 0: this offset allows to treat index 0'
                 'as 0+user_idx_offset',
