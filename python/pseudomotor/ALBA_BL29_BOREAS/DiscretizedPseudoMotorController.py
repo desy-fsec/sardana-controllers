@@ -28,7 +28,7 @@
 
 import json
 
-from sardana import DataAccess
+from sardana import DataAccess, DataType
 from sardana.pool.controller import PseudoMotorController
 from sardana.pool.controller import Type, Access, Description
 
@@ -93,14 +93,14 @@ class DiscretizedPseudoMotorController(PseudoMotorController):
 
     axis_attributes = {
         CALIBRATION: {
-            Type: str,
+            Type: DataType.String,
             Description:
                 'List of lists of triples containing [min,cal,max] or None if'
                 ' the corresponding motor is to be ignored',
             Access: DataAccess.ReadWrite,
         },
         LABELS: {
-            Type: str,
+            Type: DataType.String,
             Description:
                 'List of strings: each string is the description of the '
                 'corresponding physical motor positions combination defined in'
@@ -108,7 +108,7 @@ class DiscretizedPseudoMotorController(PseudoMotorController):
             Access: DataAccess.ReadWrite,
         },
         USER_IDX_OFFSET: {
-            Type: int,
+            Type: DataType.Double,
             Description: 'Some users requested the pseudo motor values to'
                 'start in 1 instead of 0: this offset allows to treat index 0'
                 'as 0+user_idx_offset',
@@ -174,11 +174,15 @@ class DiscretizedPseudoMotorController(PseudoMotorController):
             pass
 
     def SetAxisExtraPar(self, axis, name, value):
+        if type(value) is str and len(value) > 0:
+            values = json.loads(value)
+        else:
+            values = []
         name = name.lower()
         if name == self.CALIBRATION:
-            self.calibrations = json.loads(value)
+            self.calibrations = values
         elif name == self.LABELS:
-            self.labels = json.loads(value)
+            self.labels = values
         elif name == self.USER_IDX_OFFSET:
             self.user_idx_offset = value
         else:
