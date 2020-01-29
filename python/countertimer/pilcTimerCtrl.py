@@ -36,7 +36,7 @@ class pilcTimerCtrl(CounterTimerController):
     #############
 
     def __del__(self):
-        print "PYTHON -> pilcTimerCtrl/",self.inst_name,": dying"
+        print("PYTHON -> pilcTimerCtrl/%s dying" % self.inst_name)
 
 
     ##############
@@ -84,7 +84,7 @@ class pilcTimerCtrl(CounterTimerController):
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
 
         proxy_name = self.tango_device[ind - 1]

@@ -38,10 +38,6 @@ class HasyOneDCtrl(OneDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
-        self.debugFlag = False
-        if os.isatty(1):
-            self.debugFlag = True
-        if self.debugFlag: print "HasyOneDCtrl.__init__, inst ",self.inst_name,"RootDeviceName",self.RootDeviceName
         self.ct_name = "HasyOneDCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
@@ -110,7 +106,6 @@ class HasyOneDCtrl(OneDController):
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "HasyOneDCtrl: False index %d max %d" % (ind, self.max_device)
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -124,27 +119,26 @@ class HasyOneDCtrl(OneDController):
         if hasattr(self.proxy[ind-1], 'Spectrum') and hasattr(self.proxy[ind-1], 'McaLength'):
             self.flagIsXIA[ind-1] = True
         if hasattr(self.proxy[ind-1], 'ADCxInputInvert'):
-            print "ADCxInputInvert"
+            print("ADCxInputInvert")
         if hasattr(self.proxy[ind-1], 'TriggerPeakingTime'):
-            print 'TriggerPeakingTime'
+            print('TriggerPeakingTime')
         if hasattr(self.proxy[ind-1], 'ADCxInputInvert'):
             self.flagIsSIS3302[ind-1] = True
         if hasattr(self.proxy[ind-1], 'HighSpeedMode'):
             self.flagIsKromo[ind-1] = True
         if hasattr(self.proxy[ind-1], 'intTime'):
             self.flagIsAvantes[ind-1] = True
-        if self.debugFlag: print "HasyOneDCtrl.AddDevice ",self.inst_name,"index",ind, "isMCA8715", self.flagIsMCA8715[ind-1], "isXIA", self.flagIsXIA[ind-1], "isSIS3302", self.flagIsSIS3302[ind-1], " isAvantes ", self.flagIsAvantes[ind-1]
+        if self.debugFlag: print("HasyOneDCtrl.AddDevice %s index %d isMCA8715 %d isXIA %d isSIS3302 %d isAvantes %d " % (self.inst_name,ind,self.flagIsMCA8715[ind-1], self.flagIsXIA[ind-1],self.flagIsSIS3302[ind-1], self.flagIsAvantes[ind-1]))
 
        
     def DeleteDevice(self,ind):
-        if self.debugFlag: print "HasyOneDCtrl.DeleteDevice",self.inst_name,"index",ind
+        print("HasyOneDCtrl.DeleteDevice % s index %d " % (self.inst_name,ind))
         OneDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
         
     def StateOne(self,ind):
-        #if self.debugFlag: print "HasyOneDCtrl.StatOne",self.inst_name,"index",ind
         if  self.device_available[ind-1] == 1: 
             if self.acqStartTime != None: #acquisition was started
                 now = time.time()
@@ -172,7 +166,6 @@ class HasyOneDCtrl(OneDController):
         return tup
     
     def LoadOne(self, ind, value):
-        if self.debugFlag: print "HasyOneDCtrl.LoadOne",self.inst_name,"index", ind
         if self.flagIsKromo[ind - 1] == True:
              self.proxy[ind-1].write_attribute("ExpositionTime",value)
         if self.flagIsAvantes[ind - 1] == True:
@@ -187,19 +180,16 @@ class HasyOneDCtrl(OneDController):
         
 
     def PreReadAll(self):
-        if self.debugFlag: print "HasyOneDCtrl.PreReadAll",self.inst_name
         pass
 
     def PreReadOne(self,ind):
-        if self.debugFlag: print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
+        if self.debugFlag: print("HasyOneDCtrl.PreReadOne %s index %d " % (self.inst_name,ind))
             
 
     def ReadAll(self):
-        if self.debugFlag: print "HasyOneDCtrl.ReadAll",self.inst_name
+        if self.debugFlag: print("HasyOneDCtrl.ReadAll %s" % self.inst_name)
 
     def ReadOne(self,ind):
-        print "HasyOneDCtrl.PreReadOne",self.inst_name,"index",ind
-        if self.debugFlag: print "HasyOneDCtrl.ReadOne",self.inst_name,"index",ind
         if self.flagIsXIA[ind-1]:
             data = self.proxy[ind-1].Spectrum
         elif self.flagIsAvantes[ind-1]:
@@ -213,14 +203,12 @@ class HasyOneDCtrl(OneDController):
         return data
 
     def PreStartAll(self):
-        if self.debugFlag: print "HasyOneDCtrl.PreStartAll",self.inst_name
         pass
 
     def PreStartOne(self,ind, value):
         return True
         
     def StartOne(self,ind, value):
-        if self.debugFlag: print "HasyOneDCtrl.StartOne",self.inst_name,"index",ind
         if self.flagIsMCA8715[ind-1]:
             self.proxy[ind-1].BankId = 0
         # the state may be ON but one bank can be active
@@ -239,7 +227,6 @@ class HasyOneDCtrl(OneDController):
             self.acqStartTime = time.time()
                 
     def AbortOne(self,ind):
-        if self.debugFlag: print "HasyOneDCtrl.AbortOne",self.inst_name,"index",ind
         if self.flagIsKromo[ind-1] == False and self.flagIsAvantes[ind-1] == False:
             self.proxy[ind-1].command_inout("Stop")
             if self.flagIsXIA[ind-1] == 0:
@@ -249,13 +236,12 @@ class HasyOneDCtrl(OneDController):
 
        
     def GetPar(self, ind, par_name):
-        if self.debugFlag: print "HasyOneDCtrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
+        pass
 
     def SetPar(self,ind,par_name,value):
         pass
     
     def GetExtraAttributePar(self,ind,name):
-        if self.debugFlag: print "HasyOneDCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
         if name == "TangoDevice":
             if self.device_available[ind-1]:
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
@@ -298,7 +284,6 @@ class HasyOneDCtrl(OneDController):
             return self.Counts_RoI4[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
-        if self.debugFlag: print "HasyOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if self.device_available[ind-1]:
             if name == "DataLength":
                 if self.flagIsKromo[ind-1] == False and self.flagIsAvantes[ind-1] == False:
@@ -328,7 +313,7 @@ class HasyOneDCtrl(OneDController):
         return "Nothing sent"
         
     def __del__(self):
-        if self.debugFlag: print "HasyOneDCtrl/",self.inst_name,": Aarrrrrg, I am dying"
+        print("HasyOneDCtrl %s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

@@ -28,7 +28,6 @@ class EigerDectrisCtrl(TwoDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "EigerDectrisCtrl/" + self.inst_name
         if self.TangoHost == None:
@@ -42,12 +41,12 @@ class EigerDectrisCtrl(TwoDController):
                 self.port = int( lst[1])                           
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
-	self.devices = self.db.get_device_exported(name_dev_ask)
+        self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
         self.device_available = []
-	for name in self.devices.value_string:
+        for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
@@ -67,7 +66,7 @@ class EigerDectrisCtrl(TwoDController):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -174,7 +173,7 @@ class EigerDectrisCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": dying"
+        print("PYTHON -> EigerDectrisCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

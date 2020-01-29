@@ -118,5 +118,5 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> PSCameraVHRRoIsCtrl/",self.inst_name,": dying"
+        print("PYTHON -> PSCameraVHRRoIsCtrl/%s dying" % self.inst_name)
 

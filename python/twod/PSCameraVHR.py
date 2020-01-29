@@ -38,12 +38,12 @@ class PSCameraVHRCtrl(TwoDController):
                 self.port = int( lst[1])                           
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
-	self.devices = self.db.get_device_exported(name_dev_ask)
+        self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
         self.device_available = []
-	for name in self.devices.value_string:
+        for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
@@ -54,7 +54,7 @@ class PSCameraVHRCtrl(TwoDController):
     def AddDevice(self,ind):
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -125,7 +125,7 @@ class PSCameraVHRCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> PSCameraVHRCtrl/",self.inst_name,": dying"
+        print("PYTHON -> PSCameraVHRCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

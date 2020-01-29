@@ -122,5 +122,5 @@ class KromoRoIsCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> KromoRoIsCtrl/",self.inst_name,": dying"
+        print("PYTHON -> KromoRoIsCtrl/%s dying" % self.inst_name)
 

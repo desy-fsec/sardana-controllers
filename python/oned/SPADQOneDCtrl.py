@@ -39,10 +39,6 @@ class SPADQOneDCtrl(OneDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
-        self.debugFlag = False
-        if os.isatty(1):
-            self.debugFlag = True
-        if self.debugFlag: print "SPADQOneDCtrl.__init__, inst ",self.inst_name,"RootDeviceName",self.RootDeviceName
         self.ct_name = "SPADQOneDCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
@@ -103,7 +99,6 @@ class SPADQOneDCtrl(OneDController):
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "SPADQOneDCtrl: False index %d max %d" % (ind, self.max_device)
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -115,15 +110,12 @@ class SPADQOneDCtrl(OneDController):
 
        
     def DeleteDevice(self,ind):
-        if self.debugFlag: print "SPADQOneDCtrl.DeleteDevice",self.inst_name,"index",ind
         OneDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
         
     def StateOne(self,ind):
-        if self.debugFlag:
-            print "SPADQOneDCtrl.StatOne",self.inst_name,"index",ind
         if self.device_available[ind-1] == True:
             sta = self.proxy[ind-1].command_inout("State")
             status = self.proxy[ind-1].command_inout("Status")
@@ -135,7 +127,6 @@ class SPADQOneDCtrl(OneDController):
         return tup
     
     def LoadOne(self, ind, value):
-        if self.debugFlag: print "SPADQOneDCtrl.LoadOne",self.inst_name,"index", ind
         if value > 0:
             self.integ_time = value
             self.monitor_count = None
@@ -146,19 +137,16 @@ class SPADQOneDCtrl(OneDController):
         
 
     def PreReadAll(self):
-        if self.debugFlag: print "SPADQOneDCtrl.PreReadAll",self.inst_name
         pass
 
     def PreReadOne(self,ind):
-        if self.debugFlag: print "SPADQOneDCtrl.PreReadOne",self.inst_name,"index",ind
+        pass
             
 
     def ReadAll(self):
-        if self.debugFlag: print "SPADQOneDCtrl.ReadAll",self.inst_name
+        pass
 
-    def ReadOne(self,ind):  
-        if self.debugFlag:
-            print "SPADQOneDCtrl.ReadOne",self.inst_name,"index",ind
+    def ReadOne(self,ind):
         data = self.proxy[ind-1].read_attribute(self.SpectrumName[ind-1]).value
         self.Counts_RoI1[ind-1] = data[self.RoI1_start[ind-1]:self.RoI1_end[ind-1]].sum()
         self.Counts_RoI2[ind-1] = data[self.RoI2_start[ind-1]:self.RoI2_end[ind-1]].sum()
@@ -167,14 +155,12 @@ class SPADQOneDCtrl(OneDController):
         return data
 
     def PreStartAll(self):
-        if self.debugFlag: print "SPADQOneDCtrl.PreStartAll",self.inst_name
         pass
 
     def PreStartOne(self,ind, value):
         return True
         
     def StartOne(self,ind, value):
-        if self.debugFlag: print "SPADQOneDCtrl.StartOne",self.inst_name,"index",ind
         sta = self.proxy[ind-1].command_inout("State")
         if sta == PyTango.DevState.ON:
             self.proxy[ind-1].command_inout("StartAcquisition")
@@ -182,18 +168,16 @@ class SPADQOneDCtrl(OneDController):
             self.acqStartTime = time.time()
                 
     def AbortOne(self,ind):
-        if self.debugFlag: print "SPADQOneDCtrl.AbortOne",self.inst_name,"index",ind
         self.proxy[ind-1].command_inout("StopAcquisition")
 
        
     def GetPar(self, ind, par_name):
-        if self.debugFlag: print "SPADQOneDCtrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
+        pass
 
     def SetPar(self,ind,par_name,value):
         pass
     
     def GetExtraAttributePar(self,ind,name):
-        if self.debugFlag: print "SPADQOneDCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
         if name == "TangoDevice":
             if self.device_available[ind-1]:
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
@@ -240,7 +224,6 @@ class SPADQOneDCtrl(OneDController):
             return self.SpectrumName[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
-        if self.debugFlag: print "SPADQOneDCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if self.device_available[ind-1]:
             if name == "DataLength":
                 if self.flagIsKromo[ind-1] == False and self.flagIsAvantes[ind-1] == False:
@@ -268,11 +251,10 @@ class SPADQOneDCtrl(OneDController):
                 self.SpectrumName[ind-1] = value
 
     def SendToCtrl(self,in_data):
-#        if self.debugFlag: print "Received value =",in_data
         return "Nothing sent"
         
     def __del__(self):
-        if self.debugFlag: print "SPADQOneDCtrl/",self.inst_name,": Aarrrrrg, I am dying"
+        print("SPADQOneDCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

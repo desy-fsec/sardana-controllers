@@ -75,7 +75,7 @@ class VFCADCCtrl(CounterTimerController):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In AddDevice method for index",ind
         CounterTimerController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -128,7 +128,7 @@ class VFCADCCtrl(CounterTimerController):
             self.proxy[ind-1].command_inout("Reset")
             return True
         else:
-            raise RuntimeError,"Ctrl Tango's proxy null!!!"
+            raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
 		
     def StartOneCT(self,ind):
@@ -190,7 +190,7 @@ class VFCADCCtrl(CounterTimerController):
         pass
         
     def __del__(self):
-        print "PYTHON -> VFCADCCtrl/",self.inst_name,": deleted"
+        print("PYTHON -> VFCADCCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

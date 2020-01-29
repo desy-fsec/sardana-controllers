@@ -77,8 +77,7 @@ class HasyMotorCtrl(MotorController):
                 self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
         if self.debugFlag:
-            print "HasyMotorCtrl.__init__, inst", self.inst_name, \
-                "RootDeviceName", self.RootDeviceName
+            print("HasyMotorCtrl.__init__, inst %s RootDeviceName" %  (self.inst_name, self.RootDeviceName))
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
@@ -134,7 +133,7 @@ class HasyMotorCtrl(MotorController):
     def AddDevice(self, ind):
         MotorController.AddDevice(self, ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             self.device_available[ind-1] = 0
             return
         proxy_name = self.tango_device[ind-1]
@@ -143,7 +142,7 @@ class HasyMotorCtrl(MotorController):
         else:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         if self.debugFlag:
-            print "HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind)
+            print("HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind))
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
         
@@ -306,9 +305,9 @@ class HasyMotorCtrl(MotorController):
                     velocity = 1.0
                 if value == 0.0:
                     value = 1.0
-                self.proxy[ind-1].write_attribute(self.attrName_Acceleration[ind-1], long(velocity / value))
+                self.proxy[ind-1].write_attribute(self.attrName_Acceleration[ind-1], int(velocity / value))
             elif name == "base_rate":
-                self.proxy[ind-1].write_attribute("BaseRate", long(value))
+                self.proxy[ind-1].write_attribute("BaseRate", int(value))
             elif name == "velocity":
                 if not self.conversion_included[ind-1]:
                     try:
@@ -386,4 +385,4 @@ class HasyMotorCtrl(MotorController):
         return self.extraparametername
 
     def __del__(self):
-        print "PYTHON -> HasyMotorCtrl/", self.inst_name, ": dying"
+        pass

@@ -44,13 +44,13 @@ class SIS3820Ctrl(CounterTimerController):
                 self.port = int( lst[1])                           
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
-	self.devices = self.db.get_device_exported(name_dev_ask)
+        self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
         self.device_available = []
         self.intern_sta = []
-	for name in self.devices.value_string:
+        for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
@@ -63,7 +63,7 @@ class SIS3820Ctrl(CounterTimerController):
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -115,10 +115,10 @@ class SIS3820Ctrl(CounterTimerController):
             return value
 	
     def AbortOne(self,ind):
-		pass
+        pass
         
     def PreStartAllCT(self):
-		self.wantedCT = []
+        self.wantedCT = []
 
     def PreStartOneCT(self,ind):
         if self.device_available[ind-1] == 1:
@@ -126,7 +126,7 @@ class SIS3820Ctrl(CounterTimerController):
             self.intern_sta[ind-1] = State.Moving
             return True
         else:
-            raise RuntimeError,"Ctrl Tango's proxy null!!!"
+            raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
 		
     def StartOneCT(self,ind):
@@ -159,7 +159,7 @@ class SIS3820Ctrl(CounterTimerController):
         pass
     
     def __del__(self):
-        print "PYTHON -> SIS3820Ctrl/",self.inst_name,": dying"
+        print("PYTHON -> SIS3820Ctrl/%s" % self.inst_name)
 
  
 if __name__ == "__main__":

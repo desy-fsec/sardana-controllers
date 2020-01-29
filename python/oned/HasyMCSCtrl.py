@@ -11,9 +11,6 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-debugFlag = True
-
-
 class HasyMCSCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
@@ -31,10 +28,6 @@ class HasyMCSCtrl(OneDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
-        self.debugFlag = False
-        if os.isatty(1): 
-            self.debugFlag = True
-        if self.debugFlag: print "HasyMCSCtrl.__init__, inst ",self.inst_name,"RootDeviceName",self.RootDeviceName
         self.ct_name = "HasyMCSCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
@@ -71,7 +64,6 @@ class HasyMCSCtrl(OneDController):
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "HasyMCSCtrl: False index %d max %d" % (ind, self.max_device)
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -83,18 +75,15 @@ class HasyMCSCtrl(OneDController):
         self.NbChannels.append(self.dft_NbChannels)
         self.NbAcquisitions.append(self.dft_NbAcquisitions)
         self.Preset.append(self.dft_Preset)
-        if self.debugFlag: print "HasyMCSCtrl.AddDevice ",self.inst_name,"index",ind, "isMCS", self.flagIsMCS[ind-1]
 
        
     def DeleteDevice(self,ind):
-        if self.debugFlag: print "HasyMCSCtrl.DeleteDevice",self.inst_name,"index",ind
         OneDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
         
     def StateOne(self,ind):
-        if self.debugFlag: print "HasyMCSCtrl.StatOne",self.inst_name,"index",ind
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -106,7 +95,6 @@ class HasyMCSCtrl(OneDController):
         return tup
     
     def LoadOne(self, axis, value):
-        if self.debugFlag: print "HasyMCSCtrl.LoadOne",self.inst_name,"axis", axis
         idx = axis - 1
         if value > 0:
             self.integ_time = value
@@ -117,19 +105,15 @@ class HasyMCSCtrl(OneDController):
         
 
     def PreReadAll(self):
-        if self.debugFlag: print "HasyMCSCtrl.PreReadAll",self.inst_name
         pass
 
     def PreReadOne(self,ind):
-        if self.debugFlag: print "HasyMCSCtrl.PreReadOne",self.inst_name,"index",ind
         self.proxy[ind-1].command_inout("ReadMCS")
 
     def ReadAll(self):
-        if self.debugFlag: print "HasyMCSCtrl.ReadAll",self.inst_name
         pass
 
     def ReadOne(self,ind):
-        if self.debugFlag: print "HasyMCSCtrl.ReadOne",self.inst_name,"index",ind
         data = []
         for i in range(0,self.proxy[ind-1].NbAcquisitions):
             for j in range(0,self.proxy[ind-1].NbChannels):
@@ -137,27 +121,24 @@ class HasyMCSCtrl(OneDController):
         return data
 
     def PreStartAll(self):
-        if self.debugFlag: print "HasyMCSCtrl.PreStartAll",self.inst_name
         pass
 
     def PreStartOne(self,ind, value):
         return True
         
     def StartOne(self,ind, value):
-        if self.debugFlag: print "HasyMCSCtrl.StartOne",self.inst_name,"index",ind
         self.proxy[ind-1].command_inout("SetupMCS")
         
     def AbortOne(self,ind):
-        if self.debugFlag: print "HasyMCSCtrl.AbortOne",self.inst_name,"index",ind
+        pass
        
     def GetPar(self, ind, par_name):
-        if self.debugFlag: print "HasyMCSCtrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
+        pass
 
     def SetPar(self,ind,par_name,value):
         pass
     
     def GetExtraAttributePar(self,ind,name):
-        if self.debugFlag: print "HasyMCSCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
         if name == "NbChannels": 
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("NbChannels").value)
@@ -173,7 +154,6 @@ class HasyMCSCtrl(OneDController):
                 return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
-        if self.debugFlag: print "HasyMCSCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if name == "NbChannels":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("NbChannels",value)
@@ -185,11 +165,10 @@ class HasyMCSCtrl(OneDController):
                 self.proxy[ind-1].write_attribute("Preset",value)
 
     def SendToCtrl(self,in_data):
-#        if self.debugFlag: print "Received value =",in_data
         return "Nothing sent"
         
     def __del__(self):
-        if self.debugFlag: print "HasyMCSCtrl/",self.inst_name,": delete"
+        print("HasyMCSCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

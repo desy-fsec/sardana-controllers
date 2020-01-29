@@ -143,5 +143,5 @@ class SIS3302RoisCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> SIS3302RoisCtrl/",self.inst_name,": dying"
+        print("PYTHON -> SIS3302RoisCtrl/%s dying " % self.inst_name)
 

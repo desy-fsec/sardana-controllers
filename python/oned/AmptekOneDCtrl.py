@@ -44,7 +44,7 @@ class AmptekOneDCtrl(OneDController):
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "AmptekOneDCtrl: False index %d max %d" % (ind, self.max_device)
+            print("AmptekOneDCtrl: False index %d max %d" % (ind, self.max_device))
             return
         self.proxy = PyTango.DeviceProxy(self.amptek_device_name)
         self.device_available[ind-1] = True
@@ -67,7 +67,7 @@ class AmptekOneDCtrl(OneDController):
                 self.acqStartTime = None
         try:
             self.sta = self.proxy.State()
-        except PyTango.DevFailed, e:
+        except PyTango.DevFailed as e:
             self.proxy.ClearInputBuffer()
             self.sta = self.proxy.State()
         self.status = self.proxy.Status()

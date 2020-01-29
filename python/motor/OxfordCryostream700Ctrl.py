@@ -46,7 +46,7 @@ class OxfordCryostream700Ctrl(MotorController):
                             float(proxy.read_attribute("RampRate").value)
                         if self.velocity[axis] == 0.0:
                             self.velocity[axis] = 360.0
-                    except Exception, e:
+                    except Exception as e:
                         if raiseOnConnError: 
                             raise e
                         else:
@@ -62,15 +62,15 @@ class OxfordCryostream700Ctrl(MotorController):
         self.delay_timer[axis] = None
 
     def DeleteDevice(self, axis):
-        if self.proxy.has_key(axis):
+        if axis in self.proxy:
             del self.proxy[axis]
-        if self.extra_attributes.has_key(axis):
+        if axis in self.extra_attributes:
             del self.extra_attributes[axis]
-        if self.velocity.has_key(axis):
+        if axis in self.velocity:
             del self.velocity[axis]
-        if self.restarted.has_key(axis):
+        if axis in self.restarted:
             del self.restarted[axis]
-        if self.delay_timer.has_key(axis):
+        if axis in self.delay_timer:
             self.delay_timer[axis].cancel()
             del self.delay_timer[axis]
 
@@ -85,7 +85,7 @@ class OxfordCryostream700Ctrl(MotorController):
                 state = proxy.state()
                 status = proxy.status()
                 phase = proxy.read_attribute("Phase").value
-            except Exception, e:
+            except Exception as e:
                 return DevState.FAULT, str(e), 0
             self.restarted[axis] = [0, 0]
             if state == DevState.RUNNING and phase == "Hold":
@@ -182,7 +182,7 @@ class OxfordCryostream700Ctrl(MotorController):
     def SetExtraAttributePar(self, axis, name, value):
         if name in [TANGO_DEV,]:
             self.extra_attributes[axis][name] = value
-            if self.proxy.has_key(axis):
+            if axis in self.proxy:
                 del self.proxy[axis]
 
     def AbortOne(self, axis):

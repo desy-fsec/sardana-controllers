@@ -134,5 +134,5 @@ class MCAroisCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> MCAroisCtrl/",self.inst_name,": dying"
+        print("PYTHON -> MCAroisCtrl/%s dying" % self.inst_name)
 

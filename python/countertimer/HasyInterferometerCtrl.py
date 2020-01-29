@@ -109,5 +109,5 @@ class HasyInterferometerCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> HasyInterferometerCtrl/",self.inst_name,": dying"
+        print("PYTHON -> HasyInterferometerCtrl/%s dying" % self.inst_name)
 

@@ -29,7 +29,6 @@ class PCOCtrl(TwoDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        print "PYTHON -> TwoDController ctor for instance",inst
 
         self.ct_name = "PCOCtrl/" + self.inst_name
         if self.TangoHost == None:
@@ -43,12 +42,12 @@ class PCOCtrl(TwoDController):
                 self.port = int( lst[1])                           
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
-	self.devices = self.db.get_device_exported(name_dev_ask)
+        self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
         self.device_available = []
-	for name in self.devices.value_string:
+        for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
@@ -69,10 +68,9 @@ class PCOCtrl(TwoDController):
         
         
     def AddDevice(self,ind):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -89,13 +87,11 @@ class PCOCtrl(TwoDController):
         self.FileDir.append(self.dft_FileDir)
         
     def DeleteDevice(self,ind):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
     def StateOne(self,ind):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -111,19 +107,15 @@ class PCOCtrl(TwoDController):
             return tup
 
     def PreReadAll(self):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In PreReadAll method"
         pass
 
     def PreReadOne(self,ind):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In PreReadOne method for index",ind
         pass
 
     def ReadAll(self):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In ReadAll method"
         pass
 
     def ReadOne(self,ind):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In ReadOne method for index",ind
         #The PCO return an Image in type encoded
         while self.proxy[ind-1].state() != PyTango.DevState.ON:
             time.sleep(0.001)
@@ -132,11 +124,9 @@ class PCOCtrl(TwoDController):
             return tmp_value
 
     def PreStartAll(self):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In PreStartAllCT method"
         pass
 		
     def StartOne(self,ind, position=None):
-        print "PYTHON -> PCOCtrl/",self.inst_name,": In StartOneCT method for index",ind
         while self.proxy[ind-1].state() != PyTango.DevState.ON: # Need it because the PCO goes to DISABLE after MOVING
             time.sleep(0.001)
         self.proxy[ind-1].command_inout("StartStandardAcq")
@@ -161,7 +151,6 @@ class PCOCtrl(TwoDController):
                 self.proxy[ind-1].write_attribute("Heigth",value)
 	
     def GetExtraAttributePar(self,ind,name):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "DelayTime":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].read_attribute("DelayTime").value
@@ -186,7 +175,6 @@ class PCOCtrl(TwoDController):
                 return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
-#        print "PYTHON -> PCOCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
         if name == "DelayTime":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("DelayTime",value)
@@ -211,7 +199,7 @@ class PCOCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> PCOCtrl/",self.inst_name,": Aarrrrrg, I am dying"
+        print("PYTHON -> PCOCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

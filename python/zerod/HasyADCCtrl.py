@@ -43,13 +43,13 @@ class HasyADCCtrl(ZeroDController):
                 self.port = int( lst[1])                           
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
-	self.devices = self.db.get_device_exported(name_dev_ask)
+        self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
         self.conversion = []
         self.device_available = []
-	for name in self.devices.value_string:
+        for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
@@ -62,7 +62,7 @@ class HasyADCCtrl(ZeroDController):
 #        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In AddDevice method for index",ind
         ZeroDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -136,7 +136,7 @@ class HasyADCCtrl(ZeroDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> HasyADCCtrl/",self.inst_name,": being deleted"
+        print("PYTHON -> HasyADCCtrl/%s being deleted" % self.inst_name)
 
         
 if __name__ == "__main__":

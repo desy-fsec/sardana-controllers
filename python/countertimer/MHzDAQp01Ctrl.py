@@ -139,5 +139,5 @@ class MHzDAQp01Ctrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> MHzDAQp01CtrlCtrl/",self.inst_name,": dying"
+        print("PYTHON -> MHzDAQp01CtrlCtrl/%s dying" % self.inst_name)
 

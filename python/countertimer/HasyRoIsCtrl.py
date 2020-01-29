@@ -36,10 +36,6 @@ class HasyRoIsCtrl(CounterTimerController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        self.debugFlag = False
-        if os.isatty(1):
-            self.debugFlag = True
-        if self.debugFlag: print "HasyRoIsCtrl.__init__, inst ",self.inst_name,"RootDeviceName",self.RootDeviceName
         self.ct_name = "HasyRoIsCtrl/" + self.inst_name
 
         self.flagIsMCA8715 = False
@@ -78,7 +74,6 @@ class HasyRoIsCtrl(CounterTimerController):
         self.value.append(0)
        
     def DeleteDevice(self,ind):
-        if self.debugFlag: print "HasyRoIsCtrl.DeleteDevice",self.inst_name,"index",ind
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy =  None
         
@@ -100,7 +95,6 @@ class HasyRoIsCtrl(CounterTimerController):
         return tup
     
     def LoadOne(self, axis, value):
-        if self.debugFlag: print "HasyRoIsCtrl.LoadOne",self.inst_name,"axis", axis
         idx = axis - 1
         if value > 0:
             self.integ_time = value
@@ -121,7 +115,6 @@ class HasyRoIsCtrl(CounterTimerController):
         pass
 
     def ReadAll(self):
-        if self.debugFlag: print "HasyRoIsCtrl.ReadAll",self.inst_name
         if self.flagIsXIA:
             data = self.proxy.Spectrum
         else:
@@ -132,7 +125,6 @@ class HasyRoIsCtrl(CounterTimerController):
                 self.value[i] = self.value[i] + data[j]
 
     def ReadOne(self,ind):
-        if self.debugFlag: print "HasyRoIsCtrl.ReadOne",self.inst_name,"index",ind
         return self.value[ind - 1]
 
     def PreStartAll(self):
@@ -158,19 +150,17 @@ class HasyRoIsCtrl(CounterTimerController):
         pass
         
     def AbortOne(self,ind):
-        if self.debugFlag: print "HasyRoIsCtrl.AbortOne",self.inst_name,"index",ind
         self.proxy.command_inout("Stop")
         if self.flagIsXIA == 0:
             self.proxy.command_inout("Read")
 
     def GetPar(self, ind, par_name):
-        if self.debugFlag: print "HasyRoIsCtrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
+        pass
 
     def SetPar(self,ind,par_name,value):
         pass
     
     def GetExtraAttributePar(self,ind,name):
-        if self.debugFlag: print "HasyRoIsCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
@@ -186,7 +176,6 @@ class HasyRoIsCtrl(CounterTimerController):
             return self.RoIs_end[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
-        if self.debugFlag: print "HasyRoIsCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if name == "DataLength":
             if self.flagIsXIA:
                 self.proxy.write_attribute("McaLength",value)
@@ -201,7 +190,7 @@ class HasyRoIsCtrl(CounterTimerController):
         return "Nothing sent"
         
     def __del__(self):
-        if self.debugFlag: print "HasyRoIsCtrl/",self.inst_name,": dying"
+        print("HasyRoIsCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

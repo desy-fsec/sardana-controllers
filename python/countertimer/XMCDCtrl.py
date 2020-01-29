@@ -132,5 +132,5 @@ class XMCDCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> XMCDCtrl/",self.inst_name,": dying"
+        print("PYTHON -> XMCDCtrl/%s " % self.inst_name)
 

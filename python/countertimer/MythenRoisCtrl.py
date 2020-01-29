@@ -139,5 +139,5 @@ class MythenRoisCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print "PYTHON -> MythenRoisCtrl/",self.inst_name,": dying"
+        print("PYTHON -> MythenRoisCtrl/%s dying" % self.inst_name)
 

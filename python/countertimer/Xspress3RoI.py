@@ -36,10 +36,6 @@ class Xspress3RoIsCtrl(CounterTimerController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        self.debugFlag = False
-        if os.isatty(1):
-            self.debugFlag = True
-        if self.debugFlag: print "Xspress3RoIsCtrl.__init__, inst ",self.inst_name,"RootDeviceName",self.RootDeviceName
         self.ct_name = "Xspress3RoIsCtrl/" + self.inst_name
 
         if self.TangoHost != None:
@@ -69,7 +65,6 @@ class Xspress3RoIsCtrl(CounterTimerController):
         self.channel.append(0)
        
     def DeleteDevice(self,ind):
-        if self.debugFlag: print "Xspress3RoIsCtrl.DeleteDevice",self.inst_name,"index",ind
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy =  None
         
@@ -91,7 +86,6 @@ class Xspress3RoIsCtrl(CounterTimerController):
         return tup
     
     def LoadOne(self, axis, value):
-        if self.debugFlag: print "Xspress3RoIsCtrl.LoadOne",self.inst_name,"axis", axis
         self.proxy.ExposureTime = value
         
     def PreReadAll(self):
@@ -101,10 +95,9 @@ class Xspress3RoIsCtrl(CounterTimerController):
         pass
 
     def ReadAll(self):
-        if self.debugFlag: print "Xspress3RoIsCtrl.ReadAll",self.inst_name
+        pass
 
     def ReadOne(self,ind):
-        if self.debugFlag: print "Xspress3RoIsCtrl.ReadOne",self.inst_name,"index",ind
         attr_name = "DataCh" + str(self.channel[ind-1])
         data = self.proxy.read_attribute(attr_name).value
         self.value[ind - 1] = 0
@@ -130,17 +123,15 @@ class Xspress3RoIsCtrl(CounterTimerController):
         pass
         
     def AbortOne(self,ind):
-        if self.debugFlag: print "Xspress3RoIsCtrl.AbortOne",self.inst_name,"index",ind
         self.proxy.command_inout("StopAcquisition")
 
     def GetPar(self, ind, par_name):
-        if self.debugFlag: print "Xspress3RoIsCtrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
+        pass
 
     def SetPar(self,ind,par_name,value):
         pass
     
     def GetExtraAttributePar(self,ind,name):
-        if self.debugFlag: print "Xspress3RoIsCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
@@ -158,7 +149,6 @@ class Xspress3RoIsCtrl(CounterTimerController):
             return self.channel[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
-        if self.debugFlag: print "Xspress3RoIsCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if name == "DataLength":
             if self.flagIsXIA:
                 self.proxy.write_attribute("McaLength",value)
@@ -175,7 +165,7 @@ class Xspress3RoIsCtrl(CounterTimerController):
         return "Nothing sent"
         
     def __del__(self):
-        if self.debugFlag: print "Xspress3RoIsCtrl/",self.inst_name,": dying"
+        print("Xspress3RoIsCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

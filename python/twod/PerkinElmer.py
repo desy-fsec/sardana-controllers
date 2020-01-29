@@ -25,8 +25,6 @@ class PerkinElmerCtrl(TwoDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        print "PYTHON -> TwoDController ctor for instance",inst
-
         self.ct_name = "PerkinElmerCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
@@ -39,12 +37,12 @@ class PerkinElmerCtrl(TwoDController):
                 self.port = int( lst[1])                           
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
-	self.devices = self.db.get_device_exported(name_dev_ask)
+        self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
         self.proxy = []
         self.device_available = []
-	for name in self.devices.value_string:
+        for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
@@ -58,10 +56,9 @@ class PerkinElmerCtrl(TwoDController):
         
         
     def AddDevice(self,ind):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
-            print "False index"
+            print("False index")
             return
         proxy_name = self.tango_device[ind-1]
         if self.TangoHost == None:
@@ -74,13 +71,11 @@ class PerkinElmerCtrl(TwoDController):
         self.AcquireMode.append(self.dft_AcquireMode)
         
     def DeleteDevice(self,ind):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
         
     def StateOne(self,ind):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -92,32 +87,26 @@ class PerkinElmerCtrl(TwoDController):
             return tup
 
     def PreReadAll(self):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In PreReadAll method"
         pass
 
     def PreReadOne(self,ind):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In PreReadOne method for index",ind
         pass
 
     def ReadAll(self):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In ReadAll method"
         pass
 
     def ReadOne(self,ind):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In ReadOne method for index",ind
         #The PerkinElmer return an Image in type encoded
         tmp_value =  [(-1,), (-1,)]
         if self.device_available[ind-1] == 1:
             return tmp_value
 
     def PreStartAll(self):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In PreStartAllCT method"
         pass
 
 
 		
     def StartOne(self,ind, position=None):
-        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In StartOneCT method for index",ind
         if self.AcquireMode[ind-1] == 0:
             self.proxy[ind-1].command_inout("AcquireSubtractedImagesAndSave")
         elif self.AcquireMode[ind-1] == 1:
@@ -142,7 +131,6 @@ class PerkinElmerCtrl(TwoDController):
         
 	
     def GetExtraAttributePar(self,ind,name):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "ExposureTime":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].read_attribute("ExposureTime").value
@@ -154,7 +142,6 @@ class PerkinElmerCtrl(TwoDController):
                 return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
-#        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",valu
         if name == "ExposureTime":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("ExposureTime",value)
@@ -166,7 +153,7 @@ class PerkinElmerCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> PerkinElmerCtrl/",self.inst_name,": killed"
+        print("PYTHON -> PerkinElmerCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":

@@ -115,7 +115,7 @@ class LimaRoi2SpectrumCtrl(OneDController):
         return "Nothing sent"
         
     def __del__(self):
-        print "LimaRoi2SpectrumCtrl/",self.inst_name,": dying"
+        print("LimaRoi2SpectrumCtrl/%s " % self.inst_name)
 
         
 if __name__ == "__main__":

@@ -150,7 +150,7 @@ class LimaRoICounterCtrl(CounterTimerController):
 
     
     def __del__(self):
-        print "PYTHON -> LimaCounterCtrl/",self.inst_name,": dying"
+        print("PYTHON -> LimaCounterCtrl/%s dying " % self.inst_name)
 
  
 if __name__ == "__main__":
