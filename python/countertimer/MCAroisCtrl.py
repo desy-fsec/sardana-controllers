@@ -109,7 +109,7 @@ class MCAroisCtrl(CounterTimerController):
             self.proxy.command_inout("Clear")
         self.proxy.command_inout("Start")
         self.start_time = time.time()
-	self.scanning = 1
+        self.scanning = 1
         
     def LoadOne(self,ind,value):
         self.exp_time = value
