@@ -51,22 +51,19 @@ class TFG2TriggerGateController(TriggerGateController):
         """
         Get state from the channel and translate it to the Sardana state
         """
-        self._log.debug('StateOne(%d): entering...' % axis)
+        #self._log.debug('StateOne(%d): entering...' % axis)
         
         acqStatus = self.tfg2.read_attribute('AcqStatus').value
         status = self.tfg2.read_attribute('Progress').value
-        if acqStatus in StateMap:
-            state = StateMap[acqStatus]
+        if acqStatus in self.StateMap:
+            state = self.StateMap[acqStatus]
         else:
             state = State.Unknown
 
-        self._log.debug('StateOne(%d): returning (%s, %s)'\
-                             % (axis, state, status))
+        if state != 0:
+            self._log.debug('StateOne(%d): returning (%s, %s)'\
+                                % (axis, state, status))
         return state, status
-
-    def ReadOne(self, axis):
-        """Get the specified trigger value"""
-        return None # TODO What is expected?
 
     def SynchOne(self, axis, configuration):
         """
@@ -111,7 +108,6 @@ class TFG2TriggerGateController(TriggerGateController):
         Start generation - start the specified channel.
         """
         self._log.debug('StartOne(%d): entering...' % axis)
-        acqStatus = self.tfg2.read_attribute('AcqStatus').value
         self.tfg2.Start()
         self._log.debug('StartOne(%d): leaving...' % axis)
 
