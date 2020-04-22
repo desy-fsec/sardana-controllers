@@ -140,19 +140,19 @@ class TfgCTController(CounterTimerController):
 
     def LoadOne(self, axis, value):
 
-        if axis == 1:
-	    #TODO use attribute
-	    self._outputmask = 7
-            newgroup = '%d %f %f 0 %d 0 0' % (self._nframes, self._offset, value, self._outputmask)
-            self.groups = ['8', '1', '', '',newgroup]
-            self.tfg.SetupPort([self._invertmask, self._drivemask])
-            self.tfg.SetupCCMode(self._ccmode)
-            self.tfg.SetupCCChan(self._ccchan)
-            self.tfg.SetupTFout(self._tfout)
-            self.tfg.Enable()
-            self.tfg.Clear([0,0,0,self._buffersize, 1, 9])
-            self.groups.append('-1 0 0 0 0 0 0')
-            self.tfg.SetupGroups(self.groups)
+#         if axis == 1:
+# 	    #TODO use attribute
+# 	    self._outputmask = 7
+#             newgroup = '%d %f %f 0 %d 0 0' % (self._nframes, self._offset, value, self._outputmask)
+#             self.groups = ['8', '1', '', '',newgroup]
+#             self.tfg.SetupPort([self._invertmask, self._drivemask])
+#             self.tfg.SetupCCMode(self._ccmode)
+#             self.tfg.SetupCCChan(self._ccchan)
+#             self.tfg.SetupTFout(self._tfout)
+#             self.tfg.Enable()
+#             self.tfg.Clear([0,0,0,self._buffersize, 1, 9])
+#             self.groups.append('-1 0 0 0 0 0 0')
+#             self.tfg.SetupGroups(self.groups)
         pass
 
     def PreStartOne(self, axis, position=None):
@@ -177,10 +177,11 @@ class TfgCTController(CounterTimerController):
 
     def StartAll(self):
         self._log.debug("Start Acq")
-        self.tfg.Start()
+        #self.tfg.Start()
 
     def AbortOne(self, axis):
-        self.tfg.Stop()
+        #self.tfg.Stop()
+        pass
 
     def PreReadOne(self, axis):
         self._log.debug("PreReadOne(%d): Entering...", axis)
