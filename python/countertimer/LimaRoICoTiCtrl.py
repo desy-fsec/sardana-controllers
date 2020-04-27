@@ -205,6 +205,8 @@ class LimaRoICounterCtrl(CounterTimerController):
         self._log.debug("ReadOne: Entering")
         try:
             if self._synchronization == AcqSynch.SoftwareTrigger:
+                # ReadOne is called even before the acquisition or the calculation has finished
+                # because ctctrl reads to have readings of the counter evolution
                 if len(self._data_buff[axis]) == 0:
                     raise Exception('Acquisition did not finish correctly.')
                 value = self._data_buff[axis][0]
@@ -213,7 +215,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         except Exception, e:
             self._log.error("ReadOne %r" % e)
         self._log.debug("ReadOne return %r" % value)
-        return value
+        return int(value)
 
     def GetExtraAttributePar(self, axis, name):
         name = name.lower()

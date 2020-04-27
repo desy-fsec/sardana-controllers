@@ -175,7 +175,7 @@ class LimaCoTiCtrl(CounterTimerController):
 
         try:
             self._limaccd = PyTango.DeviceProxy(self.LimaCCDDeviceName)
-            self._limaccd.reset()
+            #self._limaccd.reset()
         except PyTango.DevFailed as e:
             raise RuntimeError('__init__(): Could not create a device proxy '
                                'from following device name: %s.\nException: '
@@ -262,7 +262,8 @@ class LimaCoTiCtrl(CounterTimerController):
                     self._state = State.Moving
                     self._status = 'The LimaCCD is acquiring'
                 if acq_ready == 'Ready':
-                    self._expected_scan_images = 0
+                    if self._start_flg:
+                        self._expected_scan_images = 0
                     self._load_flag = False
                     self._log.debug('StateAll set flag=%s' % self._load_flag)
             else:
@@ -280,7 +281,8 @@ class LimaCoTiCtrl(CounterTimerController):
                         else:
                             self._state = State.On
                             self._status = 'The LimaCCD is ready to acquire'
-                            self._expected_scan_images = 0
+                            if self._start_flg:
+                                self._expected_scan_images = 0
                             self._load_flag = False
                             self._log.debug('StateAll set flag=%s' % 
                                             self._load_flag)
@@ -295,8 +297,9 @@ class LimaCoTiCtrl(CounterTimerController):
 
     def LoadOne(self, axis, value, repetitions):
         self.StateAll()
-        self._log.debug('LoadOne flag=%s images=%s' %
-                        (self._load_flag, self._expected_scan_images))
+        self._log.debug('LoadOne flag=%s images=%s rep=%s' %
+                        (self._load_flag, self._expected_scan_images,
+                         repetitions))
         if self._load_flag:
             return
 
@@ -304,16 +307,14 @@ class LimaCoTiCtrl(CounterTimerController):
         if self._expected_scan_images == 0:
             # but TrashDir is defined and no acquisition is running
             if self._hasTrashDir and not self._start_flg:
-                shutil.rmtree(self.TrashDir)
-                os.makedirs(self.TrashDir)
-                acq_nb_frames = 1
+#                 shutil.rmtree(self.TrashDir)
+#                 os.makedirs(self.TrashDir)
+                os.system('rm -rf %s/*' % self.TrashDir)
                 self._limaccd.write_attribute('saving_directory',
                                               self.TrashDir)
                 self._limaccd.write_attribute('saving_mode', 'AUTO_FRAME')
-                self._load_flag = False
-            else:
-                acq_nb_frames = repetitions
-                self._load_flag = False
+            acq_nb_frames = repetitions
+            self._load_flag = False
         else:
             self._load_flag = True
             # Step scan or Continuous scan by software synchronization
