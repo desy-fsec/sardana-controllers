@@ -128,7 +128,6 @@ class HasyOneDCtrl(OneDController):
             self.flagIsKromo[ind-1] = True
         if hasattr(self.proxy[ind-1], 'intTime'):
             self.flagIsAvantes[ind-1] = True
-        if self.debugFlag: print("HasyOneDCtrl.AddDevice %s index %d isMCA8715 %d isXIA %d isSIS3302 %d isAvantes %d " % (self.inst_name,ind,self.flagIsMCA8715[ind-1], self.flagIsXIA[ind-1],self.flagIsSIS3302[ind-1], self.flagIsAvantes[ind-1]))
 
        
     def DeleteDevice(self,ind):
