@@ -14,6 +14,7 @@ class TangoVimbaCtrl(TwoDController):
 
 
     ctrl_extra_attributes = {
+                             'AcquisitionType':{Type:'PyTango.DevLong',Access:ReadWrite,Description:'0-> StartAcquisition (hw trigger), 1-> StartSingleAcquisition (sw trigger)'},
                              'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
                              }
 			     
@@ -45,12 +46,14 @@ class TangoVimbaCtrl(TwoDController):
         self.proxy = []
         self.device_available = []
         self.start_time = []
+        self.acq_type = []
         self.exp_time = 0
 	for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
             self.start_time.append(time.time())
+            self.acq_type.append(0)
             self.max_device =  self.max_device + 1
         self.started = False
         
@@ -125,7 +128,11 @@ class TangoVimbaCtrl(TwoDController):
     def StartOne(self,ind, position=None):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].FileSaving = True
-        self.proxy[ind-1].command_inout("StartAcquisition")
+        if self.acq_type[ind-1] == 0:
+            self.proxy[ind-1].command_inout("StartAcquisition")
+        else:
+            self.proxy[ind-1].command_inout("StartSingleAcquisition")
+            
         self.started = True
         self.start_time[ind-1] = time.time()
         
@@ -152,10 +159,14 @@ class TangoVimbaCtrl(TwoDController):
             if name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
+            if name == "AcquisitionType":
+                return self.acq_type[ind-1]
 
     def SetExtraAttributePar(self,ind,name,value):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
-        pass
+        if self.device_available[ind-1]:
+            if name == "AcquisitionType":
+                self.acq_type[ind-1] = value
         
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
