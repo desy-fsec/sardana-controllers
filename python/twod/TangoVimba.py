@@ -173,7 +173,7 @@ class TangoVimbaCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> TangoVimbaCtrl/",self.inst_name,": dying")
+        print("PYTHON -> TangoVimbaCtrl/%s dying" % self.inst_name)
 
         
 if __name__ == "__main__":
