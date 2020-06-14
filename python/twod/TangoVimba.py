@@ -92,7 +92,7 @@ class TangoVimbaCtrl(TwoDController):
             sta = self.proxy[ind-1].command_inout("State")
             if sta == PyTango.DevState.ON:
                 tup = (sta,"Camera ready")
-            elif sta == PyTango.DevState.RUNNING or sta == PyTango.DevState.MOVING:
+            elif sta == PyTango.DevState.RUNNING or sta == PyTango.DevState.MOVING or sta == PyTango.DevState.EXTRACT:
                 sta = PyTango.DevState.MOVING
                 tup = (sta,"Camera taking images")
             elif sta == PyTango.DevState.FAULT:
