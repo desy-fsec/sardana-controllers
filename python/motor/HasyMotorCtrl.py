@@ -77,7 +77,7 @@ class HasyMotorCtrl(MotorController):
                 self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
         if self.debugFlag:
-            print("HasyMotorCtrl.__init__, inst %s RootDeviceName" %  (self.inst_name, self.RootDeviceName))
+            print("HasyMotorCtrl.__init__, inst %s RootDeviceName" %  (self.inst_name + self.RootDeviceName))
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
