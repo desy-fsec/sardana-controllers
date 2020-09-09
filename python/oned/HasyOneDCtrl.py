@@ -100,8 +100,7 @@ class HasyOneDCtrl(OneDController):
         self.started = False
         self.acqTime = 0
         self.acqStartTime = None
-
-
+        self.debugFlag = 0
         
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
