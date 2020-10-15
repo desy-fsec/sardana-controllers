@@ -12,20 +12,19 @@ ReadWrite = DataAccess.ReadWrite
 class PerkinElmerCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the PerkinElmer detector"
 
-    ctrl_extra_attributes = {'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-                             'AcquireMode':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:str,Access:ReadOnly},}
+    axis_attributes = {'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+                       'AcquireMode':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:str,Access:ReadOnly},}
 
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PerkinElmer Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PerkinElmer Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        self.ct_name = "PerkinElmerCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -120,17 +119,17 @@ class PerkinElmerCtrl(TwoDController):
         else:
             self.proxy[ind-1].command_inout("AcquireSubtractedImagesAndSave")
       
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
  
-    def GetPar(self, ind, par_name):       
+    def GetAxisPar(self, ind, par_name):       
         if par_name == "XDim":
             return 1
         elif par_name == "YDim":
             return 1
         
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "ExposureTime":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].read_attribute("ExposureTime").value
@@ -141,7 +140,7 @@ class PerkinElmerCtrl(TwoDController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if name == "ExposureTime":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("ExposureTime",value)
@@ -153,7 +152,7 @@ class PerkinElmerCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> PerkinElmerCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> PerkinElmerCtrl dying")
 
         
 if __name__ == "__main__":

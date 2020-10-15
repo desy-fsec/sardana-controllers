@@ -13,12 +13,12 @@ class HzgDcamCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the HzgDcam"
 
 
-    ctrl_extra_attributes = {
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
+    axis_attributes = {
+        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the HzgDcam Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the HzgDcam Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
@@ -26,7 +26,6 @@ class HzgDcamCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "HzgDcamCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -110,23 +109,23 @@ class HzgDcamCtrl(TwoDController):
     def AbortOne(self,ind):
         pass
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("EXPOSURE_TIME",value)
 
     def GetAxisPar(self, ind, par_name):
         pass
  
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         return 0
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
         
     def SendToCtrl(self,in_data):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> HzgDcamCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> HzgDcamCtrl dying")
 
         
 if __name__ == "__main__":

@@ -13,18 +13,18 @@ class LCXCameraCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the LCXCamera"
 
 
-    ctrl_extra_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
-			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the LCXCamera Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
+    
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the LCXCamera Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
@@ -32,7 +32,6 @@ class LCXCameraCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "LCXCameraCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -136,15 +135,11 @@ class LCXCameraCtrl(TwoDController):
     def AbortOne(self,ind):
         pass
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
 
-    def GetAxisPar(self, ind, par_name):
-        if par_name == "data_source":
-            data_source = "Not set"
-            return data_source
  
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "DelayTime":
                 return self.proxy[ind-1].read_attribute("DelayTime").value
@@ -165,7 +160,7 @@ class LCXCameraCtrl(TwoDController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if self.device_available[ind-1]:
             if name == "DelayTime":
                 self.proxy[ind-1].write_attribute("DelayTime",value)
@@ -187,7 +182,7 @@ class LCXCameraCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> LCXCameraCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> LCXCameraCtrl dying")
 
         
 if __name__ == "__main__":

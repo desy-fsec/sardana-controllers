@@ -13,13 +13,13 @@ class TangoVimbaCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the TangoVimba"
 
 
-    ctrl_extra_attributes = {
-                             'AcquisitionType':{Type:'PyTango.DevLong',Access:ReadWrite,Description:'0-> StartAcquisition (hw trigger), 1-> StartSingleAcquisition (sw trigger)'},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
-			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the TangoVimba Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    axis_attributes = {
+        'AcquisitionType':{Type:'PyTango.DevLong',Access:ReadWrite,Description:'0-> StartAcquisition (hw trigger), 1-> StartSingleAcquisition (sw trigger)'},
+        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
+    
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the TangoVimba Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
@@ -27,8 +27,6 @@ class TangoVimbaCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
         print("PYTHON -> TwoDController ctor for instance",inst)
-
-        self.ct_name = "TangoVimbaCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -146,16 +144,12 @@ class TangoVimbaCtrl(TwoDController):
         except:
             pass
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.exp_time = value
         
 
-    def GetAxisPar(self, ind, par_name):
-        if par_name == "data_source":
-            data_source = "Not set"
-            return data_source
  
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if self.device_available[ind-1]:
             if name == "TangoDevice":
@@ -164,7 +158,7 @@ class TangoVimbaCtrl(TwoDController):
             if name == "AcquisitionType":
                 return self.acq_type[ind-1]
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
         if self.device_available[ind-1]:
             if name == "AcquisitionType":
@@ -175,7 +169,7 @@ class TangoVimbaCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> TangoVimbaCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> TangoVimbaCtrl dying")
 
         
 if __name__ == "__main__":

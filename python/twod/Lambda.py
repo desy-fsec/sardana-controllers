@@ -13,18 +13,18 @@ class LambdaCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Lambda"
 
 
-    ctrl_extra_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'ShutterTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'SaveFileName':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'SaveFilePath':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'LastestImageNumber':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'FrameNumbers':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'ThresholdEnergy':{Type:'PyTango.DevFloat',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
-			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the Lambda Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'ShutterTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'SaveFileName':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'SaveFilePath':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'LastestImageNumber':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'FrameNumbers':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'ThresholdEnergy':{Type:'PyTango.DevFloat',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
+    
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Lambda Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
@@ -32,7 +32,6 @@ class LambdaCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "LambdaCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -144,15 +143,11 @@ class LambdaCtrl(TwoDController):
         except:
             print("Not able to stop lambda if in ON state")
             
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ShutterTime",value*1000) # Shutter Time is in ms
 
-    def GetAxisPar(self, ind, par_name):
-        if par_name == "data_source":
-            data_source = str(self.tango_device[ind -1]) + "/Image"
-            return data_source
  
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "DelayTime":
                 return self.proxy[ind-1].read_attribute("DelayTime").value
@@ -172,7 +167,7 @@ class LambdaCtrl(TwoDController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if self.device_available[ind-1]:
             if name == "DelayTime":
                 self.proxy[ind-1].write_attribute("DelayTime",value)
@@ -194,7 +189,7 @@ class LambdaCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> LambdaCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> LambdaCtrl dying")
 
         
 if __name__ == "__main__":

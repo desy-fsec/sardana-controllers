@@ -12,26 +12,26 @@ ReadWrite = DataAccess.ReadWrite
 class LimaCCDCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the LimaCCD"
 
-    ctrl_extra_attributes = {'LatencyTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'FileSuffix':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'SavingMode':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'SavingCommondHeader':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'SavingHeaderDelimiter':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'SavingNextNumber':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'LastImageReady':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'CameraType':{Type:'PyTango.DevString',Access:ReadOnly},
-			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
-
+    axis_attributes = {'LatencyTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'FileSuffix':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'SavingMode':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'SavingCommondHeader':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'SavingHeaderDelimiter':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'SavingNextNumber':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'LastImageReady':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'CameraType':{Type:'PyTango.DevString',Access:ReadOnly},
+		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
+    
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the LimaCCD Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the LimaCCD Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
 			     
     MaxDevice = 97
 
@@ -39,7 +39,6 @@ class LimaCCDCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "LimaCCDCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -168,7 +167,7 @@ class LimaCCDCtrl(TwoDController):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("stopAcq")
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute('acq_expo_time', value)
 
     def GetAxisPar(self, ind, par_name):
@@ -181,15 +180,8 @@ class LimaCCDCtrl(TwoDController):
         elif par_name == "IFormat":
             # ULong
             return 3 
-        elif par_name == "data_source":
-            if self.proxy[ind-1].read_attribute("video_live").value == True: # This should never happens, in this mode the camera is taking images constantly so it has not sense for the scans
-                data_source = self.tango_device[ind-1] + "/video_last_image"
-            else:
-                data_source = self.tango_device[ind-1] + "/getImage" # Command to be called with arg 0
-                
-            return data_source
             
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "LatencyTime":
             if self.device_available[ind-1]:
@@ -237,7 +229,7 @@ class LimaCCDCtrl(TwoDController):
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
             return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
         if name == "LatencyTime":
             if self.device_available[ind-1]:
@@ -281,7 +273,7 @@ class LimaCCDCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> LimaCCDCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> LimaCCDCtrl dying")
 
         
 if __name__ == "__main__":

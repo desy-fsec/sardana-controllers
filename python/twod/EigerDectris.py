@@ -13,15 +13,15 @@ class EigerDectrisCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the EigerDectris"
 
 
-    ctrl_extra_attributes = {'CountTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-                             'CountTimeInte':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'NbTriggers':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
+    axis_attributes = {'CountTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+                       'CountTimeInte':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'NbTriggers':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the EigerDectris Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the EigerDectris Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
@@ -29,7 +29,6 @@ class EigerDectrisCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "EigerDectrisCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -132,14 +131,11 @@ class EigerDectrisCtrl(TwoDController):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In AbortOne method for index",ind
         pass
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("CountTime",value)
         self.proxy[ind-1].write_attribute("CountTimeInte",value)
-
-    def GetAxisPar(self, ind, par_name):
-        pass
  
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if self.device_available[ind-1]:
             if name == "CountTime":
@@ -156,7 +152,7 @@ class EigerDectrisCtrl(TwoDController):
             elif name == "SettleTime":
                 return self.SettleTime[ind-1]
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
         if self.device_available[ind-1]:
             if name == "CountTime":
@@ -173,7 +169,7 @@ class EigerDectrisCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> EigerDectrisCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> EigerDectrisCtrl dying")
 
         
 if __name__ == "__main__":

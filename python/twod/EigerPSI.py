@@ -13,12 +13,12 @@ class EigerPSICtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Eiger PSI"
 
 
-    ctrl_extra_attributes = {
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
-			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the EigerPSI Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    axis_attributes = {
+        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
+    
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the EigerPSI Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
@@ -26,7 +26,6 @@ class EigerPSICtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "EigerPSICtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -106,25 +105,20 @@ class EigerPSICtrl(TwoDController):
     def AbortOne(self,ind):
         pass
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
 
-    def GetAxisPar(self, ind, par_name):
-        if par_name == "data_source":
-            data_source = str(self.tango_device[ind -1]) + "/LastImage"
-            return data_source
- 
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         return 0
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
         
     def SendToCtrl(self,in_data):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> EigerPSICtrl/%s dying" % self.inst_name)
+        print("PYTHON -> EigerPSICtrl dying")
 
         
 if __name__ == "__main__":

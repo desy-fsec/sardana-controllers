@@ -12,25 +12,24 @@ ReadWrite = DataAccess.ReadWrite
 class PCOCtrl(TwoDController):
     "This class is the Tango Sardana Zero D controller for the PCO"
 
-    ctrl_extra_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'ADCs':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-                             'TangoDevice':{Type:str,Access:ReadOnly},}
+    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'ADCs':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
+                       'TangoDevice':{Type:str,Access:ReadOnly},}
 
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PCO Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PCO Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-
-        self.ct_name = "PCOCtrl/" + self.inst_name
+        
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -131,10 +130,10 @@ class PCOCtrl(TwoDController):
             time.sleep(0.001)
         self.proxy[ind-1].command_inout("StartStandardAcq")
       
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
  
-    def GetPar(self, ind, par_name):       
+    def GetAxisPar(self, ind, par_name):       
         if par_name == "XDim":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Width").value)
@@ -142,7 +141,7 @@ class PCOCtrl(TwoDController):
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Heigth").value)
 
-    def SetPar(self,ind,par_name,value):
+    def SetAxisPar(self,ind,par_name,value):
         if par_name == "XDim":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Width",value)
@@ -150,7 +149,7 @@ class PCOCtrl(TwoDController):
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Heigth",value)
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "DelayTime":
             if self.device_available[ind-1]:
                 return self.proxy[ind-1].read_attribute("DelayTime").value
@@ -174,7 +173,7 @@ class PCOCtrl(TwoDController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if name == "DelayTime":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("DelayTime",value)
@@ -199,7 +198,7 @@ class PCOCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> PCOCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> PCOCtrl dying")
 
         
 if __name__ == "__main__":

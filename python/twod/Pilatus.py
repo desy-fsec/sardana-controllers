@@ -13,35 +13,33 @@ class PilatusCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Pilatus"
 
 
-    ctrl_extra_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'ExposurePeriod':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'FilePostfix':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'LastImageTaken':{Type:'PyTango.DevString',Access:ReadWrite},
-			     'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'NbExposures':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'ShutterEnable':{Type:'PyTango.DevBoolean',Access:ReadWrite},
-			     'TriggerMode':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'Threshold':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'Gain':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'SettleTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
-                             }
-			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the Pilatus Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'ExposurePeriod':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'FilePostfix':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'LastImageTaken':{Type:'PyTango.DevString',Access:ReadWrite},
+		       'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'NbExposures':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'ShutterEnable':{Type:'PyTango.DevBoolean',Access:ReadWrite},
+		       'TriggerMode':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'Threshold':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'Gain':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'SettleTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    }
+
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Pilatus Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-
-        self.ct_name = "PilatusCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -180,7 +178,7 @@ class PilatusCtrl(TwoDController):
     def AbortOne(self,ind):
         self.proxy[ind-1].command_inout("StopAcq")
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
 
     def GetAxisPar(self, ind, par_name):
@@ -188,7 +186,7 @@ class PilatusCtrl(TwoDController):
             data_source = str(self.tango_device[ind -1]) + "/LastImageTaken"
             return data_source
  
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "DelayTime":
                 return self.proxy[ind-1].read_attribute("DelayTime").value
@@ -225,7 +223,7 @@ class PilatusCtrl(TwoDController):
             elif name == "SettleTime":
                 return self.SettleTime[ind-1]
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if self.device_available[ind-1]:
             if name == "DelayTime":
                 self.proxy[ind-1].write_attribute("DelayTime",value)
@@ -267,7 +265,7 @@ class PilatusCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> PilatusCtrl/%s" %self.inst_name,": dying")
+        print("PYTHON -> PilatusCtrl dying" )
 
         
 if __name__ == "__main__":
