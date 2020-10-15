@@ -14,25 +14,23 @@ ReadWrite = DataAccess.ReadWrite
 class VFCADCCtrl(CounterTimerController):
     "This class is the Tango Sardana Zero D controller for the VFCADC"
 
-    ctrl_extra_attributes = {'Gain':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'Offset':{Type:'PyTango.DevDouble',Access:ReadWrite},
-			     'Polarity':{Type:'PyTango.DevLong',Access:ReadWrite},
-			     'FlagReadVoltage':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:str,Access:ReadOnly},
-                             }
-
-			     
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the VFCADC Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-			     
+    axis_attributes = {'Gain':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'Offset':{Type:'PyTango.DevDouble',Access:ReadWrite},
+		       'Polarity':{Type:'PyTango.DevLong',Access:ReadWrite},
+		       'FlagReadVoltage':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:str,Access:ReadOnly},
+    }
+    
+    
+    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the VFCADC Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    
     MaxDevice = 97
 
     def __init__(self,inst,props,*args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props,*args, **kwargs)
 #        print "PYTHON -> CounterTimerController ctor for instance",inst
-
-        self.ct_name = "VFCADCCtrl/" + self.inst_name
         
         if self.TangoHost == None:
             self.db = PyTango.Database()
@@ -119,11 +117,11 @@ class VFCADCCtrl(CounterTimerController):
             else:
                 return self.proxy[ind-1].read_attribute("Counts").value
 
-    def PreStartAllCT(self):
+    def PreStartAll(self):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In PreStartAll method"
         self.wanted = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].command_inout("Reset")
             return True
@@ -131,21 +129,21 @@ class VFCADCCtrl(CounterTimerController):
             raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
 		
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         #print "PYTHON -> VFCADCCtrl/",self.inst_name,": In StartOne method for index",ind
         self.wanted.append(ind)
 	
-    def StartAllCT(self):
+    def StartAll(self):
         self.started = True
         self.start_time = time.time()
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         pass
             
     def AbortOne(self,ind):
         pass
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "Offset":
             if self.device_available[ind-1]:
@@ -164,7 +162,7 @@ class VFCADCCtrl(CounterTimerController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
         if name == "Offset":
             if self.device_available[ind-1]:
@@ -190,7 +188,7 @@ class VFCADCCtrl(CounterTimerController):
         pass
         
     def __del__(self):
-        print("PYTHON -> VFCADCCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> VFCADCCtrl dying")
 
         
 if __name__ == "__main__":

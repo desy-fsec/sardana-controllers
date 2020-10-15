@@ -36,7 +36,7 @@ class pilcTimerCtrl(CounterTimerController):
     #############
 
     def __del__(self):
-        print("PYTHON -> pilcTimerCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> pilcTimerCtrl dying")
 
 
     ##############
@@ -116,7 +116,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## GetExtraAttributePar ##
     ##########################
 
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind - 1]:
             if name == "TangoDevice":
                 tango_device = (self.node
@@ -132,7 +132,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## LoadOne ##
     #############
 
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].write_attribute("TimeTriggerStepSize",value)
 

@@ -73,7 +73,7 @@ class HasyInterferometerCtrl(CounterTimerController):
     def PreStartOne(self,ind,pos):
         return True
         
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         pass
             
             
@@ -84,30 +84,30 @@ class HasyInterferometerCtrl(CounterTimerController):
     def AbortOne(self,ind):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         pass
 	
-    def StartAllCT(self):
+    def StartAll(self):
         self.proxy.command_inout("CollectDataTime", self.time_to_set)
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         self.time_to_set = value * 1000 # in ms
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
         
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
 			
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 
     def __del__(self):
-        print("PYTHON -> HasyInterferometerCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> HasyInterferometerCtrl dying")
 

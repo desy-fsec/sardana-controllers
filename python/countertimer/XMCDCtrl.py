@@ -91,7 +91,7 @@ class XMCDCtrl(CounterTimerController):
     def PreStartOne(self,ind,pos):
         return True
         
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         pass
             
     def ReadOne(self,ind):
@@ -104,19 +104,19 @@ class XMCDCtrl(CounterTimerController):
     def AbortOne(self,ind):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         pass
 	
-    def StartAllCT(self):
+    def StartAll(self):
         pass
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         pass
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
@@ -124,7 +124,7 @@ class XMCDCtrl(CounterTimerController):
             return self.AttributeNames[ind-1]
         
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SeAxistExtraPar(self,ind,name,value):
         if name == "TangoAttribute":
             self.AttributeNames[ind-1] = value
 			
@@ -132,5 +132,5 @@ class XMCDCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print("PYTHON -> XMCDCtrl/%s " % self.inst_name)
+        print("PYTHON -> XMCDCtrl dying ")
 

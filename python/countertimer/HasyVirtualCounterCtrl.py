@@ -9,9 +9,9 @@ from HasyVirtualCounterLib import *
 class HasyVirtualCounterCtrl(CounterTimerController):
     "This class is a Tango Sardana CounterTimer controller for defined virtual counters"
               
-    class_prop = {'LibId':{'Type':'PyTango.DevLong',
-                           'Description':'Id for the functions argument',
-                           'DefaultValue':1}}
+    ctrl_properties = {'LibId':{'Type':'PyTango.DevLong',
+                                'Description':'Id for the functions argument',
+                                'DefaultValue':1}}
     
     gender = "VirtualCounter"
     model  = "Best"
@@ -58,24 +58,24 @@ class HasyVirtualCounterCtrl(CounterTimerController):
     def AbortOne(self, axis):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         pass
     
-    def StartOneCT(self, axis):
+    def StartOne(self, axis):
         reset(self.LibId)
         pass
     
-    def StartAllCT(self):
+    def StartAll(self):
         self._started = True
         self._start_time = time.time()
                  
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions, latency_time):
         pass
     
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         pass
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
     
     def SendToCtrl(self,in_data):

@@ -33,7 +33,7 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     #############
 
     def __del__(self):
-        print("PYTHON -> PiLCGTVFCTimerCtrl.py/%s dying" % self.inst_name)
+        print("PYTHON -> PiLCGTVFCTimerCtrl.py dying")
 
 
     ##############
@@ -215,7 +215,7 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     ## SetExtraAttributePar ##
     ##########################
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
 
 

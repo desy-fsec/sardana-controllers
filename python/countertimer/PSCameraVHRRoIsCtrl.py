@@ -83,7 +83,7 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
     def PreStartOne(self,ind,pos):
         return True
         
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         return True
             
     def ReadOne(self,ind):
@@ -93,30 +93,30 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
     def AbortOne(self,ind):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         pass
 	
-    def StartAllCT(self):
+    def StartAll(self):
         pass
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         pass
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
         
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
 			
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 
     def __del__(self):
-        print("PYTHON -> PSCameraVHRRoIsCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> PSCameraVHRRoIsCtrl dying")
 

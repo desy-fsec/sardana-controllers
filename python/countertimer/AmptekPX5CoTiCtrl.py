@@ -36,11 +36,11 @@ class AmptekPX5CounterTimerController(CounterTimerController):
 
     MaxDevice = 17
 
-    class_prop = {'deviceName':{'Type':str,'Description':'AmptekPX5 Tango device name','DefaultValue':None},}
-
+    ctrl_properties = {'deviceName':{'Type':str,'Description':'AmptekPX5 Tango device name','DefaultValue':None},}
+    
     axis_attributes = { "lowThreshold"   : { "Type" : int, "R/W Type": "READ_WRITE" },
                         "highThreshold" : { "Type" : int, "R/W Type": "READ_WRITE" }}
-
+    
     def __init__(self, inst, props, *args, **kwargs):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         try:
@@ -151,20 +151,20 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         #self._log.debug("ReadOne(%d): returning %d" % (ind,val))
         return val
 
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         try:
             self.amptekPX5.ClearSpectrum()
             self.amptekPX5.LatchGetClearSCA()
         except:
             self.error_amptek = 1
             
-    def PreStartOneCT(self, ind):
+    def PreStartOne(self, ind):
         return True
 
-    def StartOneCT(self, ind):
+    def StartOne(self, ind):
         pass
 
-    def StartAllCT(self):
+    def StartAll(self):
         #self._log.debug("StartAllCT(): entering...")
         try:
             self.amptekPX5.Enable()
@@ -172,7 +172,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             self.error_amptek = 1
         self.acq = True
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         #self._log.debug("LoadOne(): entering...")
         self.acqTime = value
         try:
@@ -195,7 +195,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
 
     MaxDevice = 17
 
-    class_prop = {'deviceName':{'Type':str,'Description':'AmptekPX5 Tango device name','DefaultValue':None},}
+    ctrl_properties = {'deviceName':{'Type':str,'Description':'AmptekPX5 Tango device name','DefaultValue':None},}
 
     axis_attributes = { "lowThreshold"   : { "Type" : int, "R/W Type": "READ_WRITE", "memorized":Memorized },
                         "highThreshold" : { "Type" : int, "R/W Type": "READ_WRITE", "memorized":Memorized }
@@ -295,16 +295,16 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
         self._log.debug("ReadOne(%d): returning %d" % (ind,val))
         return val
 
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.amptekPX5.ClearSpectrum()
 
-    def PreStartOneCT(self, ind):
+    def PreStartOne(self, ind):
         return True
 
-    def StartOneCT(self, ind):
+    def StartOne(self, ind):
         pass
 
-    def StartAllCT(self):
+    def StartAll(self):
         self._log.debug("StartAllCT(): entering...")
         self.spectrum = None
         self.icr = None
@@ -315,7 +315,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
         self.status = "Acquisition was started"
         self._log.debug("StartAllCT(): leaving...")
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self._log.debug("LoadOne(): entering...")
         if value < 0.1:
             raise Exception("AmptekPX5 does not support acquisition times lower than 0.1 second")

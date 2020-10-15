@@ -16,14 +16,14 @@ global last_sta
 class HasyRoIsCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for making RoIs from OneD"
 
-    ctrl_extra_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-                             'RoIStart':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'RoIEnd':{Type:'PyTango.DevLong',Access:ReadWrite},                             
-                             }
+    axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
+                       'RoIStart':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoIEnd':{Type:'PyTango.DevLong',Access:ReadWrite},                             
+    }
                  
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
                  
     MaxDevice = 97
 
@@ -36,7 +36,6 @@ class HasyRoIsCtrl(CounterTimerController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        self.ct_name = "HasyRoIsCtrl/" + self.inst_name
 
         self.flagIsMCA8715 = False
         self.flagIsXIA = False
@@ -94,7 +93,7 @@ class HasyRoIsCtrl(CounterTimerController):
 
         return tup
     
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions, latency_time):
         idx = axis - 1
         if value > 0:
             self.integ_time = value
@@ -130,7 +129,7 @@ class HasyRoIsCtrl(CounterTimerController):
     def PreStartAll(self):
         pass	
 
-    def StartAllCT(self):
+    def StartAll(self):
         try:
             sta = self.proxy.command_inout("State")
         except:
@@ -154,13 +153,8 @@ class HasyRoIsCtrl(CounterTimerController):
         if self.flagIsXIA == 0:
             self.proxy.command_inout("Read")
 
-    def GetPar(self, ind, par_name):
-        pass
-
-    def SetPar(self,ind,par_name,value):
-        pass
     
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
@@ -175,7 +169,7 @@ class HasyRoIsCtrl(CounterTimerController):
         elif name == "RoIEnd":
             return self.RoIs_end[ind-1]
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if name == "DataLength":
             if self.flagIsXIA:
                 self.proxy.write_attribute("McaLength",value)
@@ -190,7 +184,7 @@ class HasyRoIsCtrl(CounterTimerController):
         return "Nothing sent"
         
     def __del__(self):
-        print("HasyRoIsCtrl/%s dying" % self.inst_name)
+        print("HasyRoIsCtrl dying")
 
         
 if __name__ == "__main__":

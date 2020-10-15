@@ -124,17 +124,17 @@ class DGG2Ctrl(CounterTimerController):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].command_inout("Stop")
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         pass
 		
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         if self.device_available[ind-1] == 1:
             self.wantedCT.append(ind)
 	
-    def StartAllCT(self):
+    def StartAll(self):
         for index in self.wantedCT:
             if self.preset_mode:
                 self.proxy[index-1].command_inout("StartPreset")
@@ -143,7 +143,7 @@ class DGG2Ctrl(CounterTimerController):
             self._start_time = time.time()
             self.intern_sta[index-1] = State.Moving
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         if self.device_available[ind-1] == 1:
             if value < 0:
                 self.preset_mode = 1
@@ -153,19 +153,19 @@ class DGG2Ctrl(CounterTimerController):
             self._integ_time = value
             self.proxy[ind-1].write_attribute("SampleTime", value)
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
         
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
 			
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 
     def __del__(self):
-        print("PYTHON -> DGG2Ctrl/%s dying" % self.inst_name)
+        print("PYTHON -> DGG2Ctrl dying")
 

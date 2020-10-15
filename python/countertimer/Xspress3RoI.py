@@ -16,15 +16,15 @@ global last_sta
 class Xspress3RoIsCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for making RoIs from OneD"
 
-    ctrl_extra_attributes = {'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-                             'RoIStart':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'RoIEnd':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                             'DataChannel':{Type:'PyTango.DevLong',Access:ReadWrite}                               
-                             }
-                 
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-                 
+    axis_attributes = {'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
+                       'RoIStart':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoIEnd':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                       'DataChannel':{Type:'PyTango.DevLong',Access:ReadWrite}                               
+    }
+    
+    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    
     MaxDevice = 97
 
     gender = "CounterTimer"
@@ -36,7 +36,6 @@ class Xspress3RoIsCtrl(CounterTimerController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        self.ct_name = "Xspress3RoIsCtrl/" + self.inst_name
 
         if self.TangoHost != None:
             self.node = self.TangoHost
@@ -85,7 +84,7 @@ class Xspress3RoIsCtrl(CounterTimerController):
 
         return tup
     
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions, latency_time):
         self.proxy.ExposureTime = value
         
     def PreReadAll(self):
@@ -125,13 +124,8 @@ class Xspress3RoIsCtrl(CounterTimerController):
     def AbortOne(self,ind):
         self.proxy.command_inout("StopAcquisition")
 
-    def GetPar(self, ind, par_name):
-        pass
-
-    def SetPar(self,ind,par_name,value):
-        pass
     
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
@@ -148,7 +142,7 @@ class Xspress3RoIsCtrl(CounterTimerController):
         elif name == "DataChannel":
             return self.channel[ind-1]
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if name == "DataLength":
             if self.flagIsXIA:
                 self.proxy.write_attribute("McaLength",value)
@@ -165,7 +159,7 @@ class Xspress3RoIsCtrl(CounterTimerController):
         return "Nothing sent"
         
     def __del__(self):
-        print("Xspress3RoIsCtrl/%s dying" % self.inst_name)
+        print("Xspress3RoIsCtrl dying")
 
         
 if __name__ == "__main__":

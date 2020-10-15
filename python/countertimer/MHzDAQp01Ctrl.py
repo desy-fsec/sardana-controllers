@@ -84,7 +84,7 @@ class MHzDAQp01Ctrl(CounterTimerController):
     def PreStartOne(self,ind,pos):
         return True
         
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         try:
             sta = self.proxy.command_inout("State")
         except:
@@ -106,19 +106,19 @@ class MHzDAQp01Ctrl(CounterTimerController):
     def AbortOne(self,ind):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         pass
 	
-    def StartAllCT(self):
+    def StartAll(self):
         pass
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         self.proxy.write_attribute("NbTriggers", value)
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
             return tango_device
@@ -129,7 +129,7 @@ class MHzDAQp01Ctrl(CounterTimerController):
         
         
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if name == "FilePrefix":
             self.proxy.write_attribute("FilePrefix",value)
         elif name == "FileNum":
@@ -139,5 +139,5 @@ class MHzDAQp01Ctrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print("PYTHON -> MHzDAQp01CtrlCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> MHzDAQp01CtrlCtrl dying")
 

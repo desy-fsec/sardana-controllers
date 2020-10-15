@@ -21,8 +21,8 @@ class SIS3820Ctrl(CounterTimerController):
                        'TangoDevice':{Type:str,Access:ReadOnly},
                        }
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3820 Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3820 Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
     
     gender = "CounterTimer"
     model = "SIS3820"
@@ -117,10 +117,10 @@ class SIS3820Ctrl(CounterTimerController):
     def AbortOne(self,ind):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].command_inout("Reset")
             self.intern_sta[ind-1] = State.Moving
@@ -129,17 +129,17 @@ class SIS3820Ctrl(CounterTimerController):
             raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
 		
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         self.wantedCT.append(ind)
 	
-    def StartAllCT(self):
+    def StartAll(self):
         self.started = True
         self._start_time = time.time()
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         self._integ_time = value
         
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "Offset":
                 return float(self.proxy[ind-1].read_attribute("Offset").value)
@@ -147,7 +147,7 @@ class SIS3820Ctrl(CounterTimerController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if name == "Offset":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Offset",value)
@@ -159,7 +159,7 @@ class SIS3820Ctrl(CounterTimerController):
         pass
     
     def __del__(self):
-        print("PYTHON -> SIS3820Ctrl/%s" % self.inst_name)
+        print("Deleting SIS3820Ctrl controller")
 
  
 if __name__ == "__main__":

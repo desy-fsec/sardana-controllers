@@ -20,8 +20,8 @@ class LimaRoICounterCtrl(CounterTimerController):
                        'RoIy1':{Type:'PyTango.DevLong',Access:ReadWrite},
                        'RoIy2':{Type:'PyTango.DevLong',Access:ReadWrite}, }
     
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'Name of the roicounter lima device'},
-                  'TangoHost':{Type:str,Description:'The tango host where LimaCCDs runs'},}
+    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'Name of the roicounter lima device'},
+                       'TangoHost':{Type:str,Description:'The tango host where LimaCCDs runs'},}
       
     gender = "CounterTimer"
     model = "LimaCounter"
@@ -97,22 +97,22 @@ class LimaRoICounterCtrl(CounterTimerController):
     def AbortOne(self,ind):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         return True
 		
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         self.wantedCT.append(ind)
 	
-    def StartAllCT(self):
+    def StartAll(self):
         pass
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         pass
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             return self.proxy_name
         elif name == "RoIx1":
@@ -129,7 +129,7 @@ class LimaRoICounterCtrl(CounterTimerController):
             return roi[4]
         
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         roi = self.proxy.getRois(self.roi_name[ind-1])
         if name == "RoIx1":
             roi[1] = value
@@ -150,7 +150,7 @@ class LimaRoICounterCtrl(CounterTimerController):
 
     
     def __del__(self):
-        print("PYTHON -> LimaCounterCtrl/%s dying " % self.inst_name)
+        print("PYTHON -> LimaCounterCtrl  dying ")
 
  
 if __name__ == "__main__":

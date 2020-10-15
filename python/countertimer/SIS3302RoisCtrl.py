@@ -97,7 +97,7 @@ class SIS3302RoisCtrl(CounterTimerController):
     def PreStartOne(self,ind,pos):
         return True
         
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         return True
             
     def ReadOne(self,ind):
@@ -110,13 +110,13 @@ class SIS3302RoisCtrl(CounterTimerController):
     def AbortOne(self,ind):
         pass
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         pass
 	
-    def StartAllCT(self):
+    def StartAll(self):
         if self.FlagMaster == 1:
             self.acqStartTime = time.time()
             self.proxy.command_inout("Clear")
@@ -124,7 +124,7 @@ class SIS3302RoisCtrl(CounterTimerController):
             self.proxy.command_inout("Start")
             
 		     	
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         self.exp_time = value
 	
     def GetExtraAttributePar(self,ind,name):
@@ -143,5 +143,5 @@ class SIS3302RoisCtrl(CounterTimerController):
         return "Nothing sent"
 
     def __del__(self):
-        print("PYTHON -> SIS3302RoisCtrl/%s dying " % self.inst_name)
+        print("PYTHON -> SIS3302RoisCtrl dying ")
 

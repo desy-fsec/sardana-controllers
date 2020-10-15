@@ -16,11 +16,11 @@ class HasyScaCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the HasySca"
 #    axis_attributes = {'Offset':{Type:float,Access:ReadWrite}}
                  
-    class_prop = {'mca':{Type:str,Description:'The MCA name, tango device'},
-                  'roi1':{Type:str,Description:'The lower ROI limit'},
-                  'roi2':{Type:str,Description:'The upper ROI limit'},
-                  }
-      
+    ctrl_properties = {'mca':{Type:str,Description:'The MCA name, tango device'},
+                       'roi1':{Type:str,Description:'The lower ROI limit'},
+                       'roi2':{Type:str,Description:'The upper ROI limit'},
+    }
+    
     gender = "CounterTimer"
     model = "HasySca"
     organization = "DESY"
@@ -89,30 +89,30 @@ class HasyScaCtrl(CounterTimerController):
     def AbortOne(self,ind):
         return True
         
-    def PreStartAllCT(self):
+    def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOneCT(self,ind):
+    def PreStartOne(self,ind):
         return True
         
-    def StartOneCT(self,ind):
+    def StartOne(self,ind):
         self.wantedCT.append(ind)
     
-    def StartAllCT(self):
+    def StartAll(self):
         self.started = True
         self.start_time = time.time()
         return True
                 
-    def LoadOne(self,ind,value):
+    def LoadOne(self,ind,value, repetitions, latency_time):
         pass
     
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "Offset":
             if self.device_available[ind-1]:
                 return float(self.proxy[ind-1].read_attribute("Offset").value)
         
             
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if name == "Offset":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Offset",value)
@@ -124,7 +124,7 @@ class HasyScaCtrl(CounterTimerController):
         return True
     
     def __del__(self):
-        print("PYTHON -> HasyScaCtrl/%s dying" % self.inst_name)
+        print("PYTHON -> HasyScaCtrl dying")
 
  
 if __name__ == "__main__":
