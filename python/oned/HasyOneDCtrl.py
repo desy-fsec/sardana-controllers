@@ -14,23 +14,23 @@ ReadWrite = DataAccess.ReadWrite
 class HasyOneDCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    ctrl_extra_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-                             'RoI1Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'RoI1End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                             'CountsRoI1':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
-                             'RoI2Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'RoI2End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                             'CountsRoI2':{Type:'PyTango.DevDouble',Access:ReadOnly},  
-                             'RoI3Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'RoI3End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                             'CountsRoI3':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
-                             'RoI4Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'RoI4End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                             'CountsRoI4':{Type:'PyTango.DevDouble',Access:ReadOnly},        
-                             }
+    axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
+                       'RoI1Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoI1End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                       'CountsRoI1':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
+                       'RoI2Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoI2End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                       'CountsRoI2':{Type:'PyTango.DevDouble',Access:ReadOnly},  
+                       'RoI3Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoI3End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                       'CountsRoI3':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
+                       'RoI4Start':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoI4End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
+                       'CountsRoI4':{Type:'PyTango.DevDouble',Access:ReadOnly},        
+    }
                  
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
+    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
                  
     MaxDevice = 97
@@ -38,7 +38,6 @@ class HasyOneDCtrl(OneDController):
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
-        self.ct_name = "HasyOneDCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -163,7 +162,7 @@ class HasyOneDCtrl(OneDController):
 
         return tup
     
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         if self.flagIsKromo[ind - 1] == True:
              self.proxy[ind-1].write_attribute("ExpositionTime",value)
         if self.flagIsAvantes[ind - 1] == True:
@@ -233,13 +232,8 @@ class HasyOneDCtrl(OneDController):
             self.proxy[ind-1].command_inout("StopAcquisition")
 
        
-    def GetPar(self, ind, par_name):
-        pass
-
-    def SetPar(self,ind,par_name,value):
-        pass
     
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             if self.device_available[ind-1]:
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
@@ -281,7 +275,7 @@ class HasyOneDCtrl(OneDController):
         elif name == "CountsRoI4":
             return self.Counts_RoI4[ind-1]
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if self.device_available[ind-1]:
             if name == "DataLength":
                 if self.flagIsKromo[ind-1] == False and self.flagIsAvantes[ind-1] == False:
@@ -311,7 +305,7 @@ class HasyOneDCtrl(OneDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("HasyOneDCtrl %s dying" % self.inst_name)
+        print("HasyOneDCtrl dying")
 
         
 if __name__ == "__main__":

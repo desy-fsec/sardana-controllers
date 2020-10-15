@@ -15,11 +15,10 @@ ReadWrite = DataAccess.ReadWrite
 class LimaRoi2SpectrumCtrl(OneDController):
     "This class is the One D controller for the Roi2Spectrum Lima device"
 
-    ctrl_extra_attributes = {'DataLength':{Type:int, Access: ReadWrite},
-                             }
+    axis_attributes = {'DataLength':{Type:int, Access: ReadWrite},}
                  
-    class_prop = {'Roi2SpectrumDeviceName':{Type:str,Description:'The name of the Roi2SpectrumDeviceServer device from Lima'}}
-      
+    ctrl_properties = {'Roi2SpectrumDeviceName':{Type:str,Description:'The name of the Roi2SpectrumDeviceServer device from Lima'}}
+    
     gender = "OneD"
     model = "LimaRoi2Spectrum"
     organization = "DESY"
@@ -47,7 +46,7 @@ class LimaRoi2SpectrumCtrl(OneDController):
         tup = (sta,status)
         return tup
    
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions, latency_time):
         pass
  
     def ReadAll(self):
@@ -88,12 +87,9 @@ class LimaRoi2SpectrumCtrl(OneDController):
         
     def AbortOne(self,ind):
         pass
-       
-    def GetAxisPar(self, ind, par_name):
-        pass
 
 
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "DataLength":
             rois_names = self.proxy.getNames()
             cmd = []
@@ -108,7 +104,7 @@ class LimaRoi2SpectrumCtrl(OneDController):
                 datalength = -1
             return datalength
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         pass
 
     def SendToCtrl(self,in_data):

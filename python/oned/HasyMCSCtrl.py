@@ -14,21 +14,20 @@ ReadWrite = DataAccess.ReadWrite
 class HasyMCSCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    ctrl_extra_attributes = {'NbChannels':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'NbAcquisitions':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'Preset':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:str,Access:ReadOnly},
-                             }
+    axis_attributes = {'NbChannels':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'NbAcquisitions':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'Preset':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:str,Access:ReadOnly},
+    }
                  
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCS Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCS Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
                  
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
-        self.ct_name = "HasyMCSCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -94,7 +93,7 @@ class HasyMCSCtrl(OneDController):
 
         return tup
     
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions, latency_time):
         idx = axis - 1
         if value > 0:
             self.integ_time = value
@@ -131,14 +130,8 @@ class HasyMCSCtrl(OneDController):
         
     def AbortOne(self,ind):
         pass
-       
-    def GetPar(self, ind, par_name):
-        pass
-
-    def SetPar(self,ind,par_name,value):
-        pass
     
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if name == "NbChannels": 
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("NbChannels").value)
@@ -153,7 +146,7 @@ class HasyMCSCtrl(OneDController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraar(self,ind,name,value):
         if name == "NbChannels":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("NbChannels",value)
@@ -168,7 +161,7 @@ class HasyMCSCtrl(OneDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("HasyMCSCtrl/%s dying" % self.inst_name)
+        print("HasyMCSCtrl dying")
 
         
 if __name__ == "__main__":

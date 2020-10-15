@@ -14,13 +14,13 @@ ReadWrite = DataAccess.ReadWrite
 class SIS3302Ctrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    ctrl_extra_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                             'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}, 
-                             'FlagReadSpectrum':{Type:'PyTango.DevLong',Access:ReadWrite},     
-                         }
+    axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}, 
+                       'FlagReadSpectrum':{Type:'PyTango.DevLong',Access:ReadWrite},     
+    }
     
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
     
     MaxDevice = 97
 
@@ -73,7 +73,7 @@ class SIS3302Ctrl(OneDController):
         tup = (self.sta, self.status)
         return tup
     
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions, latency_time):
         #print "SIS3302Ctrl.LoadOne",self.inst_name,"axis", axis
         idx = axis - 1
         if value > 0:
@@ -134,16 +134,8 @@ class SIS3302Ctrl(OneDController):
         #print "SIS3302Ctrl.AbortOne",self.inst_name,"index",ind
         self.proxy.command_inout("Stop")
         self.proxy.command_inout("Read")
-
-       
-    def GetPar(self, ind, par_name):
-        #print "SIS3302Ctrl.GetPar",self.inst_name,"index",ind, "par_name", par_name
-        pass
-        
-    def SetPar(self,ind,par_name,value):
-        pass
     
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         #print "SIS3302Ctrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
         if name == "TangoDevice": 
             return self.proxy_name
@@ -156,7 +148,7 @@ class SIS3302Ctrl(OneDController):
         elif name == "FlagReadSpectrum":
             return self.flagreadspectrum
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         #print "SIS3302Ctrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
         if name == "DataLength":
             if ind == 1:

@@ -19,15 +19,14 @@ class AmptekOneDCtrl(OneDController):
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly}, 
                        }            
 
-    class_prop = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The name of the Amptek Tango device'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-                 
+    ctrl_properties= {'RootDeviceName':{Type:'PyTango.DevString',Description:'The name of the Amptek Tango device'},
+                      'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         OneDController.__init__(self,inst,props, *args, **kwargs)
-        self.ct_name = "AmptekOneDCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.amptek_device_name =  self.RootDeviceName
         else:
@@ -75,7 +74,7 @@ class AmptekOneDCtrl(OneDController):
     def StateOne(self, ind):
         return self.sta, self.status
     
-    def LoadOne(self, axis, value):
+    def LoadOne(self, axis, value, repetitions, latency_time):
         self.acqTime = value
         
 
