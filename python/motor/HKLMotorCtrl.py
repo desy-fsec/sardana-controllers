@@ -7,7 +7,7 @@ class HKLMotorCtrl(MotorController):
     """
 
     ## The property used to connect to the diffractometer controller
-    class_prop = {'DiffracDevName':{'Type':'PyTango.DevString','Description':'The diffractometer device name'}}
+    ctrl_properties = {'DiffracDevName':{'Type':'PyTango.DevString','Description':'The diffractometer device name'}}
     
     gender = "Motor"
     model = "HKLMotor"
@@ -167,27 +167,8 @@ class HKLMotorCtrl(MotorController):
         """ Nothis special to do """
         #print "PYTHON -> IcePapController/",self.inst_name,": In StartAll method"
         pass
-
-    def SetPar(self,axis,name,value):
-        """ Set the standard pool motor parameters. Not sense in this controller
-        @param axis to set the parameter
-        @param name of the parameter
-        @param value to be set
-        """
-        #print "[HKLMotorCtrl]",self.inst_name,": In SetPar method for axis",axis," name=",name," value=",value
-        pass
-        
-
-    def GetPar(self,axis,name):
-        """ Get the standard pool motor parameters.
-        @param axis to get the parameter
-        @param name of the parameter to get the value
-        @return the value of the parameter
-        """
-        #print "[HKLMotorCtrl]",self.inst_name,": In GetPar method for axis",axis," name=",name
-        pass
-
-    def GetExtraAttributePar(self,axis,name):
+    
+    def GetAxisExtraPar(self,axis,name):
         """ Get HKLMotor driver particular parameters.
         @param axis to get the parameter
         @param name of the parameter to retrive
@@ -195,7 +176,7 @@ class HKLMotorCtrl(MotorController):
         """
         pass
     
-    def SetExtraAttributePar(self,axis,name,value):
+    def SetAxisExtraPar(self,axis,name,value):
         """ Set HKLMotor driver particular parameters.
         @param axis to set the parameter
         @param name of the parameter

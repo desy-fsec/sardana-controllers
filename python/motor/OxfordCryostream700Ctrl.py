@@ -11,7 +11,7 @@ class OxfordCryostream700Ctrl(MotorController):
        Tango OxfordCryostream700 device. Each 'axis' is represents, 
        a single device, the position equates to the temperature"""
 
-    ctrl_extra_attributes = {TANGO_DEV: {
+    axis_attributes = {TANGO_DEV: {
         'Type': 'PyTango.DevString',
         'Description': 'Tango Device Server name.',
         'R/W Type': 'PyTango.READ_WRITE'
@@ -36,7 +36,7 @@ class OxfordCryostream700Ctrl(MotorController):
         if not proxy:
             devName = self.extra_attributes[axis][TANGO_DEV]
             if devName is not None:
-                proxy = PoolUtil().get_device(self.inst_name, devName)
+                proxy = PoolUtil().get_device(self.GetName(), devName)
                 self.proxy[axis] = proxy
                 if proxy is None and raiseOnConnError:
                     raise Exception("Proxy for '%s' could not be created" % devName)
@@ -175,11 +175,11 @@ class OxfordCryostream700Ctrl(MotorController):
                 value = 1.0
         return value
 
-    def GetExtraAttributePar(self, axis, name):
+    def GetAxisExtraPar(self, axis, name):
         if name in [TANGO_DEV,]:
             return self.extra_attributes[axis][name]
 
-    def SetExtraAttributePar(self, axis, name, value):
+    def SetAxisExtraPar(self, axis, name, value):
         if name in [TANGO_DEV,]:
             self.extra_attributes[axis][name] = value
             if axis in self.proxy:

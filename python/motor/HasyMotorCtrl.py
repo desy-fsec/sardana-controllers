@@ -76,8 +76,6 @@ class HasyMotorCtrl(MotorController):
                 self.node = lst[0]
                 self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
-        if self.debugFlag:
-            print("HasyMotorCtrl.__init__, inst %s RootDeviceName" %  (self.inst_name + self.RootDeviceName))
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
@@ -224,7 +222,7 @@ class HasyMotorCtrl(MotorController):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].write_attribute("Position", pos)
 
-    def GetExtraAttributePar(self, ind, name):
+    def GetAxisExtraPar(self, ind, name):
         value = None
         if self.device_available[ind-1]:
             if name == "UnitLimitMax":
@@ -261,7 +259,7 @@ class HasyMotorCtrl(MotorController):
                 value = float(self.proxy[ind-1].read_attribute("Conversion").value)
         return value
 
-    def SetExtraAttributePar(self, ind, name, value):
+    def SetAxisExtraPar(self, ind, name, value):
         if self.device_available[ind-1]:
             if name == "UnitLimitMax":
                 if self.poolmotor_proxy[ind -1 ] == None:

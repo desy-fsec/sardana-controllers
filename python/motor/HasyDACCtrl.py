@@ -117,7 +117,7 @@ class HasyDACCtrl(MotorController):
         if self.device_available[ind-1] == 1:
                 self.proxy[ind-1].write_attribute("Voltage",pos)
 	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "VoltageMax":
                 return float(self.proxy[ind-1].read_attribute("VoltageMax").value)
@@ -127,18 +127,12 @@ class HasyDACCtrl(MotorController):
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if self.device_available[ind-1]:
             if name == "VoltageMax":
                 self.proxy[ind-1].write_attribute("VoltageMax",value)
             elif name == "VoltageMin":
                 self.proxy[ind-1].write_attribute("VoltageMin",value)
-    
-    def SetAxisPar(self, ind, name, value):
-        pass
-            
-    def GetAxisPar(self, ind, name):
-        pass
     
     def StartAll(self):
         pass
@@ -153,4 +147,4 @@ class HasyDACCtrl(MotorController):
         pass
 
     def __del__(self):
-        print("PYTHON -> HasyDACCtrl %s: dying" % self.inst_name)
+        print("PYTHON -> HasyDACCtrl dying")
