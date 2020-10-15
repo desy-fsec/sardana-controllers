@@ -124,7 +124,7 @@ class SIS3610Ctrl(IORegisterController):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].write_attribute("Value", value)
      	
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
