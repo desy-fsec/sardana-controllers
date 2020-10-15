@@ -18,8 +18,8 @@ class HasyADCCtrl(ZeroDController):
                        'Conversion':{Type:float,Access:ReadWrite},
                        }
 		     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the VFCADC Tango devices'},
-                  'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the VFCADC Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
 
@@ -27,8 +27,6 @@ class HasyADCCtrl(ZeroDController):
         self.TangoHost = None
         ZeroDController.__init__(self,inst,props,*args, **kwargs)
 #        print "PYTHON -> ZeroDController ctor for instance",inst
-
-        self.ct_name = "HasyADCCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -118,7 +116,7 @@ class HasyADCCtrl(ZeroDController):
         #print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StartOne method for index",ind
         self.wanted.append(ind)
     
-    def GetExtraAttributePar(self,ind,name):
+    def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
@@ -126,7 +124,7 @@ class HasyADCCtrl(ZeroDController):
             elif name == "Conversion": 
                 return self.conversion[ind-1]
           
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetAxisExtraPar(self,ind,name,value):
         if self.device_available[ind-1]:
             if name == "Conversion":
                 self.conversion[ind-1] = value        
@@ -136,7 +134,7 @@ class HasyADCCtrl(ZeroDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> HasyADCCtrl/%s being deleted" % self.inst_name)
+        print("PYTHON -> HasyADCCtrl being deleted")
 
         
 if __name__ == "__main__":
