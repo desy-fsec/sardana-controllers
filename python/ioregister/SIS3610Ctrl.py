@@ -2,7 +2,7 @@
 ##
 ## file :    SIS3610Ctrl.py
 ##
-## description : 
+## description :
 ##
 ## project :    Sardana/Pool/ctrls/OIRegister
 ##
@@ -54,14 +54,14 @@ class SIS3610Ctrl(IORegisterController):
     image = ""
     icon = ""
     logo = ""
-    	
+
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
-                       }		     
-    
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
                        }
-    
+
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},
+                       }
+
     def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
         IORegisterController.__init__(self, inst, props, *args, **kwargs)
@@ -73,7 +73,7 @@ class SIS3610Ctrl(IORegisterController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
 
         name_dev_ask =  self.RootDeviceName + "*"
@@ -123,12 +123,12 @@ class SIS3610Ctrl(IORegisterController):
     def WriteOne(self, ind, value):
         if self.device_available[ind-1] == 1:
             self.proxy[ind-1].write_attribute("Value", value)
-     	
+
     def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
-            
+
     def SendToCtrl(self,in_data):
         return ""

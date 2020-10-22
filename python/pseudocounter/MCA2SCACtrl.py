@@ -1,4 +1,4 @@
-""" The standard pseudo counter controller library for the device pool """ 
+""" The standard pseudo counter controller library for the device pool """
 
 from sardana import pool
 from sardana.pool import PoolUtil
@@ -11,7 +11,7 @@ try:
     __SCIPY_AVAILABLE__ = True
 except:
     __SCIPY_AVAILABLE__ = False
-    
+
 # Will disapear when we have pseudo counters that can have other pseudo counters
 # in their counter roles.
 class MCA2SCACtrl(PseudoCounterController):
@@ -23,7 +23,7 @@ class MCA2SCACtrl(PseudoCounterController):
     pseudo_counter_roles = 'sca',
 
     # THE EXTRA ATTRIBUTES: RoIs definition
-    
+
     axis_attributes ={'RoI1':
                       {'Type':'PyTango.DevLong'
                        ,'Description':'The low limit of the Region of Interest '
@@ -36,13 +36,13 @@ class MCA2SCACtrl(PseudoCounterController):
 
 
     def __init__(self,inst,props, *args, **kwargs):
-        
+
         PseudoCounterController.__init__(self,inst,props, *args, **kwargs)
 
         self.counterExtraAttributes = {}
         self.counterExtraAttributes[1] = {"RoI1":0,
                                           "RoI2":0}
-    
+
     def GetAxisExtraPar(self,index,name):
  #       print "GetExtraAttributePar " + str(index) + " name " + name
         return self.counterExtraAttributes[1][name]

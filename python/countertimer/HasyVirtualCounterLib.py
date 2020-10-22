@@ -22,5 +22,5 @@ def myread(case):
      elif case == 2:
           valor = valor - 1
      return valor
-     
+
 

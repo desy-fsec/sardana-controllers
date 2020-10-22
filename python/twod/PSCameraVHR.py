@@ -16,10 +16,10 @@ class PSCameraVHRCtrl(TwoDController):
     axis_attributes = {
         'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
     }
-    
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PSCameraVHR Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -34,7 +34,7 @@ class PSCameraVHRCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -48,8 +48,8 @@ class PSCameraVHRCtrl(TwoDController):
             self.device_available.append(0)
             self.max_device =  self.max_device + 1
         self.started = False
-        
-        
+
+
     def AddDevice(self,ind):
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -62,12 +62,12 @@ class PSCameraVHRCtrl(TwoDController):
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        
+
     def DeleteDevice(self,ind):
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
@@ -98,34 +98,34 @@ class PSCameraVHRCtrl(TwoDController):
 
     def PreStartAll(self):
         pass
-    
+
     def PreStartOne(self, ind, value):
         return True
-            
+
     def StartOne(self,ind, position=None):
         self.proxy[ind-1].command_inout("StartAcquisition")
-        
+
     def AbortOne(self,ind):
         pass
 
     def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
- 
+
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             if self.device_available[ind-1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
 
     def SetAxisExtraPar(self,ind,name,value):
         pass
-        
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> PSCameraVHRCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')

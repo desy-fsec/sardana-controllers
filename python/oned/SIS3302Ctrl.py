@@ -15,13 +15,13 @@ class SIS3302Ctrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
     axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}, 
-                       'FlagReadSpectrum':{Type:'PyTango.DevLong',Access:ReadWrite},     
+                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
+                       'FlagReadSpectrum':{Type:'PyTango.DevLong',Access:ReadWrite},
     }
-    
+
     ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-    
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -43,16 +43,16 @@ class SIS3302Ctrl(OneDController):
         self.acqTime = 0
         self.acqStartTime = None
         self.flagreadspectrum = 1
-        
+
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
 
-       
+
     def DeleteDevice(self,ind):
         #print "SIS3302Ctrl.DeleteDevice",self.inst_name,"index",ind
         OneDController.DeleteDevice(self,ind)
-        
-        
+
+
     def StateOne(self,ind):
         #print "SIS3302Ctrl.StatOne",self.inst_name,"index",ind
         if self.acqStartTime != None: #acquisition was started
@@ -72,7 +72,7 @@ class SIS3302Ctrl(OneDController):
             self.status = "Device is ON"
         tup = (self.sta, self.status)
         return tup
-    
+
     def LoadOne(self, axis, value, repetitions, latency_time):
         #print "SIS3302Ctrl.LoadOne",self.inst_name,"axis", axis
         idx = axis - 1
@@ -83,7 +83,7 @@ class SIS3302Ctrl(OneDController):
             self.integ_time = None
             self.monitor_count = -value
         self.acqTime = value
-        
+
 
     def PreReadAll(self):
         #print "SIS3302Ctrl.PreReadAll",self.inst_name
@@ -92,7 +92,7 @@ class SIS3302Ctrl(OneDController):
         #    self.started = False
         #    time.sleep(0.2)
         pass
-        
+
     def PreReadOne(self,ind):
         #print "SIS3302Ctrl.PreReadOne",self.inst_name,"index",ind
         pass
@@ -104,7 +104,7 @@ class SIS3302Ctrl(OneDController):
 
     def ReadOne(self,ind):
         #print "SIS3302Ctrl.ReadOne",self.inst_name,"index",ind
-        if ind == 1: 
+        if ind == 1:
             if self.flagreadspectrum == 1:
                 data = self.proxy.Data
             else:
@@ -118,7 +118,7 @@ class SIS3302Ctrl(OneDController):
 
     def PreStartOne(self,ind, value):
         return True
-        
+
     def StartAll(self):
         if self.started == False:
             self.proxy.command_inout("Stop")
@@ -126,18 +126,18 @@ class SIS3302Ctrl(OneDController):
             self.proxy.command_inout("Start")
             self.started = True
             self.acqStartTime = time.time()
-        
+
     def StartOne(self,ind, value):
         pass
-            
+
     def AbortOne(self,ind):
         #print "SIS3302Ctrl.AbortOne",self.inst_name,"index",ind
         self.proxy.command_inout("Stop")
         self.proxy.command_inout("Read")
-    
+
     def GetAxisExtraPar(self,ind,name):
         #print "SIS3302Ctrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
-        if name == "TangoDevice": 
+        if name == "TangoDevice":
             return self.proxy_name
         elif name == "DataLength":
             if ind == 1:
@@ -155,15 +155,15 @@ class SIS3302Ctrl(OneDController):
                 self.proxy.write_attribute("DataLength",value)
         elif name == "FlagReadSpectrum":
             self.flagreadspectrum = value
-                
+
     def SendToCtrl(self,in_data):
         #print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         #print "SIS3302Ctrl/",self.inst_name,": Aarrrrrg, I am dying"
         pass
-        
+
 if __name__ == "__main__":
     obj = OneDController('test')
 #    obj.AddDevice(2)

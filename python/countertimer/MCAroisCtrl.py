@@ -12,15 +12,15 @@ ReadWrite = DataAccess.ReadWrite
 
 class MCAroisCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the MCA RoIs"
-	
+
 
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
                        'TangoAttribute':{Type:str,Access:ReadWrite},
                        'FlagClear':{Type:int,Access:ReadWrite},
                        }
-		     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the MCArois Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},
                        }
 
     gender = "CounterTimer"
@@ -28,7 +28,7 @@ class MCAroisCtrl(CounterTimerController):
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
@@ -49,17 +49,17 @@ class MCAroisCtrl(CounterTimerController):
         self.start_time = time.time()
         self.exp_time = 0
         self.scanning = 0
-        
-        
+
+
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         self.AttributeNames.append("")
-        
+
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy =  None
-        
-		
+
+
     def StateOne(self,ind):
         if time.time() - self.start_time < self.exp_time:
             sta = PyTango.DevState.MOVING
@@ -85,23 +85,23 @@ class MCAroisCtrl(CounterTimerController):
 
     def PreStartOne(self,ind,pos):
         return True
-        
+
     def StartOne(self,ind):
         pass
-            
+
     def ReadOne(self,ind):
         value = self.proxy.read_attribute(self.AttributeNames[ind-1]).value
         return  value
-	
+
     def AbortOne(self,ind):
         pass
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
     def PreStartOne(self,ind):
         pass
-	
+
     def StartAll(self):
         # the state may be ON but one bank can be active
         self.proxy.command_inout("Stop")
@@ -110,26 +110,26 @@ class MCAroisCtrl(CounterTimerController):
         self.proxy.command_inout("Start")
         self.start_time = time.time()
         self.scanning = 1
-        
+
     def LoadOne(self,ind,value):
         self.exp_time = value
-	
+
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
+            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
             return tango_device
         if name == "TangoAttribute":
             return self.AttributeNames[ind-1]
         if name == "FlagClear":
             return self.flag_clear
-        
-            
+
+
     def SetAxisExtraPar(self,ind,name,value):
         if name == "TangoAttribute":
             self.AttributeNames[ind-1] = value
         if name == "FlagClear":
             self.flag_clear = value
-			
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 

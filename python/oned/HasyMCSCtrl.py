@@ -19,10 +19,10 @@ class HasyMCSCtrl(OneDController):
                        'Preset':{Type:'PyTango.DevLong',Access:ReadWrite},
                        'TangoDevice':{Type:str,Access:ReadOnly},
     }
-                 
+
     ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCS Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-                 
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -36,7 +36,7 @@ class HasyMCSCtrl(OneDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -59,7 +59,7 @@ class HasyMCSCtrl(OneDController):
         self.dft_Preset = 0
         self.Preset = []
 
-        
+
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -75,13 +75,13 @@ class HasyMCSCtrl(OneDController):
         self.NbAcquisitions.append(self.dft_NbAcquisitions)
         self.Preset.append(self.dft_Preset)
 
-       
+
     def DeleteDevice(self,ind):
         OneDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
-        
+
+
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
@@ -92,7 +92,7 @@ class HasyMCSCtrl(OneDController):
             tup = (sta, "Device not available")
 
         return tup
-    
+
     def LoadOne(self, axis, value, repetitions, latency_time):
         idx = axis - 1
         if value > 0:
@@ -101,7 +101,7 @@ class HasyMCSCtrl(OneDController):
         else:
             self.integ_time = None
             self.monitor_count = -value
-        
+
 
     def PreReadAll(self):
         pass
@@ -124,26 +124,26 @@ class HasyMCSCtrl(OneDController):
 
     def PreStartOne(self,ind, value):
         return True
-        
+
     def StartOne(self,ind, value):
         self.proxy[ind-1].command_inout("SetupMCS")
-        
+
     def AbortOne(self,ind):
         pass
-    
+
     def GetAxisExtraPar(self,ind,name):
-        if name == "NbChannels": 
+        if name == "NbChannels":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("NbChannels").value)
-        elif name == "NbAcquisitions": 
+        elif name == "NbAcquisitions":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("NbAcquisitions").value)
-        elif name == "Preset": 
+        elif name == "Preset":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Preset").value)
         elif name == "TangoDevice":
             if self.device_available[ind-1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
 
     def SetAxisExtraar(self,ind,name,value):
@@ -159,11 +159,11 @@ class HasyMCSCtrl(OneDController):
 
     def SendToCtrl(self,in_data):
         return "Nothing sent"
-        
+
     def __del__(self):
         print("HasyMCSCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = OneDController('test')
 #    obj.AddDevice(2)

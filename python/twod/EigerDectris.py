@@ -19,10 +19,10 @@ class EigerDectrisCtrl(TwoDController):
 		       'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
                        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
     }
-			     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the EigerDectris Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -37,7 +37,7 @@ class EigerDectrisCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -59,8 +59,8 @@ class EigerDectrisCtrl(TwoDController):
         self.TriggerMode = []
         self.dft_NbTriggers = 0
         self.NbTriggers = []
-        
-        
+
+
     def AddDevice(self,ind):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self,ind)
@@ -78,13 +78,13 @@ class EigerDectrisCtrl(TwoDController):
         self.CountTimeInte.append(self.dft_CountTimeInte)
         self.TriggerMode.append(self.dft_TriggerMode)
         self.NbTriggers.append(self.dft_NbTriggers)
-        
+
     def DeleteDevice(self,ind):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
@@ -119,14 +119,14 @@ class EigerDectrisCtrl(TwoDController):
     def PreStartAll(self):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In PreStartAll method"
         pass
-    
+
     def PreStartOne(self, ind, value):
         return True
-            
+
     def StartOne(self,ind, position=None):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].command_inout("Trigger")
-        
+
     def AbortOne(self,ind):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In AbortOne method for index",ind
         pass
@@ -134,7 +134,7 @@ class EigerDectrisCtrl(TwoDController):
     def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("CountTime",value)
         self.proxy[ind-1].write_attribute("CountTimeInte",value)
- 
+
     def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if self.device_available[ind-1]:
@@ -147,7 +147,7 @@ class EigerDectrisCtrl(TwoDController):
             elif name == "TriggerMode":
                 return self.proxy[ind-1].read_attribute("TriggerMode").value
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
             elif name == "SettleTime":
                 return self.SettleTime[ind-1]
@@ -163,14 +163,14 @@ class EigerDectrisCtrl(TwoDController):
                 self.proxy[ind-1].write_attribute("NbTriggers",value)
             elif name == "TriggerMode":
                 self.proxy[ind-1].write_attribute("TriggerMode",value)
-        
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> EigerDectrisCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')

@@ -20,16 +20,16 @@ class PCOCtrl(TwoDController):
 		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
                        'TangoDevice':{Type:str,Access:ReadOnly},}
 
-			     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PCO Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        
+
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -38,7 +38,7 @@ class PCOCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -64,8 +64,8 @@ class PCOCtrl(TwoDController):
         self.FilePrefix = []
         self.dft_FileDir = ""
         self.FileDir = []
-        
-        
+
+
     def AddDevice(self,ind):
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -84,12 +84,12 @@ class PCOCtrl(TwoDController):
         self.FileStartNum.append(self.dft_FileStartNum)
         self.FilePrefix.append(self.dft_FilePrefix)
         self.FileDir.append(self.dft_FileDir)
-        
+
     def DeleteDevice(self,ind):
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
@@ -124,16 +124,16 @@ class PCOCtrl(TwoDController):
 
     def PreStartAll(self):
         pass
-		
+
     def StartOne(self,ind, position=None):
         while self.proxy[ind-1].state() != PyTango.DevState.ON: # Need it because the PCO goes to DISABLE after MOVING
             time.sleep(0.001)
         self.proxy[ind-1].command_inout("StartStandardAcq")
-      
+
     def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
- 
-    def GetAxisPar(self, ind, par_name):       
+
+    def GetAxisPar(self, ind, par_name):
         if par_name == "XDim":
             if self.device_available[ind-1]:
                 return int(self.proxy[ind-1].read_attribute("Width").value)
@@ -148,7 +148,7 @@ class PCOCtrl(TwoDController):
         elif par_name == "YDim":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Heigth",value)
-	
+
     def GetAxisExtraPar(self,ind,name):
         if name == "DelayTime":
             if self.device_available[ind-1]:
@@ -170,7 +170,7 @@ class PCOCtrl(TwoDController):
                 return self.proxy[ind-1].read_attribute("FileDir").value
         if name == "TangoDevice":
             if self.device_available[ind-1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
 
     def SetAxisExtraPar(self,ind,name,value):
@@ -192,15 +192,15 @@ class PCOCtrl(TwoDController):
         if name == "FileDir":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("FileDir",value)
-        
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> PCOCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')
 #    obj.AddDevice(2)

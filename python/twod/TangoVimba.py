@@ -17,10 +17,10 @@ class TangoVimbaCtrl(TwoDController):
         'AcquisitionType':{Type:'PyTango.DevLong',Access:ReadWrite,Description:'0-> StartAcquisition (hw trigger), 1-> StartSingleAcquisition (sw trigger)'},
         'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
     }
-    
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the TangoVimba Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-                 
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -35,7 +35,7 @@ class TangoVimbaCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -54,8 +54,8 @@ class TangoVimbaCtrl(TwoDController):
         self.acq_type.append(0)
         self.max_device =  self.max_device + 1
         self.started = False
-        
-        
+
+
     def AddDevice(self,ind):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self,ind)
@@ -69,13 +69,13 @@ class TangoVimbaCtrl(TwoDController):
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        
+
     def DeleteDevice(self,ind):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
@@ -110,7 +110,7 @@ class TangoVimbaCtrl(TwoDController):
             self.proxy[ind-1].command_inout("StopAcquisition")
         except:
             pass
-        
+
     def ReadAll(self):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In ReadAll method"
         pass
@@ -124,7 +124,7 @@ class TangoVimbaCtrl(TwoDController):
     def PreStartAll(self):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In PreStartAll method"
         pass
-        
+
     def StartOne(self,ind, position=None):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].FileSaving = True
@@ -132,11 +132,11 @@ class TangoVimbaCtrl(TwoDController):
             self.proxy[ind-1].command_inout("StartAcquisition")
         else:
             self.proxy[ind-1].command_inout("StartSingleAcquisition")
-            
+
         self.started = True
         self.start_time[ind-1] = time.time()
-        
-        
+
+
     def AbortOne(self,ind):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In AbortOne method for index",ind
         try:
@@ -146,14 +146,14 @@ class TangoVimbaCtrl(TwoDController):
 
     def LoadOne(self, ind, value, repetitions, latency_time):
         self.exp_time = value
-        
 
- 
+
+
     def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if self.device_available[ind-1]:
             if name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
             if name == "AcquisitionType":
                 return self.acq_type[ind-1]
@@ -163,14 +163,14 @@ class TangoVimbaCtrl(TwoDController):
         if self.device_available[ind-1]:
             if name == "AcquisitionType":
                 self.acq_type[ind-1] = value
-        
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> TangoVimbaCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')

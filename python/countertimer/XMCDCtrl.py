@@ -14,14 +14,14 @@ global last_sta
 
 class XMCDCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the XMCD"
-	
+
 
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
                        'TangoAttribute':{Type:str,Access:ReadWrite},
                        }
-		     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The name of the XMCD Tango device'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},
                        }
 
     gender = "CounterTimer"
@@ -29,7 +29,7 @@ class XMCDCtrl(CounterTimerController):
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
@@ -47,7 +47,7 @@ class XMCDCtrl(CounterTimerController):
         proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
-        self.proxy = PyTango.DeviceProxy(proxy_name) 
+        self.proxy = PyTango.DeviceProxy(proxy_name)
         global last_sta
         last_sta = PyTango.DevState.ON
 
@@ -55,12 +55,12 @@ class XMCDCtrl(CounterTimerController):
         CounterTimerController.AddDevice(self,ind)
         self.Offset.append(self.dft_Offset)
         self.AttributeNames.append("")
-        
+
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy =  None
-        
-		
+
+
     def StateOne(self,ind):
         global last_sta
         try:
@@ -79,7 +79,7 @@ class XMCDCtrl(CounterTimerController):
 
     def PreReadAll(self):
         pass
-        
+
 
     def PreReadOne(self,ind):
         pass
@@ -90,44 +90,44 @@ class XMCDCtrl(CounterTimerController):
 
     def PreStartOne(self,ind,pos):
         return True
-        
+
     def StartOne(self,ind):
         pass
-            
+
     def ReadOne(self,ind):
         try:
             value = self.proxy.read_attribute(self.AttributeNames[ind-1]).value
         except:
             value = -999
         return  value
-	
+
     def AbortOne(self,ind):
         pass
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
     def PreStartOne(self,ind):
         pass
-	
+
     def StartAll(self):
         pass
-		     	
+
     def LoadOne(self,ind,value, repetitions, latency_time):
         pass
-	
+
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
+            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
             return tango_device
         if name == "TangoAttribute":
             return self.AttributeNames[ind-1]
-        
-            
+
+
     def SeAxistExtraPar(self,ind,name,value):
         if name == "TangoAttribute":
             self.AttributeNames[ind-1] = value
-			
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 

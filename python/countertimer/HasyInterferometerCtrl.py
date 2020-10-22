@@ -12,13 +12,13 @@ ReadWrite = DataAccess.ReadWrite
 
 class HasyInterferometerCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the Interferometers"
-	
+
 
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
                        }
-		     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The name of the Interferometer Tango device'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the device'}, 
+                       'TangoHost':{Type:str,Description:'The tango host where searching the device'},
                        }
 
     gender = "CounterTimer"
@@ -26,7 +26,7 @@ class HasyInterferometerCtrl(CounterTimerController):
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
@@ -42,16 +42,16 @@ class HasyInterferometerCtrl(CounterTimerController):
         proxy_name = self.RootDeviceName
         if self.TangoHost != None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
-        self.proxy = PyTango.DeviceProxy(proxy_name) 
+        self.proxy = PyTango.DeviceProxy(proxy_name)
 
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
-        
+
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy =  None
-        
-		
+
+
     def StateOne(self,ind):
         sta = self.proxy.command_inout("State")
         if sta == PyTango.DevState.RUNNING:
@@ -61,7 +61,7 @@ class HasyInterferometerCtrl(CounterTimerController):
 
     def PreReadAll(self):
         pass
-        
+
 
     def PreReadOne(self,ind):
         pass
@@ -72,39 +72,39 @@ class HasyInterferometerCtrl(CounterTimerController):
 
     def PreStartOne(self,ind,pos):
         return True
-        
+
     def StartOne(self,ind):
         pass
-            
-            
+
+
     def ReadOne(self,ind):
         value = -1
         return  value
-	
+
     def AbortOne(self,ind):
         pass
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
     def PreStartOne(self,ind):
         pass
-	
+
     def StartAll(self):
         self.proxy.command_inout("CollectDataTime", self.time_to_set)
-		     	
+
     def LoadOne(self,ind,value, repetitions, latency_time):
         self.time_to_set = value * 1000 # in ms
-	
+
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
+            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
             return tango_device
-        
-            
+
+
     def SetAxisExtraPar(self,ind,name,value):
         pass
-			
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 

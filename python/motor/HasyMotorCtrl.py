@@ -11,7 +11,7 @@ from sardana.pool.controller import (Memorize, Memorized, NotMemorized, DefaultV
 class HasyMotorCtrl(MotorController):
     """This class is the Tango Sardana Motor controller
     for standard Hasylab Motors.
-    
+
     """
 
     axis_attributes = {
@@ -27,7 +27,7 @@ class HasyMotorCtrl(MotorController):
         'RootDeviceName': {
             Type:str,Description:'The root name of the Motor Tango devices'},
         'TangoHost': {
-            Type:str,Description:'The tango host where searching the devices'}, 
+            Type:str,Description:'The tango host where searching the devices'},
     }
     ctrl_attributes = {
         'ExtraParameterName': {Type:str,Access:DataAccess.ReadWrite}}
@@ -47,7 +47,7 @@ class HasyMotorCtrl(MotorController):
     cmdNames_Abort = [
         "StopMove", "AbortMove", "Stop"]
     servers_ConversionIncluded = [
-        "OmsMaxV", "GalilDMCMotor", "AerotechEnsembleMotor"] 
+        "OmsMaxV", "GalilDMCMotor", "AerotechEnsembleMotor"]
 
     gender = "Motor"
     model = "Hasylab Motor"
@@ -61,7 +61,7 @@ class HasyMotorCtrl(MotorController):
         MotorController.__init__(self, inst, props, *args, **kwargs)
         self.db = PyTango.Database()
         self.debugFlag = False
-        if os.isatty(1): 
+        if os.isatty(1):
             self.debugFlag = True
         if self.TangoHost == None:
             self.db = PyTango.Database()
@@ -90,8 +90,8 @@ class HasyMotorCtrl(MotorController):
         self.attrName_Acceleration = []
         self.cmdName_Abort = []
         self.conversion_included = []
-        
-            
+
+
         self.dft_UnitLimitMax = 0
         self.UnitLimitMax = []
         self.dft_UnitLimitMin = 0
@@ -104,7 +104,7 @@ class HasyMotorCtrl(MotorController):
         self.poolmotor_proxy = []
         self.set_for_memorized_min = []
         self.set_for_memorized_max = []
-        
+
         for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
@@ -124,10 +124,10 @@ class HasyMotorCtrl(MotorController):
             self.poolmotor_proxy.append(None) #  Can not be created in AddDevice because the pool motor device does not exist
             self.set_for_memorized_min.append(1)
             self.set_for_memorized_max.append(1)
-        
+
             self.max_device = self.max_device + 1
-            
-        
+
+
     def AddDevice(self, ind):
         MotorController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -143,7 +143,7 @@ class HasyMotorCtrl(MotorController):
             print("HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind))
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        
+
         attrs = self.proxy[ind-1].get_attribute_list()
         cmds = [cmd.cmd_name for cmd in self.proxy[ind-1].command_list_query()]
         for attrName in HasyMotorCtrl.attrNames_UnitLimitMax:
@@ -178,7 +178,7 @@ class HasyMotorCtrl(MotorController):
             # there are two different GalilDMC servers used at DESY
             if not (self.proxy[ind-1].info().dev_class == "GalilDMCMotor" and self.attrName_Acceleration[ind-1] == "SlewRate"):
                 self.conversion_included[ind-1] = True
-        
+
     def DeleteDevice(self, ind):
         MotorController.DeleteDevice(self, ind)
         self.proxy[ind-1] = None
@@ -234,24 +234,24 @@ class HasyMotorCtrl(MotorController):
                 config.max_value = str(value)
                 cfg.append(config)
                 self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
-                
+
             elif name == "UnitLimitMin":
                 if self.poolmotor_proxy[ind -1 ] == None:
                     self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
                 value = float(self.proxy[ind-1].read_attribute(self.attrName_UnitLimitMin[ind-1]).value)
-                               
+
                 cfg = []
                 config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
                 config.min_value = str(value)
                 cfg.append(config)
                 self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
-                
+
             elif name == "PositionSim":
                 value = float(self.proxy[ind-1].read_attribute("PositionSim").value)
             elif name == "ResultSim":
                 value = str(self.proxy[ind-1].read_attribute("ResultSim").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 value = tango_device
             elif name == "Calibrate":
                 value = -1
@@ -283,7 +283,7 @@ class HasyMotorCtrl(MotorController):
                     cfg.append(config)
                     self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
                 self.set_for_memorized_min[ind-1] = 0
-                
+
             elif name == "PositionSim":
                 self.proxy[ind-1].write_attribute("PositionSim", value)
             elif name == "ResultSim":
@@ -370,7 +370,7 @@ class HasyMotorCtrl(MotorController):
                 self.proxy[ind-1].command_inout(self.cmdName_Abort[ind-1])
             except:
                 pass
-            
+
     def DefinePosition(self, ind, position):
         if self.device_available[ind-1] == 1:
             position = float(position)

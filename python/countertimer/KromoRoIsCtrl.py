@@ -16,14 +16,14 @@ ReadWrite = DataAccess.ReadWrite
 
 class KromoRoIsCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3302 RoIs"
-	
+
 
     axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
                        'RoIAttributeName':{Type:str,Access:ReadWrite},
                        }
-		     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the KromoRoIs Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},
                        }
 
     gender = "CounterTimer"
@@ -31,7 +31,7 @@ class KromoRoIsCtrl(CounterTimerController):
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
@@ -52,12 +52,12 @@ class KromoRoIsCtrl(CounterTimerController):
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         self.RoIAttributeName.append("")
-        
+
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy =  None
-        
-		
+
+
     def StateOne(self,ind):
         sta = self.proxy.command_inout("State")
         if sta == PyTango.DevState.ON:
@@ -67,13 +67,13 @@ class KromoRoIsCtrl(CounterTimerController):
             status_string = "Device MOVING"
         elif sta == PyTango.DevState.OFF:
             sta = PyTango.DevState.FAULT
-            status_string = "Error detected" 
+            status_string = "Error detected"
         tup = (sta, status_string)
         return tup
 
     def PreReadAll(self):
         pass
-        
+
 
     def PreReadOne(self,ind):
         pass
@@ -83,41 +83,41 @@ class KromoRoIsCtrl(CounterTimerController):
 
     def PreStartOne(self,ind,pos):
         return True
-        
+
     def StartOne(self,ind):
         return True
-            
+
     def ReadOne(self,ind):
         value = self.proxy.read_attribute(self.RoIAttributeName[ind-1]).value
         return  value
-	
+
     def AbortOne(self,ind):
         pass
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
     def PreStartOne(self,ind):
         pass
-	
+
     def StartAll(self):
         pass
-		     	
+
     def LoadOne(self,ind,value, repetitions, latency_time):
         pass
-	
+
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
+            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
             return tango_device
         if name == "RoIAttributeName":
             return self.RoIAttributeName[ind-1]
-        
-            
+
+
     def SetAxisExtraPar(self,ind,name,value):
         if name == "RoIAttributeName":
             self.RoIAttributeName[ind-1] = value
-			
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 

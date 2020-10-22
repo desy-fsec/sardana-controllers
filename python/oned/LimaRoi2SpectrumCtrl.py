@@ -16,9 +16,9 @@ class LimaRoi2SpectrumCtrl(OneDController):
     "This class is the One D controller for the Roi2Spectrum Lima device"
 
     axis_attributes = {'DataLength':{Type:int, Access: ReadWrite},}
-                 
+
     ctrl_properties = {'Roi2SpectrumDeviceName':{Type:str,Description:'The name of the Roi2SpectrumDeviceServer device from Lima'}}
-    
+
     gender = "OneD"
     model = "LimaRoi2Spectrum"
     organization = "DESY"
@@ -30,25 +30,25 @@ class LimaRoi2SpectrumCtrl(OneDController):
         self.proxy = PyTango.DeviceProxy(self.Roi2SpectrumDeviceName)
         self.started = False
 
-        
+
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
 
-       
+
     def DeleteDevice(self,ind):
         OneDController.DeleteDevice(self,ind)
         self.proxy =  None
-        
-        
+
+
     def StateOne(self,ind):
         sta = self.proxy.command_inout("State")
         status = self.proxy.command_inout("Status")
         tup = (sta,status)
         return tup
-   
+
     def LoadOne(self, axis, value, repetitions, latency_time):
         pass
- 
+
     def ReadAll(self):
         pass
 
@@ -81,10 +81,10 @@ class LimaRoi2SpectrumCtrl(OneDController):
 
     def PreStartOne(self,ind, value):
         return True
-        
+
     def StartOne(self,ind, value):
         pass
-        
+
     def AbortOne(self,ind):
         pass
 
@@ -109,10 +109,10 @@ class LimaRoi2SpectrumCtrl(OneDController):
 
     def SendToCtrl(self,in_data):
         return "Nothing sent"
-        
+
     def __del__(self):
         print("LimaRoi2SpectrumCtrl/%s " % self.inst_name)
 
-        
+
 if __name__ == "__main__":
     obj = OneDController('test')

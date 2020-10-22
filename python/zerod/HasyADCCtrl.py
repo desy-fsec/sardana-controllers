@@ -12,15 +12,15 @@ ReadWrite = DataAccess.ReadWrite
 
 class HasyADCCtrl(ZeroDController):
     "This class is the Tango Sardana Zero D controller for a generic Hasylab ADC"
-	
+
     axis_attributes = {
                        'TangoDevice':{Type:str,Access:ReadOnly},
                        'Conversion':{Type:float,Access:ReadWrite},
                        }
-		     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the VFCADC Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props,*args, **kwargs):
@@ -38,7 +38,7 @@ class HasyADCCtrl(ZeroDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -54,8 +54,8 @@ class HasyADCCtrl(ZeroDController):
             self.conversion.append(1.)
             self.max_device =  self.max_device + 1
         self.started = False
-        
-        
+
+
     def AddDevice(self,ind):
 #        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In AddDevice method for index",ind
         ZeroDController.AddDevice(self,ind)
@@ -69,13 +69,13 @@ class HasyADCCtrl(ZeroDController):
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        
+
     def DeleteDevice(self,ind):
 #        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         ZeroDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
 #        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
@@ -111,32 +111,32 @@ class HasyADCCtrl(ZeroDController):
 
     def PreStartOne(self,ind):
         pass
-		
+
     def StartOne(self,ind):
         #print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StartOne method for index",ind
         self.wanted.append(ind)
-    
+
     def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
-                return tango_device   
-            elif name == "Conversion": 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
+                return tango_device
+            elif name == "Conversion":
                 return self.conversion[ind-1]
-          
+
     def SetAxisExtraPar(self,ind,name,value):
         if self.device_available[ind-1]:
             if name == "Conversion":
-                self.conversion[ind-1] = value        
-        
+                self.conversion[ind-1] = value
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> HasyADCCtrl being deleted")
 
-        
+
 if __name__ == "__main__":
     obj = ZeroDController('ADC')
 #    obj.AddDevice(2)

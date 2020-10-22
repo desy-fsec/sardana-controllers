@@ -10,26 +10,26 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-    
+
 class HasyDACCtrl(MotorController):
     "This class is the Tango Sardana Motor controller for standard Hasylab DACs"
 
 
     axis_attributes = {'VoltageMax':{Type:float,Access:ReadWrite},
                        'VoltageMin':{Type:float,Access:ReadWrite},
-                       'TangoDevice':{Type:str,Access:ReadOnly}, 
+                       'TangoDevice':{Type:str,Access:ReadOnly},
                        }
 
-			     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-     
+
     gender = "Motor"
     model = "Hasylab DAC"
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props,*args, **kwargs):
         self.TangoHost = None
         MotorController.__init__(self,inst,props,*args, **kwargs)
@@ -42,7 +42,7 @@ class HasyDACCtrl(MotorController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
 
         name_dev_ask =  self.RootDeviceName + "*"
@@ -60,7 +60,7 @@ class HasyDACCtrl(MotorController):
         self.VoltageMax = []
         self.dft_VoltageMin = 0
         self.VoltageMin = []
-        
+
     def AddDevice(self,ind):
         MotorController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -75,12 +75,12 @@ class HasyDACCtrl(MotorController):
         self.device_available[ind-1] = 1
         self.VoltageMax.append(self.dft_VoltageMax)
         self.VoltageMin.append(self.dft_VoltageMin)
-        
+
     def DeleteDevice(self,ind):
         MotorController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
         status_template = "STATE(%s) LIM+(%s) LIM-(%s)"
         if  self.device_available[ind-1] == 1:
@@ -112,11 +112,11 @@ class HasyDACCtrl(MotorController):
 
     def PreStartOne(self,ind,pos):
         return True
-		
+
     def StartOne(self,ind,pos):
         if self.device_available[ind-1] == 1:
                 self.proxy[ind-1].write_attribute("Voltage",pos)
-	
+
     def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "VoltageMax":
@@ -124,7 +124,7 @@ class HasyDACCtrl(MotorController):
             elif name == "VoltageMin":
                 return float(self.proxy[ind-1].read_attribute("VoltageMin").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
 
     def SetAxisExtraPar(self,ind,name,value):
@@ -133,13 +133,13 @@ class HasyDACCtrl(MotorController):
                 self.proxy[ind-1].write_attribute("VoltageMax",value)
             elif name == "VoltageMin":
                 self.proxy[ind-1].write_attribute("VoltageMin",value)
-    
+
     def StartAll(self):
         pass
 
     def SendToCtrl(self,in_data):
         return "Nothing sent"
- 
+
     def AbortOne(self, ind):
         pass
 

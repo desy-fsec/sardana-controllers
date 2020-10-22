@@ -20,18 +20,18 @@ class VFCADCCtrl(CounterTimerController):
 		       'FlagReadVoltage':{Type:'PyTango.DevLong',Access:ReadWrite},
                        'TangoDevice':{Type:str,Access:ReadOnly},
     }
-    
-    
+
+
     ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the VFCADC Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-    
+
     MaxDevice = 97
 
     def __init__(self,inst,props,*args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props,*args, **kwargs)
 #        print "PYTHON -> CounterTimerController ctor for instance",inst
-        
+
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -40,7 +40,7 @@ class VFCADCCtrl(CounterTimerController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
 
         name_dev_ask =  self.RootDeviceName + "*"
@@ -67,8 +67,8 @@ class VFCADCCtrl(CounterTimerController):
             self.Gain.append(self.dft_Gain)
             self.Polarity.append(self.dft_Polarity)
             self.FlagReadVoltage.append(self.dft_FlagReadVoltage)
-        
-        
+
+
     def AddDevice(self,ind):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In AddDevice method for index",ind
         CounterTimerController.AddDevice(self,ind)
@@ -82,14 +82,14 @@ class VFCADCCtrl(CounterTimerController):
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        
-        
+
+
     def DeleteDevice(self,ind):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
@@ -128,21 +128,21 @@ class VFCADCCtrl(CounterTimerController):
         else:
             raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
-		
+
     def StartOne(self,ind):
         #print "PYTHON -> VFCADCCtrl/",self.inst_name,": In StartOne method for index",ind
         self.wanted.append(ind)
-	
+
     def StartAll(self):
         self.started = True
         self.start_time = time.time()
-		     	
+
     def LoadOne(self,ind,value, repetitions, latency_time):
         pass
-            
+
     def AbortOne(self,ind):
         pass
-	
+
     def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "Offset":
@@ -159,7 +159,7 @@ class VFCADCCtrl(CounterTimerController):
                 return int(self.FlagReadVoltage[ind-1])
         elif name == "TangoDevice":
             if self.device_available[ind-1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
 
     def SetAxisExtraPar(self,ind,name,value):
@@ -179,18 +179,18 @@ class VFCADCCtrl(CounterTimerController):
         if name == "FlagReadVoltage":
             if self.device_available[ind-1]:
                 self.FlagReadVoltage[ind-1] = value
-        
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
 
     def start_acquisition(self, value=None):
         pass
-        
+
     def __del__(self):
         print("PYTHON -> VFCADCCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = CounterTimerController('test')
 #    obj.AddDevice(2)

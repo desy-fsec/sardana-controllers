@@ -18,22 +18,22 @@ class SPADQOneDCtrl(OneDController):
                        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
                        'SpectrumName':{Type:'PyTango.DevString',Access:ReadWrite},
                        'RoI1Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI1End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                       'CountsRoI1':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
+                       'RoI1End':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'CountsRoI1':{Type:'PyTango.DevDouble',Access:ReadOnly},
                        'RoI2Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI2End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                       'CountsRoI2':{Type:'PyTango.DevDouble',Access:ReadOnly},  
+                       'RoI2End':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'CountsRoI2':{Type:'PyTango.DevDouble',Access:ReadOnly},
                        'RoI3Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI3End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                       'CountsRoI3':{Type:'PyTango.DevDouble',Access:ReadOnly}, 
+                       'RoI3End':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'CountsRoI3':{Type:'PyTango.DevDouble',Access:ReadOnly},
                        'RoI4Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI4End':{Type:'PyTango.DevLong',Access:ReadWrite}, 
-                       'CountsRoI4':{Type:'PyTango.DevDouble',Access:ReadOnly},        
+                       'RoI4End':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'CountsRoI4':{Type:'PyTango.DevDouble',Access:ReadOnly},
     }
-                 
+
     ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-                 
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -50,7 +50,7 @@ class SPADQOneDCtrl(OneDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -94,7 +94,7 @@ class SPADQOneDCtrl(OneDController):
         self.acqStartTime = None
 
 
-        
+
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -107,13 +107,13 @@ class SPADQOneDCtrl(OneDController):
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
 
-       
+
     def DeleteDevice(self,ind):
         OneDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
-        
+
+
     def StateOne(self,ind):
         if self.device_available[ind-1] == True:
             sta = self.proxy[ind-1].command_inout("State")
@@ -124,7 +124,7 @@ class SPADQOneDCtrl(OneDController):
             tup = (sta, "Device not available")
 
         return tup
-    
+
     def LoadOne(self, ind, value, repetitions, latency_time):
         if value > 0:
             self.integ_time = value
@@ -133,14 +133,14 @@ class SPADQOneDCtrl(OneDController):
             self.integ_time = None
             self.monitor_count = -value
         self.acqTime = value
-        
+
 
     def PreReadAll(self):
         pass
 
     def PreReadOne(self,ind):
         pass
-            
+
 
     def ReadAll(self):
         pass
@@ -158,21 +158,21 @@ class SPADQOneDCtrl(OneDController):
 
     def PreStartOne(self,ind, value):
         return True
-        
+
     def StartOne(self,ind, value):
         sta = self.proxy[ind-1].command_inout("State")
         if sta == PyTango.DevState.ON:
             self.proxy[ind-1].command_inout("StartAcquisition")
             self.started = True
             self.acqStartTime = time.time()
-                
+
     def AbortOne(self,ind):
         self.proxy[ind-1].command_inout("StopAcquisition")
-    
+
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             if self.device_available[ind-1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
         elif name == "DataLength":
             if self.device_available[ind-1]:
@@ -244,11 +244,11 @@ class SPADQOneDCtrl(OneDController):
 
     def SendToCtrl(self,in_data):
         return "Nothing sent"
-        
+
     def __del__(self):
         print("SPADQOneDCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = OneDController('test')
 #    obj.AddDevice(2)

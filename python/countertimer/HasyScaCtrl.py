@@ -15,18 +15,18 @@ ReadWrite = DataAccess.ReadWrite
 class HasyScaCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the HasySca"
 #    axis_attributes = {'Offset':{Type:float,Access:ReadWrite}}
-                 
+
     ctrl_properties = {'mca':{Type:str,Description:'The MCA name, tango device'},
                        'roi1':{Type:str,Description:'The lower ROI limit'},
                        'roi2':{Type:str,Description:'The upper ROI limit'},
     }
-    
+
     gender = "CounterTimer"
     model = "HasySca"
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
         self.max_device = 1
@@ -43,14 +43,14 @@ class HasyScaCtrl(CounterTimerController):
             return
         self.proxy[ind-1] = PyTango.DeviceProxy( self.mca)
         self.device_available[ind-1] = 1
-        
-        
+
+
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
-        
+
+
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             #
@@ -63,7 +63,7 @@ class HasyScaCtrl(CounterTimerController):
 
     def PreReadAll(self):
         pass
-        
+
     def PreReadOne(self,ind):
         pass
 
@@ -85,47 +85,47 @@ class HasyScaCtrl(CounterTimerController):
         for i in range( int(self.roi1), int(self.roi2)):
             sum += data[i]
         return sum
-    
+
     def AbortOne(self,ind):
         return True
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
     def PreStartOne(self,ind):
         return True
-        
+
     def StartOne(self,ind):
         self.wantedCT.append(ind)
-    
+
     def StartAll(self):
         self.started = True
         self.start_time = time.time()
         return True
-                
+
     def LoadOne(self,ind,value, repetitions, latency_time):
         pass
-    
+
     def GetAxisExtraPar(self,ind,name):
         if name == "Offset":
             if self.device_available[ind-1]:
                 return float(self.proxy[ind-1].read_attribute("Offset").value)
-        
-            
+
+
     def SetAxisExtraPar(self,ind,name,value):
         if name == "Offset":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Offset",value)
-            
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 
     def start_acquisition(self, value=None):
         return True
-    
+
     def __del__(self):
         print("PYTHON -> HasyScaCtrl dying")
 
- 
+
 if __name__ == "__main__":
     obj = HasyScaCtrl('test')

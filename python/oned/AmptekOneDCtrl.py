@@ -15,13 +15,13 @@ class AmptekOneDCtrl(OneDController):
     It works as slave of the AmptekPX5CoTiCtrl, which prepares and
     starts the acquisition."""
 
-     
-    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly}, 
-                       }            
+
+    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
+                       }
 
     ctrl_properties= {'RootDeviceName':{Type:'PyTango.DevString',Description:'The name of the Amptek Tango device'},
                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-    
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -39,7 +39,7 @@ class AmptekOneDCtrl(OneDController):
         self.acqTime = 0
         self.acqStartTime = None
 
-        
+
     def AddDevice(self,ind):
         OneDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -48,12 +48,12 @@ class AmptekOneDCtrl(OneDController):
         self.proxy = PyTango.DeviceProxy(self.amptek_device_name)
         self.device_available[ind-1] = True
 
-       
+
     def DeleteDevice(self,ind):
         OneDController.DeleteDevice(self,ind)
         self.proxy =  None
         self.device_available[ind-1] = 0
-  
+
     def StateAll(self):
         if self.acqStartTime != None: #acquisition was started
             now = time.time()
@@ -73,10 +73,10 @@ class AmptekOneDCtrl(OneDController):
 
     def StateOne(self, ind):
         return self.sta, self.status
-    
+
     def LoadOne(self, axis, value, repetitions, latency_time):
         self.acqTime = value
-        
+
 
     def PreReadAll(self):
         pass
@@ -96,14 +96,14 @@ class AmptekOneDCtrl(OneDController):
 
     def PreStartOne(self,ind, value):
         return True
-        
+
     def StartOne(self,ind, value):
         self.acqStartTime = time.time()
-        
+
     def AbortOne(self,ind):
         self.proxy.Disable()
 
-    
+
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
             if self.device_available[ind-1]:

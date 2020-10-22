@@ -19,16 +19,16 @@ class LimaRoICounterCtrl(CounterTimerController):
                        'RoIx2':{Type:'PyTango.DevLong',Access:ReadWrite},
                        'RoIy1':{Type:'PyTango.DevLong',Access:ReadWrite},
                        'RoIy2':{Type:'PyTango.DevLong',Access:ReadWrite}, }
-    
+
     ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'Name of the roicounter lima device'},
                        'TangoHost':{Type:str,Description:'The tango host where LimaCCDs runs'},}
-      
+
     gender = "CounterTimer"
     model = "LimaCounter"
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
         if self.TangoHost != None:
@@ -46,7 +46,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         self.proxy.Start()
         self.roi_id = []
         self.roi_name = []
-        
+
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         name = ["roi" + str(ind)]
@@ -54,12 +54,12 @@ class LimaRoICounterCtrl(CounterTimerController):
         self.roi_id.append(self.proxy.addNames(name)[0])
         roi = [self.roi_id[ind-1],0,0,1,1]
         self.proxy.setRois(roi)
-        
+
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy =  None
-        
-		
+
+
     def StateOne(self,ind):
         try:
             counterstatus = self.proxy.CounterStatus
@@ -82,7 +82,7 @@ class LimaRoICounterCtrl(CounterTimerController):
 
     def PreReadAll(self):
         pass
-        
+
 
     def PreReadOne(self,ind):
         pass
@@ -93,25 +93,25 @@ class LimaRoICounterCtrl(CounterTimerController):
     def ReadOne(self,ind):
         counts = self.proxy.command_inout("readCounters",0)
         return counts[7*(ind-1) + 2]
-	
+
     def AbortOne(self,ind):
         pass
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
     def PreStartOne(self,ind):
         return True
-		
+
     def StartOne(self,ind):
         self.wantedCT.append(ind)
-	
+
     def StartAll(self):
         pass
-		     	
+
     def LoadOne(self,ind,value, repetitions, latency_time):
         pass
-	
+
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             return self.proxy_name
@@ -127,8 +127,8 @@ class LimaRoICounterCtrl(CounterTimerController):
         elif name == "RoIy2":
             roi = self.proxy.getRois(self.roi_name[ind-1])
             return roi[4]
-        
-            
+
+
     def SetAxisExtraPar(self,ind,name,value):
         roi = self.proxy.getRois(self.roi_name[ind-1])
         if name == "RoIx1":
@@ -143,15 +143,15 @@ class LimaRoICounterCtrl(CounterTimerController):
         elif name == "RoIy2":
             roi[4] = value
             self.proxy.setRois(roi)
-        
-			
+
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 
-    
+
     def __del__(self):
         print("PYTHON -> LimaCounterCtrl  dying ")
 
- 
+
 if __name__ == "__main__":
     obj = LimaCounterCtrl('test')

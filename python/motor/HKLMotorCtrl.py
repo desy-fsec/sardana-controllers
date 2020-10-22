@@ -8,7 +8,7 @@ class HKLMotorCtrl(MotorController):
 
     ## The property used to connect to the diffractometer controller
     ctrl_properties = {'DiffracDevName':{'Type':'PyTango.DevString','Description':'The diffractometer device name'}}
-    
+
     gender = "Motor"
     model = "HKLMotor"
     organization = "DESY"
@@ -17,46 +17,46 @@ class HKLMotorCtrl(MotorController):
     icon = "motor_simulation_icon.png"
     state = ""
     status = ""
-    
+
     MaxDevice = 3
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         """ Do the default init plus the connection to the
         diffractometer device. And the readout of the properties
-        need 
+        need
         @param inst instance name of the controller
         @param properties of the controller
         """
         MotorController.__init__(self,inst,props, *args, **kwargs)
-        
+
         self.diffrac = PyTango.DeviceProxy(self.DiffracDevName)
 
         self.hkl_device = []
-        
-        h_dev_name = self.DiffracDevName + "-h"       
+
+        h_dev_name = self.DiffracDevName + "-h"
         self.hkl_device.append(PyTango.DeviceProxy(h_dev_name))
-        
-        k_dev_name =  self.DiffracDevName + "-k"       
+
+        k_dev_name =  self.DiffracDevName + "-k"
         self.hkl_device.append(PyTango.DeviceProxy(k_dev_name))
-        
-        l_dev_name =  self.DiffracDevName + "-l"     
+
+        l_dev_name =  self.DiffracDevName + "-l"
         self.hkl_device.append(PyTango.DeviceProxy(l_dev_name))
-        
-        hkl_simu_dev_name =  self.DiffracDevName + "-sim-hkl"       
+
+        hkl_simu_dev_name =  self.DiffracDevName + "-sim-hkl"
         self.hkl_simu_device = PyTango.DeviceProxy(hkl_simu_dev_name)
-        
-        prop = self.diffrac.get_property(['DiffractometerType'])        
-        for v in prop['DiffractometerType']:       
+
+        prop = self.diffrac.get_property(['DiffractometerType'])
+        for v in prop['DiffractometerType']:
             self.type = v
-    
-        prop = self.diffrac.get_property(['RealAxisProxies'])        
-        self.angle_device_name = {}         
-        self.angle_names = []      
-        for v in prop['RealAxisProxies']:       
-            name_list = v.split(":")       
-            self.angle_names.append(name_list[0])      
+
+        prop = self.diffrac.get_property(['RealAxisProxies'])
+        self.angle_device_name = {}
+        self.angle_names = []
+        for v in prop['RealAxisProxies']:
+            name_list = v.split(":")
+            self.angle_names.append(name_list[0])
             self.angle_device_name[name_list[0]] = name_list[1]
-    
+
     def StateOne(self,axis):
         """ Return the state from the h, k or l device.
         @param axis to read the state
@@ -106,7 +106,7 @@ class HKLMotorCtrl(MotorController):
     def StartOne(self,axis,pos):
         """ Move the axis separtely, for multiple movements use the macro br """
         #print "PYTHON -> HKLMotorCtrl/",self.inst_name,": In StartOne method for axis",axis," with pos",pos
-        
+
         if axis == 1:
             self.hkl_simu_device.write_attribute("h",pos)
             pos1 = self.hkl_device[1].position
@@ -125,49 +125,49 @@ class HKLMotorCtrl(MotorController):
             pos1 = self.hkl_device[1].position
             self.hkl_simu_device.write_attribute("k",pos1)
             self.hkl_simu_device.write_attribute("l",pos)
-            
+
         self.diffrac.write_attribute("Simulated",1)
 
-        
+
         angles_to_set = {}
-    
-        if self.type == 'E6C':    
+
+        if self.type == 'E6C':
             mu = self.diffrac.axisMu
             omega = self.diffrac.axisOmega
             chi = self.diffrac.axisChi
             phi = self.diffrac.axisPhi
             gamma = self.diffrac.axisGamma
             delta = self.diffrac.axisDelta
-        
+
             angles_to_set["mu"] = mu
             angles_to_set["omega"] = omega
             angles_to_set["chi"] = chi
             angles_to_set["phi"] = phi
             angles_to_set["gamma"] = gamma
-            angles_to_set["delta"] = delta        
+            angles_to_set["delta"] = delta
         elif self.type == 'E4CV':
             omega = self.diffrac.axisOmega
             chi = self.diffrac.axisChi
             phi = self.diffrac.axisPhi
             tth = self.diffrac.axisTth
-            
+
             angles_to_set["omega"] = omega
             angles_to_set["chi"] = chi
             angles_to_set["phi"] = phi
             angles_to_set["tth"] = tth
-            
+
         for angle in self.angle_names:
             angle_dev = PyTango.DeviceProxy(self.angle_device_name[angle])
             angle_dev.write_attribute("Position",angles_to_set[angle])
-            
+
         self.diffrac.write_attribute("Simulated",0)
-        
-        
+
+
     def StartAll(self):
         """ Nothis special to do """
         #print "PYTHON -> IcePapController/",self.inst_name,": In StartAll method"
         pass
-    
+
     def GetAxisExtraPar(self,axis,name):
         """ Get HKLMotor driver particular parameters.
         @param axis to get the parameter
@@ -175,7 +175,7 @@ class HKLMotorCtrl(MotorController):
         @return the value of the parameter
         """
         pass
-    
+
     def SetAxisExtraPar(self,axis,name,value):
         """ Set HKLMotor driver particular parameters.
         @param axis to set the parameter
@@ -204,8 +204,8 @@ class HKLMotorCtrl(MotorController):
     def __del__(self):
         #print "[HKLMotorCtrl]",self.inst_name,": Exiting"
         pass
-        
-        
+
+
 if __name__ == "__main__":
     obj = HKLMotorCtrl('test')
 #    obj.AddDevice(2)

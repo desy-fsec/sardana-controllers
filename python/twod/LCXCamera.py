@@ -22,10 +22,10 @@ class LCXCameraCtrl(TwoDController):
 		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
                        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
     }
-    
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the LCXCamera Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -40,7 +40,7 @@ class LCXCameraCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -70,8 +70,8 @@ class LCXCameraCtrl(TwoDController):
         self.NbFrames = []
         self.dft_Reset = 0
         self.Reset = []
-        
-        
+
+
     def AddDevice(self,ind):
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -91,12 +91,12 @@ class LCXCameraCtrl(TwoDController):
         self.FileDir.append(self.dft_FileDir)
         self.NbFrames.append(self.dft_NbFrames)
         self.Reset.append(self.dft_Reset)
-        
+
     def DeleteDevice(self,ind):
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
@@ -128,17 +128,17 @@ class LCXCameraCtrl(TwoDController):
 
     def PreStartAll(self):
         pass
-		
+
     def StartOne(self,ind, position=None):
         self.proxy[ind-1].command_inout("StartAcquisition")
-        
+
     def AbortOne(self,ind):
         pass
 
     def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
 
- 
+
     def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "DelayTime":
@@ -157,7 +157,7 @@ class LCXCameraCtrl(TwoDController):
                 if self.device_available[ind-1]:
                     return 0
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
 
     def SetAxisExtraPar(self,ind,name,value):
@@ -177,13 +177,13 @@ class LCXCameraCtrl(TwoDController):
             elif name == "Reset":
                 if self.device_available[ind-1]:
                     self.proxy[ind-1].command_inout("Reset")
-        
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> LCXCameraCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')

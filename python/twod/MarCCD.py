@@ -20,16 +20,16 @@ class MarCCDCtrl(TwoDController):
                        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
 		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite}
     }
-    
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the MarCCD Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
-        
+
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -38,7 +38,7 @@ class MarCCDCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -62,8 +62,8 @@ class MarCCDCtrl(TwoDController):
         self.ReadMode = []
         self.dft_ExposureTime = 0
         self.ExposureTime = []
-        
-        
+
+
     def AddDevice(self,ind):
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -81,12 +81,12 @@ class MarCCDCtrl(TwoDController):
         self.FileDir.append(self.dft_FileDir)
         self.ReadMode.append(self.dft_ReadMode)
         self.ExposureTime.append(self.dft_ExposureTime)
-        
+
     def DeleteDevice(self,ind):
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             sta = self.proxy[ind-1].command_inout("State")
@@ -115,7 +115,7 @@ class MarCCDCtrl(TwoDController):
 
     def PreStartAll(self):
         pass
-		
+
     def StartOne(self,ind, position=None):
         file_name_tmp =  self.proxy[ind-1].read_attribute("SavingPrefix").value
         if file_name_tmp.find('_') != -1:
@@ -140,7 +140,7 @@ class MarCCDCtrl(TwoDController):
             new_file_name = file_name_tmp + "_" + str(last_nb)
         self.proxy[ind-1].write_attribute("SavingPrefix", new_file_name)
         self.proxy[ind-1].command_inout("StartExposing")
-        
+
     def AbortOne(self,ind):
         try:
             self.proxy[ind-1].command_inout("StopExposing")
@@ -150,7 +150,7 @@ class MarCCDCtrl(TwoDController):
     def LoadOne(self, ind, value, repetitions, latency_time):
         if self.device_available[ind-1]:
             self.proxy[ind-1].write_attribute("ExposureTime", value)
-            
+
     def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "FilePrefix":
@@ -164,7 +164,7 @@ class MarCCDCtrl(TwoDController):
             elif name == "ExposureTime":
                 return self.proxy[ind-1].read_attribute("ExposureTime").value
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
 
     def SetAxisExtraPar(self,ind,name,value):
@@ -179,14 +179,14 @@ class MarCCDCtrl(TwoDController):
                 self.proxy[ind-1].write_attribute("ReadMode",value)
             elif name == "ExposureTime":
                 self.proxy[ind-1].write_attribute("ExposureTime",value)
-        
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> MarCCDCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')

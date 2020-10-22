@@ -5,17 +5,17 @@
 ## http://www.tango-controls.org/static/sardana/latest/doc/html/index.html
 ##
 ## Copyright 2011 CELLS / ALBA Synchrotron, Bellaterra, Spain
-## 
+##
 ## Sardana is free software: you can redistribute it and/or modify
 ## it under the terms of the GNU Lesser General Public License as published by
 ## the Free Software Foundation, either version 3 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## Sardana is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU Lesser General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU Lesser General Public License
 ## along with Sardana.  If not, see <http://www.gnu.org/licenses/>.
 ##
@@ -30,17 +30,17 @@ from sardana import State
 from sardana.pool.controller import CounterTimerController, Memorized
 from sardana.pool import AcqTriggerType
 
-        
+
 class AmptekPX5CounterTimerController(CounterTimerController):
     "This class is the AmptekPX5 Sardana CounterTimerController"
 
     MaxDevice = 17
 
     ctrl_properties = {'deviceName':{'Type':str,'Description':'AmptekPX5 Tango device name','DefaultValue':None},}
-    
+
     axis_attributes = { "lowThreshold"   : { "Type" : int, "R/W Type": "READ_WRITE" },
                         "highThreshold" : { "Type" : int, "R/W Type": "READ_WRITE" }}
-    
+
     def __init__(self, inst, props, *args, **kwargs):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         try:
@@ -55,7 +55,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self.t1 = time.time()
         self.sca_values = [0] * 16
         self.error_amptek = 0
-        
+
     def GetAxisExtraPar(self, axis, name):
         #self._log.debug("SetAxisExtraPar() entering...")
         if axis == 1:
@@ -121,8 +121,8 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             self.sca_values = self.amptekPX5.LatchGetClearSCA()
         self.sta = sta
         self.t1 = time.time()
-        
-        
+
+
     def StateOne(self, ind):
         return self.sta, self.status
 
@@ -157,7 +157,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             self.amptekPX5.LatchGetClearSCA()
         except:
             self.error_amptek = 1
-            
+
     def PreStartOne(self, ind):
         return True
 
@@ -187,9 +187,9 @@ class AmptekPX5CounterTimerController(CounterTimerController):
 class AmptekPX5SoftCounterTimerController(CounterTimerController):
     """"This class is the AmptekPX5 Sardana CounterTimerController.
      Its first channel is an acquisition timer. It is used to preset the acquisition time.
-     Its second channel is a Fast Counter (Incoming Count Rate ICR). 
+     Its second channel is a Fast Counter (Incoming Count Rate ICR).
      It counts all the incoming events.
-     Its third channel is a Slow Counter (Total Count Rate TCR). 
+     Its third channel is a Slow Counter (Total Count Rate TCR).
      Any event that is counted in the spectrum is also counter here.
      Rest of the channels are software ROI of the spectrum - so called SCAs."""
 

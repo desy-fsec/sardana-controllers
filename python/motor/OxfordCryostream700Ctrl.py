@@ -7,8 +7,8 @@ from threading import Timer
 TANGO_DEV = 'TangoDevice'
 
 class OxfordCryostream700Ctrl(MotorController):
-    """This class is the Tango Sardana motor controller for the 
-       Tango OxfordCryostream700 device. Each 'axis' is represents, 
+    """This class is the Tango Sardana motor controller for the
+       Tango OxfordCryostream700 device. Each 'axis' is represents,
        a single device, the position equates to the temperature"""
 
     axis_attributes = {TANGO_DEV: {
@@ -47,7 +47,7 @@ class OxfordCryostream700Ctrl(MotorController):
                         if self.velocity[axis] == 0.0:
                             self.velocity[axis] = 360.0
                     except Exception as e:
-                        if raiseOnConnError: 
+                        if raiseOnConnError:
                             raise e
                         else:
                             msg = "Cryostream '%s' is not available" % devName
@@ -203,4 +203,4 @@ class OxfordCryostream700Ctrl(MotorController):
     def DefinePosition(self, axis, position):
         raise Exception('not implemented')
 
-    
+

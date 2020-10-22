@@ -34,7 +34,7 @@ class PilatusCtrl(TwoDController):
 
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Pilatus Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -48,7 +48,7 @@ class PilatusCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -94,8 +94,8 @@ class PilatusCtrl(TwoDController):
         self.Reset = []
         self.dft_SettleTime = 0.4
         self.SettleTime = []
-        
-        
+
+
     def AddDevice(self,ind):
         TwoDController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -124,13 +124,13 @@ class PilatusCtrl(TwoDController):
         self.Gain.append(self.dft_Gain)
         self.Reset.append(self.dft_Reset)
         self.SettleTime.append(self.dft_SettleTime)
-        
+
     def DeleteDevice(self,ind):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
 #        print "PYTHON -> PilatusCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
@@ -164,17 +164,17 @@ class PilatusCtrl(TwoDController):
 
     def PreStartAll(self):
         pass
-    
+
     def PreStartOne(self, ind, value):
         if self.proxy[ind-1].read_attribute("TriggerMode").value > 0:
             self.proxy[ind-1].command_inout("StartStandardAcq")
             time.sleep(self.SettleTime[ind-1])
         return True
-            
+
     def StartOne(self,ind, position=None):
         if self.proxy[ind-1].read_attribute("TriggerMode").value == 0:
             self.proxy[ind-1].command_inout("StartStandardAcq")
-        
+
     def AbortOne(self,ind):
         self.proxy[ind-1].command_inout("StopAcq")
 
@@ -185,7 +185,7 @@ class PilatusCtrl(TwoDController):
         if par_name == "data_source":
             data_source = str(self.tango_device[ind -1]) + "/LastImageTaken"
             return data_source
- 
+
     def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "DelayTime":
@@ -218,7 +218,7 @@ class PilatusCtrl(TwoDController):
                 if self.device_available[ind-1]:
                     return 0
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
             elif name == "SettleTime":
                 return self.SettleTime[ind-1]
@@ -259,14 +259,14 @@ class PilatusCtrl(TwoDController):
             elif name == "SettleTime":
                 if self.device_available[ind-1]:
                     self.SettleTime[ind-1] = value
-        
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> PilatusCtrl dying" )
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')

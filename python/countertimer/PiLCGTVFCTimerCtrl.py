@@ -12,13 +12,13 @@ ReadWrite = DataAccess.ReadWrite
 
 class PiLCGTVFCTimerCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the PiLCGateTriggeredVFC used as timer"
-    
 
-    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly}, 
+
+    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
                        }
-             
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PiLCTriggerGenerator Tango device'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
+                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},
                        }
 
     gender = "CounterTimer"
@@ -120,7 +120,7 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
                                 + ":"
                                 + str(self.port)
                                 + "/"
-                                + self.proxy[ind - 1].name() 
+                                + self.proxy[ind - 1].name()
                                 )
                 return tango_device
 

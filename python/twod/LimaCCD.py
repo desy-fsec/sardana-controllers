@@ -28,11 +28,11 @@ class LimaCCDCtrl(TwoDController):
 		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
                        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
     }
-    
-			     
+
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the LimaCCD Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-			     
+
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -47,7 +47,7 @@ class LimaCCDCtrl(TwoDController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -87,7 +87,7 @@ class LimaCCDCtrl(TwoDController):
         self.TriggerMode = []
         self.dft_Reset = 0
         self.Reset = []
-        
+
     def AddDevice(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self,ind)
@@ -114,13 +114,13 @@ class LimaCCDCtrl(TwoDController):
         self.NbFrames.append(self.dft_NbFrames)
         self.TriggerMode.append(self.dft_TriggerMode)
         self.Reset.append(self.dft_Reset)
-        
+
     def DeleteDevice(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
+
     def StateOne(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StateOne method for index",ind
         if  self.device_available[ind-1] == 1:
@@ -156,13 +156,13 @@ class LimaCCDCtrl(TwoDController):
     def PreStartAll(self):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In PreStartAll method"
         pass
-		
+
     def StartOne(self,ind, value):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].write_attribute("acq_nb_frames", 1)
         self.proxy[ind-1].command_inout("prepareAcq")
         self.proxy[ind-1].command_inout("startAcq")
-        
+
     def AbortOne(self,ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AbortOne method for index",ind
         self.proxy[ind-1].command_inout("stopAcq")
@@ -179,8 +179,8 @@ class LimaCCDCtrl(TwoDController):
                 return int(self.proxy[ind-1].read_attribute("image_height").value)
         elif par_name == "IFormat":
             # ULong
-            return 3 
-            
+            return 3
+
     def GetAxisExtraPar(self,ind,name):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "LatencyTime":
@@ -226,7 +226,7 @@ class LimaCCDCtrl(TwoDController):
             if self.device_available[ind-1]:
                 return 0
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
             return tango_device
 
     def SetAxisExtraPar(self,ind,name,value):
@@ -267,14 +267,14 @@ class LimaCCDCtrl(TwoDController):
         if name == "Reset":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].command_inout("Reset")
-        
+
     def SendToCtrl(self,in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
-        
+
     def __del__(self):
         print("PYTHON -> LimaCCDCtrl dying")
 
-        
+
 if __name__ == "__main__":
     obj = TwoDController('test')
