@@ -112,6 +112,16 @@ class DALSACtrl(TwoDController):
     def LoadOne(self, ind, value):
         self.proxy[ind-1].write_attribute("ExtendedExposure",value*1000)
 
+    def GetExtraAttributePar(self,ind,name):
+        if self.device_available[ind-1]:
+            if name == "TangoDevice":
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
+
+    def SetExtraAttributePar(self,ind,name,value):
+        pass
+        
+
         
     def SendToCtrl(self,in_data):
         return "Nothing sent"

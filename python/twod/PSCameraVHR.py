@@ -116,7 +116,10 @@ class PSCameraVHRCtrl(TwoDController):
         pass
  
     def GetExtraAttributePar(self,ind,name):
-        return 0
+        if self.device_available[ind-1]:
+            if name == "TangoDevice":
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
 
     def SetExtraAttributePar(self,ind,name,value):
         pass
