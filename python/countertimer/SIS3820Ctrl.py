@@ -20,16 +20,16 @@ class SIS3820Ctrl(CounterTimerController):
     axis_attributes = {'Offset':{Type:float,Access:ReadWrite},
                        'TangoDevice':{Type:str,Access:ReadOnly},
                        }
-			     
+
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the SIS3820 Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-    
+
     gender = "CounterTimer"
     model = "SIS3820"
     organization = "DESY"
     state = ""
     status = ""
-    
+
     def __init__(self,inst,props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self,inst,props, *args, **kwargs)
@@ -41,7 +41,7 @@ class SIS3820Ctrl(CounterTimerController):
             if self.TangoHost.find( ':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])                           
+                self.port = int( lst[1])
             self.db = PyTango.Database(self.node, self.port)
         name_dev_ask =  self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
@@ -59,7 +59,7 @@ class SIS3820Ctrl(CounterTimerController):
         self.started = False
         self._integ_time = None
         self._start_time = None
-        
+
     def AddDevice(self,ind):
         CounterTimerController.AddDevice(self,ind)
         if ind > self.max_device:
@@ -72,14 +72,14 @@ class SIS3820Ctrl(CounterTimerController):
             proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
         self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind-1] = 1
-        
-        
+
+
     def DeleteDevice(self,ind):
         CounterTimerController.DeleteDevice(self,ind)
         self.proxy[ind-1] =  None
         self.device_available[ind-1] = 0
-        
-		
+
+
     def StateOne(self,ind):
         if  self.device_available[ind-1] == 1:
             tup = (self.intern_sta[ind-1],"State from ReadOne")
@@ -87,7 +87,7 @@ class SIS3820Ctrl(CounterTimerController):
 
     def PreReadAll(self):
         pass
-        
+
 
     def PreReadOne(self,ind):
         pass
@@ -102,7 +102,7 @@ class SIS3820Ctrl(CounterTimerController):
                 value = self.proxy[ind-1].read_attribute("Counts").value
             except:
                 self.intern_sta[ind - 1] = State.Fault
-                return value                
+                return value
             now = time.time()
             if self._start_time != None:
                 elapsed_time = now - self._start_time
@@ -113,10 +113,10 @@ class SIS3820Ctrl(CounterTimerController):
             else:
                 self.intern_sta[ind -1] = self.proxy[ind-1].command_inout("State")
             return value
-	
+
     def AbortOne(self,ind):
         pass
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
@@ -128,39 +128,39 @@ class SIS3820Ctrl(CounterTimerController):
         else:
             raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
-		
+
     def StartOne(self,ind):
         self.wantedCT.append(ind)
-	
+
     def StartAll(self):
         self.started = True
         self._start_time = time.time()
-		     	
+
     def LoadOne(self,ind,value, repetitions, latency_time):
         self._integ_time = value
-        
+
     def GetAxisExtraPar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "Offset":
                 return float(self.proxy[ind-1].read_attribute("Offset").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
                 return tango_device
-            
+
     def SetAxisExtraPar(self,ind,name,value):
         if name == "Offset":
             if self.device_available[ind-1]:
                 self.proxy[ind-1].write_attribute("Offset",value)
-			
+
     def SendToCtrl(self,in_data):
         return "Nothing sent"
 
     def start_acquisition(self, value=None):
         pass
-    
+
     def __del__(self):
         print("Deleting SIS3820Ctrl controller")
 
- 
+
 if __name__ == "__main__":
     obj = SIS3820Ctrl('test')
