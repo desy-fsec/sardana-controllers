@@ -24,14 +24,14 @@ class MCA2SCACtrl(PseudoCounterController):
 
     # THE EXTRA ATTRIBUTES: RoIs definition
 
-    axis_attributes ={'RoI1':
+    axis_attributes = {'RoI1':
                       {'Type': 'PyTango.DevLong'
-                       ,'Description':'The low limit of the Region of Interest '
-                       ,'R/W Type': 'PyTango.READ_WRITE'}
-                      ,'RoI2':
+                       , 'Description': 'The low limit of the Region of Interest '
+                       , 'R/W Type': 'PyTango.READ_WRITE'}
+                      , 'RoI2':
                       {'Type': 'PyTango.DevLong'
-                       ,'Description':'The upper limit of the Region of Interest'
-                       ,'R/W Type': 'PyTango.READ_WRITE'}
+                       , 'Description': 'The upper limit of the Region of Interest'
+                       , 'R/W Type': 'PyTango.READ_WRITE'}
     }
 
 

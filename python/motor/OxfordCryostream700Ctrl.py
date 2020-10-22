@@ -176,11 +176,11 @@ class OxfordCryostream700Ctrl(MotorController):
         return value
 
     def GetAxisExtraPar(self, axis, name):
-        if name in [TANGO_DEV,]:
+        if name in [TANGO_DEV, ]:
             return self.extra_attributes[axis][name]
 
     def SetAxisExtraPar(self, axis, name, value):
-        if name in [TANGO_DEV,]:
+        if name in [TANGO_DEV, ]:
             self.extra_attributes[axis][name] = value
             if axis in self.proxy:
                 del self.proxy[axis]

@@ -91,7 +91,7 @@ class HasyDACCtrl(MotorController):
             else:
                 status_template = "DAC is in error"
             status_string = status_template
-            tup = (sta, status_string,switchstate)
+            tup = (sta, status_string, switchstate)
             return tup
 
     def PreReadAll(self):

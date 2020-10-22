@@ -19,7 +19,7 @@ class AmptekOneDCtrl(OneDController):
     axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
                        }
 
-    ctrl_properties= {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The name of the Amptek Tango device'},
+    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The name of the Amptek Tango device'},
                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97

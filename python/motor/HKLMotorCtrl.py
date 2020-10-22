@@ -7,7 +7,7 @@ class HKLMotorCtrl(MotorController):
     """
 
     # The property used to connect to the diffractometer controller
-    ctrl_properties = {'DiffracDevName': {'Type': 'PyTango.DevString','Description':'The diffractometer device name'}}
+    ctrl_properties = {'DiffracDevName': {'Type': 'PyTango.DevString', 'Description': 'The diffractometer device name'}}
 
     gender = "Motor"
     model = "HKLMotor"
@@ -57,12 +57,12 @@ class HKLMotorCtrl(MotorController):
             self.angle_names.append(name_list[0])
             self.angle_device_name[name_list[0]] = name_list[1]
 
-    def StateOne(self,axis):
+    def StateOne(self, axis):
         """ Return the state from the h, k or l device.
         @param axis to read the state
         @return the state value: {ALARM|ON|MOVING}
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StateOne method for axis",axis
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StateOne method for axis", axis
         sta = self.hkl_device[axis-1].command_inout("State")
         tup = (sta, 0)
         return tup
@@ -72,8 +72,8 @@ class HKLMotorCtrl(MotorController):
         # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreReadAll method"
         pass
 
-    def PreReadOne(self,axis):
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreReadOne method for axis",axis
+    def PreReadOne(self, axis):
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreReadOne method for axis", axis
         pass
 
     def ReadAll(self):
@@ -81,12 +81,12 @@ class HKLMotorCtrl(MotorController):
         # print "PYTHON -> IcePapController/", self.inst_name,": In ReadAll method"
         pass
 
-    def ReadOne(self,axis):
+    def ReadOne(self, axis):
         """ Return the position of the h, k or l device.
         @param axis to read the position
         @return the current axis position
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In ReadOne method for axis",axis
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In ReadOne method for axis", axis
 
         return self.hkl_device[axis-1].position
 
@@ -95,17 +95,17 @@ class HKLMotorCtrl(MotorController):
         # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartAll method"
         pass
 
-    def PreStartOne(self,axis, pos):
+    def PreStartOne(self, axis, pos):
         """ Nothing special to do.
         @param axis to start
         @param pos to move to
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartOne method for axis",axis," with pos", pos
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartOne method for axis", axis," with pos", pos
         return True
 
-    def StartOne(self,axis, pos):
+    def StartOne(self, axis, pos):
         """ Move the axis separtely, for multiple movements use the macro br """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StartOne method for axis",axis," with pos", pos
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StartOne method for axis", axis," with pos", pos
 
         if axis == 1:
             self.hkl_simu_device.write_attribute("h", pos)
@@ -158,7 +158,7 @@ class HKLMotorCtrl(MotorController):
 
         for angle in self.angle_names:
             angle_dev = PyTango.DeviceProxy(self.angle_device_name[angle])
-            angle_dev.write_attribute("Position",angles_to_set[angle])
+            angle_dev.write_attribute("Position", angles_to_set[angle])
 
         self.diffrac.write_attribute("Simulated", 0)
 
@@ -168,7 +168,7 @@ class HKLMotorCtrl(MotorController):
         # print "PYTHON -> IcePapController/", self.inst_name,": In StartAll method"
         pass
 
-    def GetAxisExtraPar(self,axis, name):
+    def GetAxisExtraPar(self, axis, name):
         """ Get HKLMotor driver particular parameters.
         @param axis to get the parameter
         @param name of the parameter to retrive
@@ -176,19 +176,19 @@ class HKLMotorCtrl(MotorController):
         """
         pass
 
-    def SetAxisExtraPar(self,axis, name, value):
+    def SetAxisExtraPar(self, axis, name, value):
         """ Set HKLMotor driver particular parameters.
         @param axis to set the parameter
         @param name of the parameter
         @param value to be set
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In SetExtraAttributePar method for axis",axis," name=", name," value=", value
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In SetExtraAttributePar method for axis", axis," name=", name," value=", value
         pass
 
-    def AbortOne(self,axis):
+    def AbortOne(self, axis):
         pass
 
-    def StopOne(self,axis):
+    def StopOne(self, axis):
         pass
 
 

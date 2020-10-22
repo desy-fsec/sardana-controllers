@@ -15,22 +15,22 @@ class HasyMotorCtrl(MotorController):
     """
 
     axis_attributes = {
-        'UnitLimitMax': {Type:float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
-        'UnitLimitMin' : {Type:float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
-        'PositionSim': {Type:float, Access: DataAccess.ReadWrite},
-        'ResultSim': {Type:str, Access: DataAccess.ReadWrite},
-        'TangoDevice': {Type:str, Access: DataAccess.ReadOnly}, # used for handling limits between TangoServer and PoolDevice
-        'Calibrate': {Type:float, Access: DataAccess.ReadWrite},
-        'Conversion': {Type:float, Access: DataAccess.ReadWrite}
+        'UnitLimitMax': {Type: float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
+        'UnitLimitMin' : {Type: float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
+        'PositionSim': {Type: float, Access: DataAccess.ReadWrite},
+        'ResultSim': {Type: str, Access: DataAccess.ReadWrite},
+        'TangoDevice': {Type: str, Access: DataAccess.ReadOnly}, # used for handling limits between TangoServer and PoolDevice
+        'Calibrate': {Type: float, Access: DataAccess.ReadWrite},
+        'Conversion': {Type: float, Access: DataAccess.ReadWrite}
     }
     ctrl_properties = {
         'RootDeviceName': {
-            Type:str,Description:'The root name of the Motor Tango devices'},
+            Type: str, Description: 'The root name of the Motor Tango devices'},
         'TangoHost': {
-            Type:str,Description:'The tango host where searching the devices'},
+            Type: str, Description: 'The tango host where searching the devices'},
     }
     ctrl_attributes = {
-        'ExtraParameterName': {Type:str, Access: DataAccess.ReadWrite}}
+        'ExtraParameterName': {Type: str, Access: DataAccess.ReadWrite}}
 
     attrNames_UnitLimitMax = [
         "UnitLimitMax", "SoftLimitMax", "SoftLimitCw", "SoftCwLimit"]
