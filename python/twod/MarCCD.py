@@ -13,12 +13,12 @@ class MarCCDCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the MarCCD"
 
 
-    axis_attributes = {'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-                       'FilePostfix':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'ReadMode':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite}
+    axis_attributes = {'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+                       'FilePostfix': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'ReadMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the MarCCD Tango devices'},
@@ -91,11 +91,11 @@ class MarCCDCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.MOVING:
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             return tup
 
     def PreReadAll(self):

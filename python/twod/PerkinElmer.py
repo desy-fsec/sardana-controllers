@@ -12,8 +12,8 @@ ReadWrite = DataAccess.ReadWrite
 class PerkinElmerCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the PerkinElmer detector"
 
-    axis_attributes = {'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-                       'AcquireMode':{Type:'PyTango.DevLong',Access:ReadWrite},
+    axis_attributes = {'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+                       'AcquireMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'TangoDevice': {Type: str, Access: ReadOnly},}
 
 
@@ -78,11 +78,11 @@ class PerkinElmerCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.MOVING:
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             return tup
 
     def PreReadAll(self):

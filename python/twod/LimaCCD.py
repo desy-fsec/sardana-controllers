@@ -12,21 +12,21 @@ ReadWrite = DataAccess.ReadWrite
 class LimaCCDCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the LimaCCD"
 
-    axis_attributes = {'LatencyTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'FileSuffix':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'SavingMode':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'SavingCommondHeader':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'SavingHeaderDelimiter':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'SavingNextNumber':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'LastImageReady':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'CameraType':{Type:'PyTango.DevString',Access:ReadOnly},
-		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    axis_attributes = {'LatencyTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'FileSuffix': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'SavingMode': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'SavingCommondHeader': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'SavingHeaderDelimiter': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'SavingNextNumber': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'LastImageReady': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'TriggerMode': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'CameraType': {Type: 'PyTango.DevString', Access: ReadOnly},
+		       'Reset': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
 

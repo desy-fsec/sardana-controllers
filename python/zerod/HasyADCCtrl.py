@@ -23,9 +23,9 @@ class HasyADCCtrl(ZeroDController):
 
     MaxDevice = 97
 
-    def __init__(self, inst, props,*args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        ZeroDController.__init__(self, inst, props,*args, **kwargs)
+        ZeroDController.__init__(self, inst, props, *args, **kwargs)
 #        print "PYTHON -> ZeroDController ctor for instance",inst
         if self.TangoHost is None:
             self.db = PyTango.Database()
@@ -81,11 +81,11 @@ class HasyADCCtrl(ZeroDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"ADC is in ON State")
+                tup = (sta, "ADC is in ON State")
             elif sta == PyTango.DevState.MOVING:
-                tup = (sta,"ADC is busy")
+                tup = (sta, "ADC is busy")
             else:
-                tup = (sta,"Unknown status")
+                tup = (sta, "Unknown status")
             return tup
 
     def PreReadAll(self):

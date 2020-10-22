@@ -14,13 +14,13 @@ ReadWrite = DataAccess.ReadWrite
 
 class LimaRoICounterCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for getting the Lima RoIs as counters"
-    axis_attributes = {'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-                       'RoIx1':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoIx2':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoIy1':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoIy2':{Type:'PyTango.DevLong',Access:ReadWrite}, }
+    axis_attributes = {'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+                       'RoIx1': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoIx2': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoIy1': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoIy2': {Type: 'PyTango.DevLong', Access: ReadWrite}, }
 
-    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'Name of the roicounter lima device'},
+    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'Name of the roicounter lima device'},
                        'TangoHost': {Type: str, Description: 'The tango host where LimaCCDs runs'},}
 
     gender = "CounterTimer"
@@ -52,7 +52,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         name = ["roi" + str(ind)]
         self.roi_name.append(name)
         self.roi_id.append(self.proxy.addNames(name)[0])
-        roi = [self.roi_id[ind - 1],0,0,1,1]
+        roi = [self.roi_id[ind - 1], 0, 0, 1, 1]
         self.proxy.setRois(roi)
 
     def DeleteDevice(self, ind):
@@ -66,7 +66,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         except Exception:
             sta = PyTango.DevState.FAULT
             status = "roicounter Lima device not started"
-            tup = (sta,status)
+            tup = (sta, status)
             return tup
         if counterstatus == -1:
             sta = PyTango.DevState.MOVING
@@ -77,7 +77,7 @@ class LimaRoICounterCtrl(CounterTimerController):
                 status = "Not images in buffer"
             else:
                 status = "RoI computed"
-        tup = (sta,status)
+        tup = (sta, status)
         return tup
 
     def PreReadAll(self):

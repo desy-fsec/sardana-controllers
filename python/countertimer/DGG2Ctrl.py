@@ -6,23 +6,31 @@ from sardana.pool.controller import CounterTimerController
 import time
 
 from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class DGG2Ctrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the DGG2 timer"
+    "This class is the Tango Sardana CounterTimer controller " \
+        + "for the DGG2 timer"
 
+    axis_attributes = {
+        'TangoDevice': {Type: str, Access: ReadOnly},
+    }
 
-    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       }
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the DGG2 timer Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
-                       }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the DGG2 timer Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "DGG2"
@@ -57,7 +65,7 @@ class DGG2Ctrl(CounterTimerController):
             self.max_device = self.max_device + 1
             self.intern_sta.append(State.On)
         self.started = False
-        self.preset_mode = 0 # Trigger with counts
+        self.preset_mode = 0  # Trigger with counts
         self._integ_time = None
         self._start_time = None
 
@@ -70,16 +78,15 @@ class DGG2Ctrl(CounterTimerController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
-
 
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
-
 
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:
@@ -89,36 +96,35 @@ class DGG2Ctrl(CounterTimerController):
     def PreReadAll(self):
         pass
 
-
     def PreReadOne(self, ind):
         pass
 
     def ReadAll(self):
         pass
 
-    def PreStartOne(self, ind, pos):
-        return True
-
     def ReadOne(self, ind):
-         if self.device_available[ind - 1] == 1:
-             v = None
-             try:
-                 sample_time = self.proxy[ind - 1].read_attribute("SampleTime").value
-                 remaining_time = self.proxy[ind - 1].read_attribute("RemainingTime").value
-                 v = sample_time - remaining_time
-             except Exception:
-                 self.intern_sta[ind - 1] = State.Fault
-                 return v
-             now = time.time()
-             if self._start_time is not None:
-                 elapsed_time = now - self._start_time
-             else:
-                 elapsed_time = 9999999999.
-             if elapsed_time < self._integ_time:
-                 self.intern_sta[ind - 1] = State.Moving
-             else:
-                 self.intern_sta[ind - 1] = self.proxy[ind - 1].command_inout("State")
-             return v
+        if self.device_available[ind - 1] == 1:
+            v = None
+            try:
+                sample_time = \
+                    self.proxy[ind - 1].read_attribute("SampleTime").value
+                remaining_time = \
+                    self.proxy[ind - 1].read_attribute("RemainingTime").value
+                v = sample_time - remaining_time
+            except Exception:
+                self.intern_sta[ind - 1] = State.Fault
+                return v
+            now = time.time()
+            if self._start_time is not None:
+                elapsed_time = now - self._start_time
+            else:
+                elapsed_time = 9999999999.
+            if elapsed_time < self._integ_time:
+                self.intern_sta[ind - 1] = State.Moving
+            else:
+                self.intern_sta[ind - 1] = \
+                    self.proxy[ind - 1].command_inout("State")
+            return v
 
     def AbortOne(self, ind):
         if self.device_available[ind - 1] == 1:
@@ -126,6 +132,9 @@ class DGG2Ctrl(CounterTimerController):
 
     def PreStartAll(self):
         self.wantedCT = []
+
+    # def PreStartOne(self, ind, pos):
+    #     return True
 
     def PreStartOne(self, ind):
         pass
@@ -156,9 +165,9 @@ class DGG2Ctrl(CounterTimerController):
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
             if name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 return tango_device
-
 
     def SetAxisExtraPar(self, ind, name, value):
         pass
@@ -168,4 +177,3 @@ class DGG2Ctrl(CounterTimerController):
 
     def __del__(self):
         print("PYTHON -> DGG2Ctrl dying")
-

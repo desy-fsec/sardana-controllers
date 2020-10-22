@@ -30,9 +30,9 @@ class HasyDACCtrl(MotorController):
     state = ""
     status = ""
 
-    def __init__(self, inst, props,*args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        MotorController.__init__(self, inst, props,*args, **kwargs)
+        MotorController.__init__(self, inst, props, *args, **kwargs)
 
         if self.TangoHost is None:
             self.db = PyTango.Database()
@@ -91,7 +91,7 @@ class HasyDACCtrl(MotorController):
             else:
                 status_template = "DAC is in error"
             status_string = status_template
-            tup = (sta,status_string,switchstate)
+            tup = (sta, status_string,switchstate)
             return tup
 
     def PreReadAll(self):

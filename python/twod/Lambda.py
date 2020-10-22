@@ -13,14 +13,14 @@ class LambdaCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Lambda"
 
 
-    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'ShutterTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'SaveFileName':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'SaveFilePath':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'LastestImageNumber':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'FrameNumbers':{Type:'PyTango.DevLong',Access:ReadWrite},
+    axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'ShutterTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'SaveFileName': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'SaveFilePath': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'LastestImageNumber': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'FrameNumbers': {Type: 'PyTango.DevLong', Access: ReadWrite},
 		       'ThresholdEnergy':{Type:'PyTango.DevFloat',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the Lambda Tango devices'},
@@ -99,21 +99,21 @@ class LambdaCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.MOVING:
                 sta = PyTango.DevState.MOVING
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             elif sta == PyTango.DevState.DISABLE:
                 sta = PyTango.DevState.FAULT
-                tup = (sta,"Camera disabled")
+                tup = (sta, "Camera disabled")
             elif sta == PyTango.DevState.UNKNOWN:
                 sta = PyTango.DevState.FAULT
-                tup = (sta,"State is unknown")
+                tup = (sta, "State is unknown")
             return tup
 
     def PreReadAll(self):

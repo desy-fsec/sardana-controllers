@@ -14,7 +14,7 @@ class EigerPSICtrl(TwoDController):
 
 
     axis_attributes = {
-        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the EigerPSI Tango devices'},
@@ -72,11 +72,11 @@ class EigerPSICtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Eiger ready")
+                tup = (sta, "Eiger ready")
             elif sta == PyTango.DevState.MOVING:
-                tup = (sta,"Eiger busy")
+                tup = (sta, "Eiger busy")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             return tup
 
     def PreReadAll(self):

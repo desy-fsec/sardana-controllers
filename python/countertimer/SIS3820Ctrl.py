@@ -7,9 +7,10 @@ import time
 
 
 from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import  DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
@@ -17,12 +18,19 @@ ReadWrite = DataAccess.ReadWrite
 
 class SIS3820Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the SIS3820"
-    axis_attributes = {'Offset': {Type: float, Access: ReadWrite},
-                       'TangoDevice': {Type: str, Access: ReadOnly},
-                       }
+    axis_attributes = {
+        'Offset': {Type: float, Access: ReadWrite},
+        'TangoDevice': {Type: str, Access: ReadOnly},
+    }
 
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the SIS3820 Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the SIS3820 Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "SIS3820"
@@ -32,9 +40,10 @@ class SIS3820Ctrl(CounterTimerController):
 
     def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
+        CounterTimerController.__init__(
+            self, inst, props, *args, **kwargs)
         if self.TangoHost is None:
-             self.db = PyTango.Database()
+            self.db = PyTango.Database()
         else:
             self.node = self.TangoHost
             self.port = 10000
@@ -69,25 +78,23 @@ class SIS3820Ctrl(CounterTimerController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
-
 
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
-
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:
-            tup = (self.intern_sta[ind - 1],"State from ReadOne")
+            tup = (self.intern_sta[ind - 1], "State from ReadOne")
             return tup
 
     def PreReadAll(self):
         pass
-
 
     def PreReadOne(self, ind):
         pass
@@ -111,7 +118,8 @@ class SIS3820Ctrl(CounterTimerController):
             if elapsed_time < self._integ_time:
                 self.intern_sta[ind - 1] = State.Moving
             else:
-                self.intern_sta[ind - 1] = self.proxy[ind - 1].command_inout("State")
+                self.intern_sta[ind - 1] = \
+                    self.proxy[ind - 1].command_inout("State")
             return value
 
     def AbortOne(self, ind):
@@ -142,9 +150,11 @@ class SIS3820Ctrl(CounterTimerController):
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
             if name == "Offset":
-                return float(self.proxy[ind - 1].read_attribute("Offset").value)
+                return float(
+                    self.proxy[ind - 1].read_attribute("Offset").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" \
+                    + self.proxy[ind - 1].name()
                 return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):

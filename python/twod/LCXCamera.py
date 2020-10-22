@@ -13,14 +13,14 @@ class LCXCameraCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the LCXCamera"
 
 
-    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'Reset': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the LCXCamera Tango devices'},
@@ -101,15 +101,15 @@ class LCXCameraCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             elif sta == PyTango.DevState.DISABLE:
                 sta = PyTango.DevState.FAULT
-                tup = (sta,"Device disconnected from camserver")
+                tup = (sta, "Device disconnected from camserver")
             return tup
 
     def PreReadAll(self):

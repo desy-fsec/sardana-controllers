@@ -12,12 +12,12 @@ ReadWrite = DataAccess.ReadWrite
 class PCOCtrl(TwoDController):
     "This class is the Tango Sardana Zero D controller for the PCO"
 
-    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'ADCs':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
+    axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'ADCs': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
                        'TangoDevice': {Type: str, Access: ReadOnly},}
 
 
@@ -94,15 +94,15 @@ class PCOCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             elif sta == PyTango.DevState.UNKNOWN:
                 sta = PyTango.DevState.FAULT
-                tup = (sta,"Camera in UNKNOWN state")
+                tup = (sta, "Camera in UNKNOWN state")
             return tup
 
     def PreReadAll(self):

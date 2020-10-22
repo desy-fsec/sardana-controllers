@@ -15,7 +15,7 @@ class TangoVimbaCtrl(TwoDController):
 
     axis_attributes = {
         'AcquisitionType':{Type:'PyTango.DevLong',Access:ReadWrite,Description:'0-> StartAcquisition (hw trigger), 1-> StartSingleAcquisition (sw trigger)'},
-        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the TangoVimba Tango devices'},
@@ -86,18 +86,18 @@ class TangoVimbaCtrl(TwoDController):
                 except Exception:
                     pass
             sta = PyTango.DevState.ON
-            tup = (sta,"Camera ready")
+            tup = (sta, "Camera ready")
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.RUNNING or sta == PyTango.DevState.MOVING or sta == PyTango.DevState.EXTRACT:
                 sta = PyTango.DevState.MOVING
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             elif sta == PyTango.DevState.ALARM:
                 sta = PyTango.DevState.FAULT
-                tup = (sta,"Device in ALARM state")
+                tup = (sta, "Device in ALARM state")
             return tup
 
     def PreReadAll(self):

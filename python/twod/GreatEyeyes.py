@@ -14,7 +14,7 @@ class GreatEyesCtrl(TwoDController):
 
 
     axis_attributes = {
-        'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the GreatEyes Tango devices'},
@@ -72,14 +72,14 @@ class GreatEyesCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.MOVING:
-                tup = (sta,"Camera busy")
+                tup = (sta, "Camera busy")
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
-                tup = (sta,"Camera busy")
+                tup = (sta, "Camera busy")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             return tup
 
     def PreReadAll(self):

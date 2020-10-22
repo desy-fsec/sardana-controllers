@@ -14,11 +14,11 @@ ReadWrite = DataAccess.ReadWrite
 class SIS3302MultiScanCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
+    axis_attributes = {'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
     }
 
-    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
+    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCA Tango devices'},
                   'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97

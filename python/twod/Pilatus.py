@@ -13,23 +13,23 @@ class PilatusCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Pilatus"
 
 
-    axis_attributes = {'DelayTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'ExposureTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'ExposurePeriod':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'FilePostfix':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'LastImageTaken':{Type:'PyTango.DevString',Access:ReadWrite},
-		       'NbFrames':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'NbExposures':{Type:'PyTango.DevLong',Access:ReadWrite},
+    axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'ExposurePeriod': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'FilePostfix': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'LastImageTaken': {Type: 'PyTango.DevString', Access: ReadWrite},
+		       'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'NbExposures': {Type: 'PyTango.DevLong', Access: ReadWrite},
 		       'ShutterEnable':{Type:'PyTango.DevBoolean',Access:ReadWrite},
-		       'TriggerMode':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'Threshold':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'Gain':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'Reset':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'SettleTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+		       'TriggerMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'Threshold': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'Gain': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'Reset': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'SettleTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the Pilatus Tango devices'},
@@ -136,15 +136,15 @@ class PilatusCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.RUNNING:
                 sta = PyTango.DevState.MOVING
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             elif sta == PyTango.DevState.DISABLE:
                 sta = PyTango.DevState.FAULT
-                tup = (sta,"Device disconnected from camserver")
+                tup = (sta, "Device disconnected from camserver")
             return tup
 
     def PreReadAll(self):

@@ -13,11 +13,11 @@ class EigerDectrisCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the EigerDectris"
 
 
-    axis_attributes = {'CountTime':{Type:'PyTango.DevDouble',Access:ReadWrite},
-                       'CountTimeInte':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'NbTriggers':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'TriggerMode':{Type:'PyTango.DevString',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
+    axis_attributes = {'CountTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+                       'CountTimeInte': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'NbTriggers': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'TriggerMode': {Type: 'PyTango.DevString', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the EigerDectris Tango devices'},
@@ -90,11 +90,11 @@ class EigerDectrisCtrl(TwoDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"Camera ready")
+                tup = (sta, "Camera ready")
             elif sta == PyTango.DevState.MOVING:
-                tup = (sta,"Camera taking images")
+                tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
-                tup = (sta,"Camera in FAULT state")
+                tup = (sta, "Camera in FAULT state")
             return tup
 
     def PreReadAll(self):

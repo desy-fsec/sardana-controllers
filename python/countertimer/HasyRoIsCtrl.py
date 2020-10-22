@@ -16,13 +16,13 @@ global last_sta
 class HasyRoIsCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for making RoIs from OneD"
 
-    axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-                       'RoIStart':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoIEnd':{Type:'PyTango.DevLong',Access:ReadWrite},
+    axis_attributes = {'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+                       'RoIStart': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoIEnd': {Type: 'PyTango.DevLong', Access: ReadWrite},
     }
 
-    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
+    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCA Tango devices'},
                        'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
@@ -85,7 +85,7 @@ class HasyRoIsCtrl(CounterTimerController):
         except Exception:
             sta = last_sta
         if sta == PyTango.DevState.ON:
-            tup = (sta,"The MCA is ready")
+            tup = (sta, "The MCA is ready")
         elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
             tup = (PyTango.DevState.MOVING,"Device is acquiring data")
         else:

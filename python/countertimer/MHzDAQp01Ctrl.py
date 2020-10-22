@@ -17,8 +17,8 @@ class MHzDAQp01Ctrl(CounterTimerController):
 
 
     axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
-                       'FileNum':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+                       'FileNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the MHzDAQp01 Tango devices'},

@@ -14,23 +14,23 @@ ReadWrite = DataAccess.ReadWrite
 class HasyOneDCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly},
-                       'RoI1Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI1End':{Type:'PyTango.DevLong',Access:ReadWrite},
+    axis_attributes = {'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+                       'RoI1Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoI1End': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'CountsRoI1':{Type:'PyTango.DevDouble',Access:ReadOnly},
-                       'RoI2Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI2End':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoI2Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoI2End': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'CountsRoI2':{Type:'PyTango.DevDouble',Access:ReadOnly},
-                       'RoI3Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI3End':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoI3Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoI3End': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'CountsRoI3':{Type:'PyTango.DevDouble',Access:ReadOnly},
-                       'RoI4Start':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'RoI4End':{Type:'PyTango.DevLong',Access:ReadWrite},
+                       'RoI4Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'RoI4End': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'CountsRoI4':{Type:'PyTango.DevDouble',Access:ReadOnly},
     }
 
-    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
+    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCA Tango devices'},
                        'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97

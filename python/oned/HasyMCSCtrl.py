@@ -14,13 +14,13 @@ ReadWrite = DataAccess.ReadWrite
 class HasyMCSCtrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    axis_attributes = {'NbChannels':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'NbAcquisitions':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'Preset':{Type:'PyTango.DevLong',Access:ReadWrite},
+    axis_attributes = {'NbChannels': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'NbAcquisitions': {Type: 'PyTango.DevLong', Access: ReadWrite},
+                       'Preset': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'TangoDevice': {Type: str, Access: ReadOnly},
     }
 
-    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCS Tango devices'},
+    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCS Tango devices'},
                        'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
 
     MaxDevice = 97
@@ -86,7 +86,7 @@ class HasyMCSCtrl(OneDController):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
-                tup = (sta,"The MCS is ready")
+                tup = (sta, "The MCS is ready")
         else:
             sta = PyTango.DevState.FAULT
             tup = (sta, "Device not available")

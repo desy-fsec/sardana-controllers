@@ -31,17 +31,17 @@ class pilcTimerCtrl(CounterTimerController):
     status = ""
 
 
-    #############
-    ## __del__ ##
-    #############
+    ############
+    # __del__ ##
+    ############
 
     def __del__(self):
         print("PYTHON -> pilcTimerCtrl dying")
 
 
-    ##############
-    ## __init__ ##
-    ##############
+    #############
+    # __init__ ##
+    #############
 
     def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
@@ -68,18 +68,18 @@ class pilcTimerCtrl(CounterTimerController):
             self.device_available.append(0)
             self.max_device += 1
 
-    ##############
-    ## AbortOne ##
-    ##############
+    #############
+    # AbortOne ##
+    #############
 
     def AbortOne(self, ind):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].write_attribute('Arm',0)
 
 
-    ###############
-    ## AddDevice ##
-    ###############
+    ##############
+    # AddDevice ##
+    ##############
 
     def AddDevice(self, ind):
         CounterTimerController.AddDevice(self, ind)
@@ -102,9 +102,9 @@ class pilcTimerCtrl(CounterTimerController):
         self.device_available[ind - 1] = 1
 
 
-    ##################
-    ## DeleteDevice ##
-    ##################
+    #################
+    # DeleteDevice ##
+    #################
 
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
@@ -112,9 +112,9 @@ class pilcTimerCtrl(CounterTimerController):
         self.device_available[ind - 1] = 0
 
 
-    ##########################
-    ## GetExtraAttributePar ##
-    ##########################
+    #########################
+    # GetExtraAttributePar ##
+    #########################
 
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
@@ -128,43 +128,43 @@ class pilcTimerCtrl(CounterTimerController):
                 return tango_device
 
 
-    #############
-    ## LoadOne ##
-    #############
+    ############
+    # LoadOne ##
+    ############
 
     def LoadOne(self, ind, value, repetitions, latency_time):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].write_attribute("TimeTriggerStepSize", value)
 
 
-    ################
-    ## PreReadAll ##
-    ################
+    ###############
+    # PreReadAll ##
+    ###############
 
     def PreReadAll(self):
         pass
 
 
-    ################
-    ## PreReadOne ##
-    ################
+    ###############
+    # PreReadOne ##
+    ###############
 
     def PreReadOne(self, ind):
         pass
 
 
-    #################
-    ## PreStartAll ##
-    #################
+    ################
+    # PreStartAll ##
+    ################
 
     def PreStartAll(self):
         self.wantedCT = []
         self.startTime = [0.0 for _ in range(len(self.proxy))]
 
 
-    #################
-    ## PreStartOne ##
-    #################
+    ################
+    # PreStartOne ##
+    ################
 
     def PreStartOne(self, ind, value):
         self.proxy[ind - 1].write_attribute('TriggerPulseLength',0.00005)
@@ -176,22 +176,22 @@ class pilcTimerCtrl(CounterTimerController):
         return True
 
 
-    #############
-    ## ReadAll ##
-    #############
+    ############
+    # ReadAll ##
+    ############
 
     def ReadAll(self):
         pass
 
 
-    #############
-    ## ReadOne ##
-    #############
+    ############
+    # ReadOne ##
+    ############
 
     def ReadOne(self, ind):
         if self.device_available[ind - 1] == 1:
-            ## Elapsed time can not be read from the device
-            ## so it is calculated by software.
+            # Elapsed time can not be read from the device
+            # so it is calculated by software.
 
             setTime = (
                         self.proxy[ind - 1].
@@ -210,25 +210,25 @@ class pilcTimerCtrl(CounterTimerController):
             return exposureTime
 
 
-    ################
-    ## SendToCtrl ##
-    ################
+    ###############
+    # SendToCtrl ##
+    ###############
 
     def SendToCtrl(self, in_data):
         return "Nothing sent"
 
 
-    ##########################
-    ## SetExtraAttributePar ##
-    ##########################
+    #########################
+    # SetExtraAttributePar ##
+    #########################
 
     def SetExtraAttributePar(self, ind, name, value):
         pass
 
 
-    ##############
-    ## StartAll ##
-    ##############
+    #############
+    # StartAll ##
+    #############
 
     def StartAll(self):
         for i in self.wantedCT:
@@ -237,18 +237,18 @@ class pilcTimerCtrl(CounterTimerController):
 
 
 
-    ##############
-    ## StartOne ##
-    ##############
+    #############
+    # StartOne ##
+    #############
 
-    def StartOne(self, ind,val):
+    def StartOne(self, ind, val):
         if self.device_available[ind - 1] == 1:
             self.wantedCT.append(ind - 1)
 
 
-    ##############
-    ## StateOne ##
-    ##############
+    #############
+    # StateOne ##
+    #############
 
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:

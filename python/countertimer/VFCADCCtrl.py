@@ -14,22 +14,22 @@ ReadWrite = DataAccess.ReadWrite
 class VFCADCCtrl(CounterTimerController):
     "This class is the Tango Sardana Zero D controller for the VFCADC"
 
-    axis_attributes = {'Gain':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'Offset':{Type:'PyTango.DevDouble',Access:ReadWrite},
-		       'Polarity':{Type:'PyTango.DevLong',Access:ReadWrite},
-		       'FlagReadVoltage':{Type:'PyTango.DevLong',Access:ReadWrite},
+    axis_attributes = {'Gain': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'Offset': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+		       'Polarity': {Type: 'PyTango.DevLong', Access: ReadWrite},
+		       'FlagReadVoltage': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'TangoDevice': {Type: str, Access: ReadOnly},
     }
 
 
-    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the VFCADC Tango devices'},
+    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the VFCADC Tango devices'},
                        'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
-    def __init__(self, inst, props,*args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        CounterTimerController.__init__(self, inst, props,*args, **kwargs)
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
 #        print "PYTHON -> CounterTimerController ctor for instance",inst
 
         if self.TangoHost is None:
@@ -94,7 +94,7 @@ class VFCADCCtrl(CounterTimerController):
 #        print "PYTHON -> VFCADCCtrl/",self.inst_name,": In StateOne method for index",ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
-            tup = (sta,"State from connected Tango device")
+            tup = (sta, "State from connected Tango device")
             return tup
 
     def PreReadAll(self):

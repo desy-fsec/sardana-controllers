@@ -43,7 +43,7 @@ class LimaRoi2SpectrumCtrl(OneDController):
     def StateOne(self, ind):
         sta = self.proxy.command_inout("State")
         status = self.proxy.command_inout("Status")
-        tup = (sta,status)
+        tup = (sta, status)
         return tup
 
     def LoadOne(self, axis, value, repetitions, latency_time):

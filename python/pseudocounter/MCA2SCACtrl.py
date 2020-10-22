@@ -40,8 +40,8 @@ class MCA2SCACtrl(PseudoCounterController):
         PseudoCounterController.__init__(self, inst, props, *args, **kwargs)
 
         self.counterExtraAttributes = {}
-        self.counterExtraAttributes[1] = {"RoI1":0,
-                                          "RoI2":0}
+        self.counterExtraAttributes[1] = {"RoI1": 0,
+                                          "RoI2": 0}
 
     def GetAxisExtraPar(self, index,name):
  #       print "GetExtraAttributePar " + str(index) + " name " + name
