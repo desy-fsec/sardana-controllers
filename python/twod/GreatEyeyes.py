@@ -9,15 +9,15 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-class PSCameraVHRCtrl(TwoDController):
-    "This class is the Tango Sardana Two D controller for the PSCameraVHR"
+class GreatEyesCtrl(TwoDController):
+    "This class is the Tango Sardana Two D controller for the GreatEyes"
 
 
     axis_attributes = {
         'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
     }
     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PSCameraVHR Tango devices'},
+    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the GreatEyes Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
@@ -100,23 +100,24 @@ class PSCameraVHRCtrl(TwoDController):
         pass
     
     def PreStartOne(self, ind, value):
+        self.proxy[ind-1].command_inout("PrepareAcq")
         return True
             
     def StartOne(self,ind, position=None):
-        self.proxy[ind-1].command_inout("StartAcquisition")
+        self.proxy[ind-1].command_inout("StartAcq")
         
     def AbortOne(self,ind):
         pass
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.proxy[ind-1].write_attribute("ExposureTime",value)
+        self.proxy[ind-1].write_attribute("ExposureTime")
  
     def GetAxisExtraPar(self,ind,name):
         if name == "TangoDevice":
             if self.device_available[ind-1]:
                 tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
                 return tango_device
-
+            
     def SetAxisExtraPar(self,ind,name,value):
         pass
         
@@ -124,7 +125,7 @@ class PSCameraVHRCtrl(TwoDController):
         return "Nothing sent"
         
     def __del__(self):
-        print("PYTHON -> PSCameraVHRCtrl dying")
+        print("PYTHON -> GreatEyesCtrl dying")
 
         
 if __name__ == "__main__":

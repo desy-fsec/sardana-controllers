@@ -112,8 +112,11 @@ class DALSACtrl(TwoDController):
         self.proxy[ind-1].write_attribute("ExtendedExposure",value*1000)
  
     def GetAxisExtraPar(self,ind,name):
-        return 0
-
+        if name == "TangoDevice":
+            if self.device_available[ind-1]:
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name() 
+                return tango_device
+            
     def SetAxisExtraPar(self,ind,name,value):
         pass
         
