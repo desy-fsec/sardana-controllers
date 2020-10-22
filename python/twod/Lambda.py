@@ -14,12 +14,12 @@ class LambdaCtrl(TwoDController):
 
 
     axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'ShutterTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'SaveFileName': {Type: 'PyTango.DevString', Access: ReadWrite},
-		       'SaveFilePath': {Type: 'PyTango.DevString', Access: ReadWrite},
-		       'LastestImageNumber': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'FrameNumbers': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'ThresholdEnergy':{Type:'PyTango.DevFloat',Access:ReadWrite},
+               'ShutterTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+               'SaveFileName': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'SaveFilePath': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'LastestImageNumber': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'FrameNumbers': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'ThresholdEnergy':{Type:'PyTango.DevFloat',Access:ReadWrite},
                        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 

@@ -1,30 +1,40 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
-import time
+# import time
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana import State
+from sardana import DataAccess
+# from sardana.pool.controller import MotorController
+# from sardana.pool.controller import DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 
-# This controller has to be used with another controller for the sis3302 in the MG
+# This controller has to be used with another controller
+# for the sis3302 in the MG
 # It only reads the counts.
 
+
 class KromoRoIsCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the SIS3302 RoIs"
+    "This class is the Tango Sardana CounterTimer controller " + \
+        "for the SIS3302 RoIs"
 
+    axis_attributes = {
+        'TangoDevice': {Type: str, Access: ReadOnly},
+        'RoIAttributeName': {Type: str, Access: ReadWrite},
+    }
 
-    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       'RoIAttributeName': {Type: str, Access: ReadWrite},
-                       }
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the KromoRoIs Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
-                       }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the KromoRoIs Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "KromoRoIs"
@@ -46,7 +56,8 @@ class KromoRoIsCtrl(CounterTimerController):
         self.RoIAttributeName = []
         proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
 
     def AddDevice(self, ind):
@@ -56,7 +67,6 @@ class KromoRoIsCtrl(CounterTimerController):
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         sta = self.proxy.command_inout("State")
@@ -74,15 +84,11 @@ class KromoRoIsCtrl(CounterTimerController):
     def PreReadAll(self):
         pass
 
-
     def PreReadOne(self, ind):
         pass
 
     def ReadAll(self):
         pass
-
-    def PreStartOne(self, ind, pos):
-        return True
 
     def StartOne(self, ind):
         return True
@@ -97,6 +103,9 @@ class KromoRoIsCtrl(CounterTimerController):
     def PreStartAll(self):
         self.wantedCT = []
 
+    # def PreStartOne(self, ind, pos):
+    #     return True
+
     def PreStartOne(self, ind):
         pass
 
@@ -108,11 +117,11 @@ class KromoRoIsCtrl(CounterTimerController):
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
+            tango_device = self.node + ":" + str(self.port) + "/" + \
+                self.proxy.name()
             return tango_device
         if name == "RoIAttributeName":
             return self.RoIAttributeName[ind - 1]
-
 
     def SetAxisExtraPar(self, ind, name, value):
         if name == "RoIAttributeName":
@@ -123,4 +132,3 @@ class KromoRoIsCtrl(CounterTimerController):
 
     def __del__(self):
         print("PYTHON -> KromoRoIsCtrl dying")
-

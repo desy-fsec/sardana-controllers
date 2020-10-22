@@ -15,9 +15,9 @@ class VFCADCCtrl(CounterTimerController):
     "This class is the Tango Sardana Zero D controller for the VFCADC"
 
     axis_attributes = {'Gain': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'Offset': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'Polarity': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'FlagReadVoltage': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'Offset': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+               'Polarity': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'FlagReadVoltage': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'TangoDevice': {Type: str, Access: ReadOnly},
     }
 

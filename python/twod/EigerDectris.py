@@ -15,8 +15,8 @@ class EigerDectrisCtrl(TwoDController):
 
     axis_attributes = {'CountTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
                        'CountTimeInte': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'NbTriggers': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'TriggerMode': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'NbTriggers': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'TriggerMode': {Type: 'PyTango.DevString', Access: ReadWrite},
                        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 

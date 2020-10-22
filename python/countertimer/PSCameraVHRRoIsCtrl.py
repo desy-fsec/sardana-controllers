@@ -11,19 +11,26 @@ ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 
-# This controller has to be used with another controller for the sis3302 in the MG
+# This controller has to be used with another controller for the sis3302
+# in the MG
 # It only reads the counts.
 
 class PSCameraVHRRoIsCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the SIS3302 RoIs"
+    "This class is the Tango Sardana CounterTimer controller " + \
+        "for the SIS3302 RoIs"
 
 
     axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       }
+    }
 
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PSCameraVHRRoIs Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
-                       }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the PSCameraVHRRoIs Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "PSCameraVHRRoIs"
@@ -119,4 +126,3 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
 
     def __del__(self):
         print("PYTHON -> PSCameraVHRRoIsCtrl dying")
-

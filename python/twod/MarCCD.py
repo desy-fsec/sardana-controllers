@@ -15,10 +15,10 @@ class MarCCDCtrl(TwoDController):
 
     axis_attributes = {'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
                        'FilePostfix': {Type: 'PyTango.DevString', Access: ReadWrite},
-		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
-		       'ReadMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'ReadMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
-		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite}
+               'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the MarCCD Tango devices'},

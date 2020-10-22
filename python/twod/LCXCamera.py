@@ -14,12 +14,12 @@ class LCXCameraCtrl(TwoDController):
 
 
     axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
-		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
-		       'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'Reset': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+               'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'Reset': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 

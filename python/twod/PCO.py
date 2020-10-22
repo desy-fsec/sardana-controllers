@@ -13,11 +13,11 @@ class PCOCtrl(TwoDController):
     "This class is the Tango Sardana Zero D controller for the PCO"
 
     axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-		       'ADCs': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
-		       'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
-		       'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+               'ADCs': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
+               'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+               'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
                        'TangoDevice': {Type: str, Access: ReadOnly},}
 
 
