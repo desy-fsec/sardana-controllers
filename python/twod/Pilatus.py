@@ -126,13 +126,13 @@ class PilatusCtrl(TwoDController):
         self.SettleTime.append(self.dft_SettleTime)
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> PilatusCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> PilatusCtrl/", self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> PilatusCtrl/",self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> PilatusCtrl/", self.inst_name,": In StateOne method for index",ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -157,7 +157,7 @@ class PilatusCtrl(TwoDController):
         pass
 
     def ReadOne(self, ind):
-        #The Pilatus return an Image in type encoded
+        # The Pilatus return an Image in type encoded
         tmp_value = [(-1,), (-1,)]
         if self.device_available[ind - 1] == 1:
             return tmp_value

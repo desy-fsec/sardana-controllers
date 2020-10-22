@@ -115,7 +115,7 @@ class PCOCtrl(TwoDController):
         pass
 
     def ReadOne(self, ind):
-        #The PCO return an Image in type encoded
+        # The PCO return an Image in type encoded
         while self.proxy[ind - 1].state() != PyTango.DevState.ON:
             time.sleep(0.001)
         tmp_value = [(-1,), (-1,)]

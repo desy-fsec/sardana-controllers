@@ -71,7 +71,7 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
 
     def AbortOne(self, ind):
         if self.device_available[ind - 1] == 1:
-            self.proxy[ind - 1].write_attribute('Arm',0)
+            self.proxy[ind - 1].write_attribute('Arm', 0)
 
 
     ##############
@@ -164,7 +164,7 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     ################
 
     def PreStartOne(self, ind, value):
-        self.proxy[ind - 1].write_attribute('NbGates',1)
+        self.proxy[ind - 1].write_attribute('NbGates', 1)
 
         return True
 
@@ -225,7 +225,7 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
 
     def StartAll(self):
         for i in self.wantedCT:
-            self.proxy[i].write_attribute('Arm',1)
+            self.proxy[i].write_attribute('Arm', 1)
             self.startTime[i] = time.time()
 
 

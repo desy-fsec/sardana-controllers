@@ -76,9 +76,9 @@ class HzgDcamCtrl(TwoDController):
             elif sta == PyTango.DevState.MOVING:
                 tup = (sta, "Camera busy")
             elif sta == PyTango.DevState.EXTRACT:
-                tup = (PyTango.DevState.MOVING,"Camera busy")
+                tup = (PyTango.DevState.MOVING, "Camera busy")
             elif sta == PyTango.DevState.RUNNING:
-                tup = (PyTango.DevState.MOVING,"Camera busy")
+                tup = (PyTango.DevState.MOVING, "Camera busy")
             elif sta == PyTango.DevState.FAULT:
                 tup = (sta, "Camera in FAULT state")
             return tup

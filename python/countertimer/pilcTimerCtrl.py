@@ -74,7 +74,7 @@ class pilcTimerCtrl(CounterTimerController):
 
     def AbortOne(self, ind):
         if self.device_available[ind - 1] == 1:
-            self.proxy[ind - 1].write_attribute('Arm',0)
+            self.proxy[ind - 1].write_attribute('Arm', 0)
 
 
     ##############
@@ -167,11 +167,11 @@ class pilcTimerCtrl(CounterTimerController):
     ################
 
     def PreStartOne(self, ind, value):
-        self.proxy[ind - 1].write_attribute('TriggerPulseLength',0.00005)
-        self.proxy[ind - 1].write_attribute('TriggerMode',2)
+        self.proxy[ind - 1].write_attribute('TriggerPulseLength', 0.00005)
+        self.proxy[ind - 1].write_attribute('TriggerMode', 2)
         self.proxy[ind - 1].write_attribute('FileDir','/tmp')
         self.proxy[ind - 1].write_attribute('FilePrefix','.timer' + str(ind))
-        self.proxy[ind - 1].write_attribute('NbTriggers',1)
+        self.proxy[ind - 1].write_attribute('NbTriggers', 1)
 
         return True
 
@@ -232,7 +232,7 @@ class pilcTimerCtrl(CounterTimerController):
 
     def StartAll(self):
         for i in self.wantedCT:
-            self.proxy[i].write_attribute('Arm',1)
+            self.proxy[i].write_attribute('Arm', 1)
             self.startTime[i] = time.time()
 
 

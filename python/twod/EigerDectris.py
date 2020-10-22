@@ -62,7 +62,7 @@ class EigerDectrisCtrl(TwoDController):
 
 
     def AddDevice(self, ind):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In AddDevice method for index",ind
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In AddDevice method for index",ind
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
@@ -80,13 +80,13 @@ class EigerDectrisCtrl(TwoDController):
         self.NbTriggers.append(self.dft_NbTriggers)
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In DeleteDevice method for index",ind
         TwoDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In StateOne method for index",ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -98,37 +98,37 @@ class EigerDectrisCtrl(TwoDController):
             return tup
 
     def PreReadAll(self):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In PreReadAll method"
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In PreReadAll method"
         pass
 
     def PreReadOne(self, ind):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In PreReadOne method for index",ind
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In PreReadOne method for index",ind
         pass
 
     def ReadAll(self):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In ReadAll method"
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In ReadAll method"
         pass
 
     def ReadOne(self, ind):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In ReadOne method for index",ind
-        #The EigerDectris return an Image in type encoded
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In ReadOne method for index",ind
+        # The EigerDectris return an Image in type encoded
         tmp_value = [(-1,), (-1,)]
         if self.device_available[ind - 1] == 1:
             return tmp_value
 
     def PreStartAll(self):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In PreStartAll method"
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In PreStartAll method"
         pass
 
     def PreStartOne(self, ind, value):
         return True
 
     def StartOne(self, ind, position=None):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In StartOne method for index",ind
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In StartOne method for index",ind
         self.proxy[ind - 1].command_inout("Trigger")
 
     def AbortOne(self, ind):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In AbortOne method for index",ind
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In AbortOne method for index",ind
         pass
 
     def LoadOne(self, ind, value, repetitions, latency_time):
@@ -136,7 +136,7 @@ class EigerDectrisCtrl(TwoDController):
         self.proxy[ind - 1].write_attribute("CountTimeInte", value)
 
     def GetAxisExtraPar(self, ind, name):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if self.device_available[ind - 1]:
             if name == "CountTime":
                 return self.proxy[ind - 1].read_attribute("CountTime").value
@@ -153,7 +153,7 @@ class EigerDectrisCtrl(TwoDController):
                 return self.SettleTime[ind - 1]
 
     def SetAxisExtraPar(self, ind, name, value):
-#        print "PYTHON -> EigerDectrisCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
+#        print "PYTHON -> EigerDectrisCtrl/", self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
         if self.device_available[ind - 1]:
             if name == "CountTime":
                 self.proxy[ind - 1].write_attribute("CountTime", value)

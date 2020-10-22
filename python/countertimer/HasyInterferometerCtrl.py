@@ -94,7 +94,7 @@ class HasyInterferometerCtrl(CounterTimerController):
         self.proxy.command_inout("CollectDataTime", self.time_to_set)
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.time_to_set = value * 1000 # in ms
+        self.time_to_set = value * 1000  # in ms
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":

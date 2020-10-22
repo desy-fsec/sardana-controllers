@@ -45,12 +45,12 @@ class SIS3302MultiScanCtrl(OneDController):
 
 
     def DeleteDevice(self, ind):
-        #print "SIS3302MultiScanCtrl.DeleteDevice",self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.DeleteDevice", self.inst_name,"index",ind
         OneDController.DeleteDevice(self, ind)
 
 
     def StateOne(self, ind):
-        #print "SIS3302MultiScanCtrl.StatOne",self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.StatOne", self.inst_name,"index",ind
         if self.proxy.MCAScanNofHistogramsPreset == 0:
             sta = PyTango.DevState.ON
             tup = (sta, "The MCA is always ON. MCAScanNofHistogramsPreset = 0")
@@ -58,14 +58,14 @@ class SIS3302MultiScanCtrl(OneDController):
             sta = self.proxy.command_inout("State")
             if sta == PyTango.DevState.ON:
                 tup = (sta, "The MCA is ready")
-            elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
-                tup = (PyTango.DevState.MOVING,"Device is acquiring data")
+            elif sta == PyTango.DevState.MOVING or sta == PyTango.DevState.RUNNING:
+                tup = (PyTango.DevState.MOVING, "Device is acquiring data")
             else:
                 tup = (sta, "")
         return tup
 
     def LoadOne(self, axis, value, repetitions, latency_time):
-        #print "SIS3302MultiScanCtrl.LoadOne",self.inst_name,"axis", axis
+        # print "SIS3302MultiScanCtrl.LoadOne", self.inst_name,"axis", axis
         idx = axis - 1
         if value > 0:
             self.integ_time = value
@@ -77,7 +77,7 @@ class SIS3302MultiScanCtrl(OneDController):
         self.proxy.MCAMultiScanNofScansPreset = int(nb_scans)
 
     def PreReadAll(self):
-        #print "SIS3302MultiScanCtrl.PreReadAll",self.inst_name
+        # print "SIS3302MultiScanCtrl.PreReadAll", self.inst_name
         if self.started == True:
             if self.proxy.MCAScanNofHistogramsPreset == 0:
                 self.proxy.command_inout("MultiScanDisable")
@@ -85,14 +85,14 @@ class SIS3302MultiScanCtrl(OneDController):
             self.started = False
 
     def PreReadOne(self, ind):
-        #print "SIS3302MultiScanCtrl.PreReadOne",self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.PreReadOne", self.inst_name,"index",ind
         pass
 
     def ReadAll(self):
         self.counts = self.proxy.read_attribute("Count").value
 
     def ReadOne(self, ind):
-        #print "SIS3302MultiScanCtrl.ReadOne",self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.ReadOne", self.inst_name,"index",ind
         if ind == 1:
             data = self.proxy.Data
         else:
@@ -116,12 +116,12 @@ class SIS3302MultiScanCtrl(OneDController):
         pass
 
     def AbortOne(self, ind):
-        #print "SIS3302MultiScanCtrl.AbortOne",self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.AbortOne", self.inst_name,"index",ind
         self.proxy.command_inout("MultiScanDisable")
 
 
     def GetAxisExtraPar(self, ind, name):
-        #print "SIS3302MultiScanCtrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
+        # print "SIS3302MultiScanCtrl.GetExtraAttrPar", self.inst_name,"index",ind, "name", name
         if name == "TangoDevice":
             return self.proxy_name
         elif name == "DataLength":
@@ -132,17 +132,17 @@ class SIS3302MultiScanCtrl(OneDController):
                 return datalength
 
     def SetAxisExtraPar(self, ind, name, value):
-        #print "SIS3302MultiScanCtrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
+        # print "SIS3302MultiScanCtrl.SetExtraAttributePar", self.inst_name,"index",ind," name=",name," value=",value
         if name == "DataLength":
             if ind == 1:
                 self.proxy.write_attribute("DataLength", value)
 
     def SendToCtrl(self, in_data):
-        #print "Received value =",in_data
+        # print "Received value =",in_data
         return "Nothing sent"
 
     def __del__(self):
-        #print "SIS3302MultiScanCtrl/",self.inst_name,": Aarrrrrg, I am dying"
+        # print "SIS3302MultiScanCtrl/", self.inst_name,": Aarrrrrg, I am dying"
         pass
 
 if __name__ == "__main__":

@@ -91,7 +91,7 @@ class LimaRoICounterCtrl(CounterTimerController):
         pass
 
     def ReadOne(self, ind):
-        counts = self.proxy.command_inout("readCounters",0)
+        counts = self.proxy.command_inout("readCounters", 0)
         return counts[7*(ind - 1) + 2]
 
     def AbortOne(self, ind):

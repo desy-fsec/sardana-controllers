@@ -86,8 +86,8 @@ class HasyRoIsCtrl(CounterTimerController):
             sta = last_sta
         if sta == PyTango.DevState.ON:
             tup = (sta, "The MCA is ready")
-        elif sta == PyTango.DevState.MOVING or  sta == PyTango.DevState.RUNNING:
-            tup = (PyTango.DevState.MOVING,"Device is acquiring data")
+        elif sta == PyTango.DevState.MOVING or sta == PyTango.DevState.RUNNING:
+            tup = (PyTango.DevState.MOVING, "Device is acquiring data")
         else:
             tup = (sta, "")
 

@@ -49,7 +49,7 @@ class SIS3610Ctrl(IORegisterController):
     """
 
     gender = "IORegister"
-    model  = "SIS3610"
+    model = "SIS3610"
     organization = "DESY"
     image = ""
     icon = ""

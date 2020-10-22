@@ -57,7 +57,7 @@ class HasyADCCtrl(ZeroDController):
 
 
     def AddDevice(self, ind):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In AddDevice method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In AddDevice method for index",ind
         ZeroDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
@@ -71,13 +71,13 @@ class HasyADCCtrl(ZeroDController):
         self.device_available[ind - 1] = 1
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In DeleteDevice method for index",ind
         ZeroDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StateOne method for index",ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -89,31 +89,31 @@ class HasyADCCtrl(ZeroDController):
             return tup
 
     def PreReadAll(self):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In PreReadAll method"
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreReadAll method"
         pass
 
     def PreReadOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In PreReadOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreReadOne method for index",ind
         pass
 
     def ReadAll(self):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In ReadAll method"
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In ReadAll method"
         pass
 
     def ReadOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In ReadOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In ReadOne method for index",ind
         if self.device_available[ind - 1] == 1:
             return self.proxy[ind - 1].read_attribute("Value").value*self.conversion[ind - 1]
 
     def PreStartAll(self):
-#        print "PYTHON -> HasyADCCtrl/",self.inst_name,": In PreStartAll method"
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreStartAll method"
         self.wanted = []
 
     def PreStartOne(self, ind):
         pass
 
     def StartOne(self, ind):
-        #print "PYTHON -> HasyADCCtrl/",self.inst_name,": In StartOne method for index",ind
+        # print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StartOne method for index",ind
         self.wanted.append(ind)
 
     def GetAxisExtraPar(self, ind, name):

@@ -31,7 +31,7 @@ class HasyScaCtrl(CounterTimerController):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         self.max_device = 1
         self.tango_device = [None]
-        self.proxy = [ None]
+        self.proxy = [None]
         self.device_available = [0]
         self.started = False
 
