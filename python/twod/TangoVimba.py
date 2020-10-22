@@ -47,12 +47,12 @@ class TangoVimbaCtrl(TwoDController):
         self.acq_type = []
         self.exp_time = 0
     for name in self.devices.value_string:
-            self.tango_device.append(name)
-            self.proxy.append(None)
-            self.device_available.append(0)
-            self.start_time.append(time.time())
-            self.acq_type.append(0)
-            self.max_device =  self.max_device + 1
+        self.tango_device.append(name)
+        self.proxy.append(None)
+        self.device_available.append(0)
+        self.start_time.append(time.time())
+        self.acq_type.append(0)
+        self.max_device =  self.max_device + 1
         self.started = False
         
         
