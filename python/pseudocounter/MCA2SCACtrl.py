@@ -9,7 +9,7 @@ from math import *
 try:
     import scipy
     __SCIPY_AVAILABLE__ = True
-except:
+except Exception:
     __SCIPY_AVAILABLE__ = False
 
 # Will disapear when we have pseudo counters that can have other pseudo counters
@@ -35,15 +35,15 @@ class MCA2SCACtrl(PseudoCounterController):
     }
 
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
 
-        PseudoCounterController.__init__(self,inst,props, *args, **kwargs)
+        PseudoCounterController.__init__(self, inst, props, *args, **kwargs)
 
         self.counterExtraAttributes = {}
         self.counterExtraAttributes[1] = {"RoI1":0,
                                           "RoI2":0}
 
-    def GetAxisExtraPar(self,index,name):
+    def GetAxisExtraPar(self, index,name):
  #       print "GetExtraAttributePar " + str(index) + " name " + name
         return self.counterExtraAttributes[1][name]
 
@@ -51,7 +51,7 @@ class MCA2SCACtrl(PseudoCounterController):
  #       print "GetExtraAttributePar " + str(counter) + " name " + name + " value " + str(value)
         self.counterExtraAttributes[1][name] = value
 
-    def Calc(self,index,counter_values):
+    def Calc(self, index,counter_values):
         sum = 0
         for i in range(self.counterExtraAttributes[1]['RoI1'],self.counterExtraAttributes[1]['RoI2']):
             sum = sum + counter_values[0][i]

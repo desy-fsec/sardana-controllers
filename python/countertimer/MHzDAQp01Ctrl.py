@@ -16,13 +16,13 @@ class MHzDAQp01Ctrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the Mythen RoIs"
 
 
-    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
+    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
                        'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
                        'FileNum':{Type:'PyTango.DevLong',Access:ReadWrite},
                        }
 
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the MHzDAQp01 Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},
+    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the MHzDAQp01 Tango devices'},
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
                        }
 
     gender = "CounterTimer"
@@ -31,37 +31,37 @@ class MHzDAQp01Ctrl(CounterTimerController):
     state = ""
     status = ""
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        if self.TangoHost != None:
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
+        if self.TangoHost is not None:
             self.node = self.TangoHost
             self.port = 10000
-            if self.TangoHost.find( ':'):
+            if self.TangoHost.find(':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
         proxy_name = self.RootDeviceName
-        if self.TangoHost != None:
+        if self.TangoHost is not None:
             proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
         global last_sta
         last_sta = PyTango.DevState.ON
 
-    def AddDevice(self,ind):
-        CounterTimerController.AddDevice(self,ind)
+    def AddDevice(self, ind):
+        CounterTimerController.AddDevice(self, ind)
 
-    def DeleteDevice(self,ind):
-        CounterTimerController.DeleteDevice(self,ind)
-        self.proxy =  None
+    def DeleteDevice(self, ind):
+        CounterTimerController.DeleteDevice(self, ind)
+        self.proxy = None
 
 
-    def StateOne(self,ind):
+    def StateOne(self, ind):
         global last_sta
         try:
             sta = self.proxy.command_inout("State")
             last_sta = sta
-        except:
+        except Exception:
             sta = last_sta
         if sta == PyTango.DevState.ON:
             status_string = "MHzDAQp01 is in ON state"
@@ -74,51 +74,51 @@ class MHzDAQp01Ctrl(CounterTimerController):
         pass
 
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
         pass
 
 
     def ReadAll(self):
         pass
 
-    def PreStartOne(self,ind,pos):
+    def PreStartOne(self, ind, pos):
         return True
 
-    def StartOne(self,ind):
+    def StartOne(self, ind):
         try:
             sta = self.proxy.command_inout("State")
-        except:
+        except Exception:
             sta = PyTango.DevState.ON
         if sta == PyTango.DevState.ON:
             self.proxy.command_inout("Start")
 
-    def ReadOne(self,ind):
+    def ReadOne(self, ind):
         try:
             if ind == 1:
                 value = self.proxy.read_attribute("MeanValue").value
             else:
                 value = self.proxy.read_attribute("StdDevValue").value
 
-        except:
+        except Exception:
             value = -999
-        return  value
+        return value
 
-    def AbortOne(self,ind):
+    def AbortOne(self, ind):
         pass
 
     def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOne(self,ind):
+    def PreStartOne(self, ind):
         pass
 
     def StartAll(self):
         pass
 
-    def LoadOne(self,ind,value, repetitions, latency_time):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy.write_attribute("NbTriggers", value)
 
-    def GetAxisExtraPar(self,ind,name):
+    def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
             tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
             return tango_device
@@ -129,13 +129,13 @@ class MHzDAQp01Ctrl(CounterTimerController):
 
 
 
-    def SetAxisExtraPar(self,ind,name,value):
+    def SetAxisExtraPar(self, ind, name, value):
         if name == "FilePrefix":
-            self.proxy.write_attribute("FilePrefix",value)
+            self.proxy.write_attribute("FilePrefix", value)
         elif name == "FileNum":
-            self.proxy.write_attribute("FileStartNum",value)
+            self.proxy.write_attribute("FileStartNum", value)
 
-    def SendToCtrl(self,in_data):
+    def SendToCtrl(self, in_data):
         return "Nothing sent"
 
     def __del__(self):

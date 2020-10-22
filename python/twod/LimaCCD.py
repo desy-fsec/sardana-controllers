@@ -30,26 +30,26 @@ class LimaCCDCtrl(TwoDController):
     }
 
 
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the LimaCCD Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the LimaCCD Tango devices'},
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        TwoDController.__init__(self,inst,props, *args, **kwargs)
+        TwoDController.__init__(self, inst, props, *args, **kwargs)
 
-        if self.TangoHost == None:
+        if self.TangoHost is None:
             self.db = PyTango.Database()
         else:
             self.node = self.TangoHost
             self.port = 10000
-            if self.TangoHost.find( ':'):
+            if self.TangoHost.find(':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
-        name_dev_ask =  self.RootDeviceName + "*"
+        name_dev_ask = self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
@@ -59,7 +59,7 @@ class LimaCCDCtrl(TwoDController):
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
-            self.max_device =  self.max_device + 1
+            self.max_device = self.max_device + 1
         self.started = False
         self.dft_LatencyTime = 0
         self.LatencyTime = []
@@ -88,19 +88,19 @@ class LimaCCDCtrl(TwoDController):
         self.dft_Reset = 0
         self.Reset = []
 
-    def AddDevice(self,ind):
+    def AddDevice(self, ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AddDevice method for index",ind
-        TwoDController.AddDevice(self,ind)
+        TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
             return
-        proxy_name = self.tango_device[ind-1]
-        if self.TangoHost == None:
-            proxy_name = self.tango_device[ind-1]
+        proxy_name = self.tango_device[ind - 1]
+        if self.TangoHost is None:
+            proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
-        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
-        self.device_available[ind-1] = 1
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+        self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
+        self.device_available[ind - 1] = 1
         self.LatencyTime.append(self.dft_LatencyTime)
         self.ExposureTime.append(self.dft_ExposureTime)
         self.FilePrefix.append(self.dft_FilePrefix)
@@ -115,16 +115,16 @@ class LimaCCDCtrl(TwoDController):
         self.TriggerMode.append(self.dft_TriggerMode)
         self.Reset.append(self.dft_Reset)
 
-    def DeleteDevice(self,ind):
+    def DeleteDevice(self, ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In DeleteDevice method for index",ind
-        TwoDController.DeleteDevice(self,ind)
-        self.proxy[ind-1] =  None
-        self.device_available[ind-1] = 0
+        TwoDController.DeleteDevice(self, ind)
+        self.proxy[ind - 1] = None
+        self.device_available[ind - 1] = 0
 
-    def StateOne(self,ind):
+    def StateOne(self, ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StateOne method for index",ind
-        if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].read_attribute("acq_status").value
+        if self.device_available[ind - 1] == 1:
+            sta = self.proxy[ind - 1].read_attribute("acq_status").value
             if sta == "Ready":
                 tup = (PyTango.DevState.ON,"Camera ready")
             elif sta == "Running":
@@ -137,7 +137,7 @@ class LimaCCDCtrl(TwoDController):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In PreReadAll method"
         pass
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In PreReadOne method for index",ind
         pass
 
@@ -145,130 +145,130 @@ class LimaCCDCtrl(TwoDController):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In ReadAll method"
         pass
 
-    def ReadOne(self,ind):
+    def ReadOne(self, ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In ReadOne method for index",ind
         #The LimaCCD return an Image in type encoded
         # Fill an ouput for avoiding reaout errors
         tmp_value = [(-1,), (-1,)]
-        if self.device_available[ind-1] == 1:
+        if self.device_available[ind - 1] == 1:
             return tmp_value
 
     def PreStartAll(self):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In PreStartAll method"
         pass
 
-    def StartOne(self,ind, value):
+    def StartOne(self, ind, value):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In StartOne method for index",ind
-        self.proxy[ind-1].write_attribute("acq_nb_frames", 1)
-        self.proxy[ind-1].command_inout("prepareAcq")
-        self.proxy[ind-1].command_inout("startAcq")
+        self.proxy[ind - 1].write_attribute("acq_nb_frames", 1)
+        self.proxy[ind - 1].command_inout("prepareAcq")
+        self.proxy[ind - 1].command_inout("startAcq")
 
-    def AbortOne(self,ind):
+    def AbortOne(self, ind):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In AbortOne method for index",ind
-        self.proxy[ind-1].command_inout("stopAcq")
+        self.proxy[ind - 1].command_inout("stopAcq")
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.proxy[ind-1].write_attribute('acq_expo_time', value)
+        self.proxy[ind - 1].write_attribute('acq_expo_time', value)
 
     def GetAxisPar(self, ind, par_name):
         if par_name == "XDim":
-            if self.device_available[ind-1]:
-                return int(self.proxy[ind-1].read_attribute("image_width").value)
+            if self.device_available[ind - 1]:
+                return int(self.proxy[ind - 1].read_attribute("image_width").value)
         elif par_name == "YDim":
-            if self.device_available[ind-1]:
-                return int(self.proxy[ind-1].read_attribute("image_height").value)
+            if self.device_available[ind - 1]:
+                return int(self.proxy[ind - 1].read_attribute("image_height").value)
         elif par_name == "IFormat":
             # ULong
             return 3
 
-    def GetAxisExtraPar(self,ind,name):
+    def GetAxisExtraPar(self, ind, name):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
         if name == "LatencyTime":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("latency_time").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("latency_time").value
         if name == "ExposureTime":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("acq_expo_time").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("acq_expo_time").value
         if name == "FilePrefix":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("saving_prefix").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("saving_prefix").value
         if name == "FileSuffix":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("saving_suffix").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("saving_suffix").value
         if name == "FileDir":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("saving_directory").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("saving_directory").value
         if name == "SavingMode":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("saving_mode").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("saving_mode").value
         if name == "SavingCommonHeader":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("saving_common_header").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("saving_common_header").value
         if name == "SavingHeaderDelimiter":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("saving_header_delimiter").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("saving_header_delimiter").value
         if name == "SavingNextNumber":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("saving_next_number").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("saving_next_number").value
         if name == "LastImageReady":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("last_image_ready").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("last_image_ready").value
         if name == "NbFrames":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("acq_nb_frames").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("acq_nb_frames").value
         if name == "TriggerMode":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("acq_trigger_mode").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("acq_trigger_mode").value
         if name == "CameraType":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("camera_type").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("camera_type").value
         if name == "Reset":
-            if self.device_available[ind-1]:
+            if self.device_available[ind - 1]:
                 return 0
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
+            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
             return tango_device
 
-    def SetAxisExtraPar(self,ind,name,value):
+    def SetAxisExtraPar(self, ind, name, value):
 #        print "PYTHON -> LimaCCDCtrl/",self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
         if name == "LatencyTime":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("latency_time",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("latency_time", value)
         if name == "ExposureTime":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("acq_expo_time",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("acq_expo_time", value)
         if name == "FilePrefix":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("saving_prefix",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("saving_prefix", value)
         if name == "FileSuffix":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("saving_suffix",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("saving_suffix", value)
         if name == "FileDir":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("saving_directory",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("saving_directory", value)
         if name == "SavingMode":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("saving_mode",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("saving_mode", value)
         if name == "SavingCommonHeader":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("saving_common_header",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("saving_common_header", value)
         if name == "SavingHeaderDelimiter":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("saving_header_delimiter",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("saving_header_delimiter", value)
         if name == "SavingNextNumber":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("saving_next_number",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("saving_next_number", value)
         if name == "NbFrames":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("acq_nb_frames",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("acq_nb_frames", value)
         if name == "TriggerMode":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("acq_trigger_mode",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("acq_trigger_mode", value)
         if name == "Reset":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].command_inout("Reset")
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].command_inout("Reset")
 
-    def SendToCtrl(self,in_data):
+    def SendToCtrl(self, in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
 

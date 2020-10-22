@@ -45,7 +45,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
         try:
             self.amptekPX5 = taurus.Device(self.deviceName) # taurus complains if not tango://
-        except:
+        except Exception:
             self.amptekPX5 = PyTango.DeviceProxy(self.deviceName)
         self.amptekPX5.set_timeout_millis(7000)
         self.acqTime = 0
@@ -57,7 +57,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         self.error_amptek = 0
 
     def GetAxisExtraPar(self, axis, name):
-        #self._log.debug("SetAxisExtraPar() entering...")
+        # self._log.debug("SetAxisExtraPar() entering...")
         if axis == 1:
             raise Exception("Axis parameters are not allowed for axis 1.")
         name = name.lower()
@@ -72,7 +72,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         return v
 
     def SetAxisExtraPar(self, axis, name, value):
-        #self._log.debug("SetAxisExtraPar() entering...")
+        # self._log.debug("SetAxisExtraPar() entering...")
         if axis == 1:
             raise Exception("Axis parameters are not allowed for axis 1.")
         name = name.lower()
@@ -83,7 +83,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             scah = int(ret[1].split("=")[1])
             conf = ["SCAI=%d"%scai, "SCAL=%d"%value, "SCAH=%d"%scah]
             for c in conf:
-                #self._log.debug("conf: %s" % repr(c))
+                # self._log.debug("conf: %s" % repr(c))
                 self.amptekPX5.SetTextConfiguration([c])
         elif name == "highthreshold":
             conf = ["SCAI=%d"%scai, "SCAL"]
@@ -91,13 +91,13 @@ class AmptekPX5CounterTimerController(CounterTimerController):
             scal = int(ret[1].split("=")[1])
             conf = ["SCAI=%d"%scai, "SCAL=%d"%scal, "SCAH=%d"%value]
             for c in conf:
-                #self._log.debug("conf: %s" % repr(c))
+                # self._log.debug("conf: %s" % repr(c))
                 self.amptekPX5.SetTextConfiguration([c])
 
-    def AddDevice(self,ind):
+    def AddDevice(self, ind):
         pass
 
-    def DeleteDevice(self,ind):
+    def DeleteDevice(self, ind):
         pass
 
     def PreStateAll(self):
@@ -107,15 +107,15 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         pass
 
     def StateAll(self):
-        #self._log.debug("StateAll(): entering...")
-        #to fixed the callback error
+        # self._log.debug("StateAll(): entering...")
+        # to fixed the callback error
         dt = time.time() - self.t1
 
         if dt < self.timeout:
             return
         sta = self.amptekPX5.State()
         self.status = self.amptekPX5.Status()
-        #self._log.info("AmptekPX5CounterTimerController StateOne - state = %s" % repr(sta))
+        # self._log.info("AmptekPX5CounterTimerController StateOne - state = %s" % repr(sta))
         if self.sta == State.Moving and sta != State.Moving:
             self.acq = False
             self.sca_values = self.amptekPX5.LatchGetClearSCA()
@@ -129,14 +129,14 @@ class AmptekPX5CounterTimerController(CounterTimerController):
     def PreReadAll(self):
         pass
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
         pass
 
     def ReadAll(self):
         pass
 
     def ReadOne(self, ind):
-        #self._log.debug("ReadOne(%d): entering..." % ind)
+        # self._log.debug("ReadOne(%d): entering..." % ind)
         if ind == 1:
             val = self.acqTime
         else:
@@ -145,17 +145,17 @@ class AmptekPX5CounterTimerController(CounterTimerController):
                     val = -1
                 else:
                     val = self.sca_values[ind-2]
-            except:
+            except Exception:
                 val = -1
         self.error_amptek = 0
-        #self._log.debug("ReadOne(%d): returning %d" % (ind,val))
+        # self._log.debug("ReadOne(%d): returning %d" % (ind,val))
         return val
 
     def PreStartAll(self):
         try:
             self.amptekPX5.ClearSpectrum()
             self.amptekPX5.LatchGetClearSCA()
-        except:
+        except Exception:
             self.error_amptek = 1
 
     def PreStartOne(self, ind):
@@ -165,19 +165,19 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         pass
 
     def StartAll(self):
-        #self._log.debug("StartAllCT(): entering...")
+        # self._log.debug("StartAllCT(): entering...")
         try:
             self.amptekPX5.Enable()
-        except:
+        except Exception:
             self.error_amptek = 1
         self.acq = True
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        #self._log.debug("LoadOne(): entering...")
+        # self._log.debug("LoadOne(): entering...")
         self.acqTime = value
         try:
             self.amptekPX5.SetTextConfiguration(['PRET=%f'%value])
-        except:
+        except Exception:
             self.error_amptek = 1
 
     def AbortOne(self, ind):
@@ -198,7 +198,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
     ctrl_properties = {'deviceName':{'Type':str,'Description':'AmptekPX5 Tango device name','DefaultValue':None},}
 
     axis_attributes = { "lowThreshold"   : { "Type" : int, "R/W Type": "READ_WRITE", "memorized":Memorized },
-                        "highThreshold" : { "Type" : int, "R/W Type": "READ_WRITE", "memorized":Memorized }
+                        "highThreshold": {"Type": int, "R/W Type": "READ_WRITE", "memorized": Memorized}
                       }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -216,7 +216,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
 
     def GetAxisExtraPar(self, axis, name):
         self._log.debug("GetAxisExtraPar() entering...")
-        if axis in [1,2,3]:
+        if axis in [1, 2, 3]:
             raise Exception("Axis parameters are not allowed for axes 1 and 2.")
         name = name.lower()
         v = self.scas[axis][name]
@@ -224,18 +224,18 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
 
     def SetAxisExtraPar(self, axis, name, value):
         self._log.debug("SetAxisExtraPar() entering...")
-        if axis in [1,2,3]:
+        if axis in [1, 2, 3]:
             raise Exception("Axis parameters are not allowed for axes 1 and 2.")
         name = name.lower()
         self.scas[axis][name] = value
 
-    def AddDevice(self,ind):
+    def AddDevice(self, ind):
         self._log.debug("AddDevice() entering...")
-        if not (ind in [1,2,3]):
+        if not (ind in [1, 2, 3]):
             self.scas[ind] = {"lowthreshold":0, "highthreshold":0}
         self._log.debug("AddDevice() leaving...")
 
-    def DeleteDevice(self,ind):
+    def DeleteDevice(self, ind):
         self.scas.pop(ind)
 
     def PreStateAll(self):
@@ -246,10 +246,10 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
 
     def StateAll(self):
         self._log.debug("StateAll(): entering...")
-        if self.acqStartTime != None: #acquisition was started
+        if self.acqStartTime is not None:  # acquisition was started
             now = time.time()
             elapsedTime = now - self.acqStartTime
-            if elapsedTime < self.acqTime: #acquisition has probably not finished yet
+            if elapsedTime < self.acqTime:  # acquisition has probably not finished yet
                 self.sta = State.Moving
                 self.status = "Acqusition time has not elapsed yet."
                 return
@@ -269,26 +269,26 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
 
     def ReadAll(self):
         self._log.debug("ReadAll(): entering...")
-        if self.sta != State.Moving and self.spectrum == None: #reading only once and only if we are not in the middle of acquisition
+        if self.sta != State.Moving and self.spectrum is None:  #reading only once and only if we are not in the middle of acquisition
             self.spectrum = self.amptekPX5.read_attribute("Spectrum").value
         self._log.debug("ReadAll(): leaving...")
 
     def ReadOne(self, ind):
         self._log.debug("ReadOne(%d): entering..." % ind)
-        if self.spectrum == None: #acquisition has not finished yet
+        if self.spectrum is None:  # acquisition has not finished yet
             val = 0
         else:
-            if ind == 1: #timer
+            if ind == 1:  # timer
                 val = self.acqTime
-            elif ind == 2: #icr
-                if self.icr == None:
+            elif ind == 2:  # icr
+                if self.icr is None:
                     self.icr = self.amptekPX5.read_attribute("FastCount").value
                 val = self.icr
-            elif ind == 3: #tcr
-                if self.tcr == None:
+            elif ind == 3:  # tcr
+                if self.tcr is None:
                     self.tcr = self.amptekPX5.read_attribute("SlowCount").value
                 val = self.tcr
-            else: #calculating software ROIs
+            else:  # calculating software ROIs
                 lowThreshold = self.scas[ind]['lowthreshold']
                 highThreshold = self.scas[ind]['highthreshold']
                 val = numpy.sum(self.spectrum[lowThreshold:highThreshold])

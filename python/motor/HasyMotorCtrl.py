@@ -63,7 +63,7 @@ class HasyMotorCtrl(MotorController):
         self.debugFlag = False
         if os.isatty(1):
             self.debugFlag = True
-        if self.TangoHost == None:
+        if self.TangoHost is None:
             self.db = PyTango.Database()
         else:
             #
@@ -76,7 +76,7 @@ class HasyMotorCtrl(MotorController):
                 self.node = lst[0]
                 self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
-        name_dev_ask =  self.RootDeviceName + "*"
+        name_dev_ask = self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
@@ -132,68 +132,68 @@ class HasyMotorCtrl(MotorController):
         MotorController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
-            self.device_available[ind-1] = 0
+            self.device_available[ind - 1] = 0
             return
-        proxy_name = self.tango_device[ind-1]
-        if self.TangoHost == None:
-            proxy_name = self.tango_device[ind-1]
+        proxy_name = self.tango_device[ind - 1]
+        if self.TangoHost is None:
+            proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
         if self.debugFlag:
             print("HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind))
-        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
-        self.device_available[ind-1] = 1
+        self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
+        self.device_available[ind - 1] = 1
 
-        attrs = self.proxy[ind-1].get_attribute_list()
-        cmds = [cmd.cmd_name for cmd in self.proxy[ind-1].command_list_query()]
+        attrs = self.proxy[ind - 1].get_attribute_list()
+        cmds = [cmd.cmd_name for cmd in self.proxy[ind - 1].command_list_query()]
         for attrName in HasyMotorCtrl.attrNames_UnitLimitMax:
             if attrName in attrs:
-                self.attrName_UnitLimitMax[ind-1] = attrName
+                self.attrName_UnitLimitMax[ind - 1] = attrName
                 break
         for attrName in HasyMotorCtrl.attrNames_UnitLimitMin:
             if attrName in attrs:
-                self.attrName_UnitLimitMin[ind-1] = attrName
+                self.attrName_UnitLimitMin[ind - 1] = attrName
                 break
         for attrName in HasyMotorCtrl.attrNames_CwLimit:
             if attrName in attrs:
-                self.attrName_CwLimit[ind-1] = attrName
+                self.attrName_CwLimit[ind - 1] = attrName
                 break
         for attrName in HasyMotorCtrl.attrNames_CcwLimit:
             if attrName in attrs:
-                self.attrName_CcwLimit[ind-1] = attrName
+                self.attrName_CcwLimit[ind - 1] = attrName
                 break
         for attrName in HasyMotorCtrl.attrNames_Velocity:
             if attrName in attrs:
-                self.attrName_Velocity[ind-1] = attrName
+                self.attrName_Velocity[ind - 1] = attrName
                 break
         for attrName in HasyMotorCtrl.attrNames_Acceleration:
             if attrName in attrs:
-                self.attrName_Acceleration[ind-1] = attrName
+                self.attrName_Acceleration[ind - 1] = attrName
                 break
         for cmdName in HasyMotorCtrl.cmdNames_Abort:
             if cmdName in cmds:
-                self.cmdName_Abort[ind-1] = cmdName
+                self.cmdName_Abort[ind - 1] = cmdName
                 break
-        if self.proxy[ind-1].info().dev_class in HasyMotorCtrl.servers_ConversionIncluded:
+        if self.proxy[ind - 1].info().dev_class in HasyMotorCtrl.servers_ConversionIncluded:
             # there are two different GalilDMC servers used at DESY
-            if not (self.proxy[ind-1].info().dev_class == "GalilDMCMotor" and self.attrName_Acceleration[ind-1] == "SlewRate"):
-                self.conversion_included[ind-1] = True
+            if not (self.proxy[ind - 1].info().dev_class == "GalilDMCMotor" and self.attrName_Acceleration[ind - 1] == "SlewRate"):
+                self.conversion_included[ind - 1] = True
 
     def DeleteDevice(self, ind):
         MotorController.DeleteDevice(self, ind)
-        self.proxy[ind-1] = None
-        self.device_available[ind-1] = 0
+        self.proxy[ind - 1] = None
+        self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
         status_template = "STATE(%s) LIM+(%s) LIM-(%s)"
-        if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].command_inout("State")
+        if self.device_available[ind - 1] == 1:
+            sta = self.proxy[ind - 1].command_inout("State")
             lower = 0
             upper = 0
-            if self.attrName_CwLimit[ind-1] is not None:
-                lower = self.proxy[ind-1].read_attribute(self.attrName_CwLimit[ind-1]).value
-            if self.attrName_CcwLimit[ind-1] is not None:
-                upper = self.proxy[ind-1].read_attribute(self.attrName_CcwLimit[ind-1]).value
+            if self.attrName_CwLimit[ind - 1] is not None:
+                lower = self.proxy[ind - 1].read_attribute(self.attrName_CwLimit[ind - 1]).value
+            if self.attrName_CcwLimit[ind - 1] is not None:
+                upper = self.proxy[ind - 1].read_attribute(self.attrName_CcwLimit[ind - 1]).value
             switchstate = lower * 4 + upper * 2
             status_string = status_template % (sta, upper, lower)
             tup = (sta, status_string, switchstate)
@@ -209,8 +209,8 @@ class HasyMotorCtrl(MotorController):
         pass
 
     def ReadOne(self, ind):
-        if self.device_available[ind-1] == 1:
-            return self.proxy[ind-1].read_attribute("Position").value
+        if self.device_available[ind - 1] == 1:
+            return self.proxy[ind - 1].read_attribute("Position").value
 
     def PreStartAll(self):
         pass
@@ -219,140 +219,140 @@ class HasyMotorCtrl(MotorController):
         return True
 
     def StartOne(self, ind, pos):
-        if self.device_available[ind-1] == 1:
-            self.proxy[ind-1].write_attribute("Position", pos)
+        if self.device_available[ind - 1] == 1:
+            self.proxy[ind - 1].write_attribute("Position", pos)
 
     def GetAxisExtraPar(self, ind, name):
         value = None
-        if self.device_available[ind-1]:
+        if self.device_available[ind - 1]:
             if name == "UnitLimitMax":
-                if self.poolmotor_proxy[ind -1 ] == None:
-                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                value = float(self.proxy[ind-1].read_attribute(self.attrName_UnitLimitMax[ind-1]).value)
+                if self.poolmotor_proxy[ind - 1] is None:
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
+                value = float(self.proxy[ind - 1].read_attribute(self.attrName_UnitLimitMax[ind - 1]).value)
                 cfg = []
-                config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
                 config.max_value = str(value)
                 cfg.append(config)
-                self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
+                self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
 
             elif name == "UnitLimitMin":
-                if self.poolmotor_proxy[ind -1 ] == None:
-                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                value = float(self.proxy[ind-1].read_attribute(self.attrName_UnitLimitMin[ind-1]).value)
+                if self.poolmotor_proxy[ind - 1] is None:
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
+                value = float(self.proxy[ind - 1].read_attribute(self.attrName_UnitLimitMin[ind - 1]).value)
 
                 cfg = []
-                config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
                 config.min_value = str(value)
                 cfg.append(config)
-                self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
+                self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
 
             elif name == "PositionSim":
-                value = float(self.proxy[ind-1].read_attribute("PositionSim").value)
+                value = float(self.proxy[ind - 1].read_attribute("PositionSim").value)
             elif name == "ResultSim":
-                value = str(self.proxy[ind-1].read_attribute("ResultSim").value)
+                value = str(self.proxy[ind - 1].read_attribute("ResultSim").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
                 value = tango_device
             elif name == "Calibrate":
                 value = -1
             elif name == "Conversion":
-                value = float(self.proxy[ind-1].read_attribute("Conversion").value)
+                value = float(self.proxy[ind - 1].read_attribute("Conversion").value)
         return value
 
     def SetAxisExtraPar(self, ind, name, value):
-        if self.device_available[ind-1]:
+        if self.device_available[ind - 1]:
             if name == "UnitLimitMax":
-                if self.poolmotor_proxy[ind -1 ] == None:
-                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                self.proxy[ind-1].write_attribute(self.attrName_UnitLimitMax[ind-1], value)
-                if not self.set_for_memorized_max[ind-1]:
+                if self.poolmotor_proxy[ind - 1] is None:
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
+                self.proxy[ind - 1].write_attribute(self.attrName_UnitLimitMax[ind - 1], value)
+                if not self.set_for_memorized_max[ind - 1]:
                     cfg = []
-                    config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                    config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
                     config.max_value = str(value)
                     cfg.append(config)
-                    self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
-                self.set_for_memorized_max[ind-1] = 0
+                    self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
+                self.set_for_memorized_max[ind - 1] = 0
             elif name == "UnitLimitMin":
-                if self.poolmotor_proxy[ind -1 ] == None:
-                    self.poolmotor_proxy[ind-1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                self.proxy[ind-1].write_attribute(self.attrName_UnitLimitMin[ind-1], value)
-                if not self.set_for_memorized_min[ind-1]:
+                if self.poolmotor_proxy[ind - 1] is None:
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
+                self.proxy[ind - 1].write_attribute(self.attrName_UnitLimitMin[ind - 1], value)
+                if not self.set_for_memorized_min[ind - 1]:
                     cfg = []
-                    config = self.poolmotor_proxy[ind-1].get_attribute_config("Position")
+                    config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
                     config.min_value = str(value)
                     cfg.append(config)
-                    self.poolmotor_proxy[ind-1].set_attribute_config(cfg)
-                self.set_for_memorized_min[ind-1] = 0
+                    self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
+                self.set_for_memorized_min[ind - 1] = 0
 
             elif name == "PositionSim":
-                self.proxy[ind-1].write_attribute("PositionSim", value)
+                self.proxy[ind - 1].write_attribute("PositionSim", value)
             elif name == "ResultSim":
-                self.proxy[ind-1].write_attribute("ResultSim", value)
+                self.proxy[ind - 1].write_attribute("ResultSim", value)
             elif name == "Calibrate":
-                self.proxy[ind-1].command_inout("Calibrate", value)
+                self.proxy[ind - 1].command_inout("Calibrate", value)
             elif name == "Conversion":
-                self.proxy[ind-1].write_attribute("Conversion", value)
+                self.proxy[ind - 1].write_attribute("Conversion", value)
 
     def SetAxisPar(self, ind, name, value):
-        if self.device_available[ind-1]:
+        if self.device_available[ind - 1]:
             name = name.lower()
             if name == "acceleration" or name == "deceleration":
                 try:
-                    velocity = float(self.proxy[ind-1].read_attribute(self.attrName_Velocity[ind-1]).value)
-                except:
+                    velocity = float(self.proxy[ind - 1].read_attribute(self.attrName_Velocity[ind - 1]).value)
+                except Exception:
                     velocity = 1.0
                 if value == 0.0:
                     value = 1.0
-                self.proxy[ind-1].write_attribute(self.attrName_Acceleration[ind-1], int(velocity / value))
+                self.proxy[ind - 1].write_attribute(self.attrName_Acceleration[ind - 1], int(velocity / value))
             elif name == "base_rate":
-                self.proxy[ind-1].write_attribute("BaseRate", int(value))
+                self.proxy[ind - 1].write_attribute("BaseRate", int(value))
             elif name == "velocity":
-                if not self.conversion_included[ind-1]:
+                if not self.conversion_included[ind - 1]:
                     try:
-                        conversion = abs(float(self.proxy[ind-1].read_attribute("Conversion").value))
-                    except:
+                        conversion = abs(float(self.proxy[ind - 1].read_attribute("Conversion").value))
+                    except Exception:
                         conversion = 1.0
-                    self.proxy[ind-1].write_attribute(self.attrName_Velocity[ind-1], (value * conversion))
+                    self.proxy[ind - 1].write_attribute(self.attrName_Velocity[ind - 1], (value * conversion))
                 else:
-                    self.proxy[ind-1].write_attribute(self.attrName_Velocity[ind-1], value)
+                    self.proxy[ind - 1].write_attribute(self.attrName_Velocity[ind - 1], value)
             elif name == "step_per_unit":
-                self.proxy[ind-1].write_attribute("Conversion", value)
+                self.proxy[ind - 1].write_attribute("Conversion", value)
 
     def GetAxisPar(self, ind, name):
         value = float('nan')
-        if self.device_available[ind-1]:
+        if self.device_available[ind - 1]:
             name = name.lower()
             if name == "acceleration" or name == "deceleration":
-                value = float(self.proxy[ind-1].read_attribute(self.attrName_Acceleration[ind-1]).value)
+                value = float(self.proxy[ind - 1].read_attribute(self.attrName_Acceleration[ind - 1]).value)
                 try:
-                    velocity = float(self.proxy[ind-1].read_attribute(self.attrName_Velocity[ind-1]).value)
-                except:
+                    velocity = float(self.proxy[ind - 1].read_attribute(self.attrName_Velocity[ind - 1]).value)
+                except Exception:
                     velocity = 1.0
                 if value == 0.0:
                     value = 1.0
                 value = velocity / value
             elif name == "base_rate":
                 try:
-                    value = float(self.proxy[ind-1].read_attribute("BaseRate").value)
+                    value = float(self.proxy[ind - 1].read_attribute("BaseRate").value)
                     try:
-                        conversion = abs(float(self.proxy[ind-1].read_attribute("Conversion").value))
-                    except:
+                        conversion = abs(float(self.proxy[ind - 1].read_attribute("Conversion").value))
+                    except Exception:
                         conversion = 1.0
                     value /= conversion
-                except:
+                except Exception:
                     value = 0.0
             elif name == "velocity":
-                value = float(self.proxy[ind-1].read_attribute(self.attrName_Velocity[ind-1]).value)
-                if not self.conversion_included[ind-1]:
+                value = float(self.proxy[ind - 1].read_attribute(self.attrName_Velocity[ind - 1]).value)
+                if not self.conversion_included[ind - 1]:
                     try:
-                        conversion = abs(float(self.proxy[ind-1].read_attribute("Conversion").value))
-                    except:
+                        conversion = abs(float(self.proxy[ind - 1].read_attribute("Conversion").value))
+                    except Exception:
                         conversion = 1.0
                     value /= conversion
             elif name == "step_per_unit":
                 try:
-                    value = float(self.proxy[ind-1].read_attribute("Conversion").value)
-                except:
+                    value = float(self.proxy[ind - 1].read_attribute("Conversion").value)
+                except Exception:
                     value = 1.0
         return value
 
@@ -365,16 +365,16 @@ class HasyMotorCtrl(MotorController):
     def AbortOne(self, ind):
         if ind > self.max_device:
             pass
-        if self.device_available[ind-1] == 1:
+        if self.device_available[ind - 1] == 1:
             try:
-                self.proxy[ind-1].command_inout(self.cmdName_Abort[ind-1])
-            except:
+                self.proxy[ind - 1].command_inout(self.cmdName_Abort[ind - 1])
+            except Exception:
                 pass
 
     def DefinePosition(self, ind, position):
-        if self.device_available[ind-1] == 1:
+        if self.device_available[ind - 1] == 1:
             position = float(position)
-            self.proxy[ind-1].Calibrate(position)
+            self.proxy[ind - 1].Calibrate(position)
 
     def setExtraParameterName(self, extra_parameter_name):
         self.extraparametername = extra_parameter_name

@@ -18,29 +18,29 @@ class PCOCtrl(TwoDController):
 		       'FileStartNum':{Type:'PyTango.DevLong',Access:ReadWrite},
 		       'FilePrefix':{Type:'PyTango.DevString',Access:ReadWrite},
 		       'FileDir':{Type:'PyTango.DevString',Access:ReadWrite},
-                       'TangoDevice':{Type:str,Access:ReadOnly},}
+                       'TangoDevice': {Type: str, Access: ReadOnly},}
 
 
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PCO Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PCO Tango devices'},
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
 
     MaxDevice = 97
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        TwoDController.__init__(self,inst,props, *args, **kwargs)
+        TwoDController.__init__(self, inst, props, *args, **kwargs)
 
-        if self.TangoHost == None:
+        if self.TangoHost is None:
             self.db = PyTango.Database()
         else:
             self.node = self.TangoHost
             self.port = 10000
-            if self.TangoHost.find( ':'):
+            if self.TangoHost.find(':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
-        name_dev_ask =  self.RootDeviceName + "*"
+        name_dev_ask = self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
@@ -50,7 +50,7 @@ class PCOCtrl(TwoDController):
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
-            self.max_device =  self.max_device + 1
+            self.max_device = self.max_device + 1
         self.started = False
         self.dft_DelayTime = 0
         self.DelayTime = []
@@ -66,18 +66,18 @@ class PCOCtrl(TwoDController):
         self.FileDir = []
 
 
-    def AddDevice(self,ind):
-        TwoDController.AddDevice(self,ind)
+    def AddDevice(self, ind):
+        TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
             return
-        proxy_name = self.tango_device[ind-1]
-        if self.TangoHost == None:
-            proxy_name = self.tango_device[ind-1]
+        proxy_name = self.tango_device[ind - 1]
+        if self.TangoHost is None:
+            proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
-        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
-        self.device_available[ind-1] = 1
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+        self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
+        self.device_available[ind - 1] = 1
         self.DelayTime.append(self.dft_DelayTime)
         self.ExposureTime.append(self.dft_ExposureTime)
         self.ADCs.append(self.dft_ADCs)
@@ -85,14 +85,14 @@ class PCOCtrl(TwoDController):
         self.FilePrefix.append(self.dft_FilePrefix)
         self.FileDir.append(self.dft_FileDir)
 
-    def DeleteDevice(self,ind):
-        TwoDController.DeleteDevice(self,ind)
-        self.proxy[ind-1] =  None
-        self.device_available[ind-1] = 0
+    def DeleteDevice(self, ind):
+        TwoDController.DeleteDevice(self, ind)
+        self.proxy[ind - 1] = None
+        self.device_available[ind - 1] = 0
 
-    def StateOne(self,ind):
-        if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].command_inout("State")
+    def StateOne(self, ind):
+        if self.device_available[ind - 1] == 1:
+            sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
                 tup = (sta,"Camera ready")
             elif sta == PyTango.DevState.RUNNING:
@@ -108,92 +108,92 @@ class PCOCtrl(TwoDController):
     def PreReadAll(self):
         pass
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
         pass
 
     def ReadAll(self):
         pass
 
-    def ReadOne(self,ind):
+    def ReadOne(self, ind):
         #The PCO return an Image in type encoded
-        while self.proxy[ind-1].state() != PyTango.DevState.ON:
+        while self.proxy[ind - 1].state() != PyTango.DevState.ON:
             time.sleep(0.001)
         tmp_value = [(-1,), (-1,)]
-        if self.device_available[ind-1] == 1:
+        if self.device_available[ind - 1] == 1:
             return tmp_value
 
     def PreStartAll(self):
         pass
 
-    def StartOne(self,ind, position=None):
-        while self.proxy[ind-1].state() != PyTango.DevState.ON: # Need it because the PCO goes to DISABLE after MOVING
+    def StartOne(self, ind, position=None):
+        while self.proxy[ind - 1].state() != PyTango.DevState.ON:  # Need it because the PCO goes to DISABLE after MOVING
             time.sleep(0.001)
-        self.proxy[ind-1].command_inout("StartStandardAcq")
+        self.proxy[ind - 1].command_inout("StartStandardAcq")
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.proxy[ind-1].write_attribute("ExposureTime",value)
+        self.proxy[ind - 1].write_attribute("ExposureTime", value)
 
     def GetAxisPar(self, ind, par_name):
         if par_name == "XDim":
-            if self.device_available[ind-1]:
-                return int(self.proxy[ind-1].read_attribute("Width").value)
+            if self.device_available[ind - 1]:
+                return int(self.proxy[ind - 1].read_attribute("Width").value)
         elif par_name == "YDim":
-            if self.device_available[ind-1]:
-                return int(self.proxy[ind-1].read_attribute("Heigth").value)
+            if self.device_available[ind - 1]:
+                return int(self.proxy[ind - 1].read_attribute("Heigth").value)
 
-    def SetAxisPar(self,ind,par_name,value):
+    def SetAxisPar(self, ind,par_name,value):
         if par_name == "XDim":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("Width",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("Width", value)
         elif par_name == "YDim":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("Heigth",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("Heigth", value)
 
-    def GetAxisExtraPar(self,ind,name):
+    def GetAxisExtraPar(self, ind, name):
         if name == "DelayTime":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("DelayTime").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("DelayTime").value
         if name == "ExposureTime":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("ExposureTime").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("ExposureTime").value
         if name == "ADCs":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("ADCs").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("ADCs").value
         if name == "FileStartNum":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("FileStartNum").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("FileStartNum").value
         if name == "FilePrefix":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("FilePrefix").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("FilePrefix").value
         if name == "FileDir":
-            if self.device_available[ind-1]:
-                return self.proxy[ind-1].read_attribute("FileDir").value
+            if self.device_available[ind - 1]:
+                return self.proxy[ind - 1].read_attribute("FileDir").value
         if name == "TangoDevice":
-            if self.device_available[ind-1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
+            if self.device_available[ind - 1]:
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
                 return tango_device
 
-    def SetAxisExtraPar(self,ind,name,value):
+    def SetAxisExtraPar(self, ind, name, value):
         if name == "DelayTime":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("DelayTime",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("DelayTime", value)
         if name == "ExposureTime":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("ExposureTime",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("ExposureTime", value)
         if name == "ADCs":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("ADCs",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("ADCs", value)
         if name == "FileStartNum":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("FileStartNum",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("FileStartNum", value)
         if name == "FilePrefix":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("FilePrefix",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("FilePrefix", value)
         if name == "FileDir":
-            if self.device_available[ind-1]:
-                self.proxy[ind-1].write_attribute("FileDir",value)
+            if self.device_available[ind - 1]:
+                self.proxy[ind - 1].write_attribute("FileDir", value)
 
-    def SendToCtrl(self,in_data):
+    def SendToCtrl(self, in_data):
 #        print "Received value =",in_data
         return "Nothing sent"
 

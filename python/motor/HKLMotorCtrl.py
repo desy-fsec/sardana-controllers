@@ -20,14 +20,14 @@ class HKLMotorCtrl(MotorController):
 
     MaxDevice = 3
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         """ Do the default init plus the connection to the
         diffractometer device. And the readout of the properties
         need
         @param inst instance name of the controller
         @param properties of the controller
         """
-        MotorController.__init__(self,inst,props, *args, **kwargs)
+        MotorController.__init__(self, inst, props, *args, **kwargs)
 
         self.diffrac = PyTango.DeviceProxy(self.DiffracDevName)
 
@@ -36,13 +36,13 @@ class HKLMotorCtrl(MotorController):
         h_dev_name = self.DiffracDevName + "-h"
         self.hkl_device.append(PyTango.DeviceProxy(h_dev_name))
 
-        k_dev_name =  self.DiffracDevName + "-k"
+        k_dev_name = self.DiffracDevName + "-k"
         self.hkl_device.append(PyTango.DeviceProxy(k_dev_name))
 
-        l_dev_name =  self.DiffracDevName + "-l"
+        l_dev_name = self.DiffracDevName + "-l"
         self.hkl_device.append(PyTango.DeviceProxy(l_dev_name))
 
-        hkl_simu_dev_name =  self.DiffracDevName + "-sim-hkl"
+        hkl_simu_dev_name = self.DiffracDevName + "-sim-hkl"
         self.hkl_simu_device = PyTango.DeviceProxy(hkl_simu_dev_name)
 
         prop = self.diffrac.get_property(['DiffractometerType'])

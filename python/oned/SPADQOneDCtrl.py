@@ -32,14 +32,14 @@ class SPADQOneDCtrl(OneDController):
     }
 
     ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
 
     MaxDevice = 97
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        OneDController.__init__(self,inst,props, *args, **kwargs)
-        if self.TangoHost == None:
+        OneDController.__init__(self, inst, props, *args, **kwargs)
+        if self.TangoHost is None:
             self.db = PyTango.Database()
         else:
             #
@@ -47,12 +47,12 @@ class SPADQOneDCtrl(OneDController):
             #
             self.node = self.TangoHost
             self.port = 10000
-            if self.TangoHost.find( ':'):
+            if self.TangoHost.find(':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
-        name_dev_ask =  self.RootDeviceName + "*"
+        name_dev_ask = self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
@@ -88,36 +88,36 @@ class SPADQOneDCtrl(OneDController):
             self.RoI4_end.append(0)
             self.Counts_RoI4.append(0)
             self.SpectrumName.append("")
-            self.max_device =  self.max_device + 1
+            self.max_device = self.max_device + 1
         self.started = False
         self.acqTime = 0
         self.acqStartTime = None
 
 
 
-    def AddDevice(self,ind):
-        OneDController.AddDevice(self,ind)
+    def AddDevice(self, ind):
+        OneDController.AddDevice(self, ind)
         if ind > self.max_device:
             return
-        proxy_name = self.tango_device[ind-1]
-        if self.TangoHost == None:
-            proxy_name = self.tango_device[ind-1]
+        proxy_name = self.tango_device[ind - 1]
+        if self.TangoHost is None:
+            proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
-        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
-        self.device_available[ind-1] = 1
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+        self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
+        self.device_available[ind - 1] = 1
 
 
-    def DeleteDevice(self,ind):
-        OneDController.DeleteDevice(self,ind)
-        self.proxy[ind-1] =  None
-        self.device_available[ind-1] = 0
+    def DeleteDevice(self, ind):
+        OneDController.DeleteDevice(self, ind)
+        self.proxy[ind - 1] = None
+        self.device_available[ind - 1] = 0
 
 
-    def StateOne(self,ind):
-        if self.device_available[ind-1] == True:
-            sta = self.proxy[ind-1].command_inout("State")
-            status = self.proxy[ind-1].command_inout("Status")
+    def StateOne(self, ind):
+        if self.device_available[ind - 1] == True:
+            sta = self.proxy[ind - 1].command_inout("State")
+            status = self.proxy[ind - 1].command_inout("Status")
             tup = (sta, status)
         else:
             sta = PyTango.DevState.FAULT
@@ -138,111 +138,111 @@ class SPADQOneDCtrl(OneDController):
     def PreReadAll(self):
         pass
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
         pass
 
 
     def ReadAll(self):
         pass
 
-    def ReadOne(self,ind):
-        data = self.proxy[ind-1].read_attribute(self.SpectrumName[ind-1]).value
-        self.Counts_RoI1[ind-1] = data[self.RoI1_start[ind-1]:self.RoI1_end[ind-1]].sum()
-        self.Counts_RoI2[ind-1] = data[self.RoI2_start[ind-1]:self.RoI2_end[ind-1]].sum()
-        self.Counts_RoI3[ind-1] = data[self.RoI3_start[ind-1]:self.RoI3_end[ind-1]].sum()
-        self.Counts_RoI4[ind-1] = data[self.RoI4_start[ind-1]:self.RoI4_end[ind-1]].sum()
+    def ReadOne(self, ind):
+        data = self.proxy[ind - 1].read_attribute(self.SpectrumName[ind - 1]).value
+        self.Counts_RoI1[ind - 1] = data[self.RoI1_start[ind - 1]:self.RoI1_end[ind - 1]].sum()
+        self.Counts_RoI2[ind - 1] = data[self.RoI2_start[ind - 1]:self.RoI2_end[ind - 1]].sum()
+        self.Counts_RoI3[ind - 1] = data[self.RoI3_start[ind - 1]:self.RoI3_end[ind - 1]].sum()
+        self.Counts_RoI4[ind - 1] = data[self.RoI4_start[ind - 1]:self.RoI4_end[ind - 1]].sum()
         return data
 
     def PreStartAll(self):
         pass
 
-    def PreStartOne(self,ind, value):
+    def PreStartOne(self, ind, value):
         return True
 
-    def StartOne(self,ind, value):
-        sta = self.proxy[ind-1].command_inout("State")
+    def StartOne(self, ind, value):
+        sta = self.proxy[ind - 1].command_inout("State")
         if sta == PyTango.DevState.ON:
-            self.proxy[ind-1].command_inout("StartAcquisition")
+            self.proxy[ind - 1].command_inout("StartAcquisition")
             self.started = True
             self.acqStartTime = time.time()
 
-    def AbortOne(self,ind):
-        self.proxy[ind-1].command_inout("StopAcquisition")
+    def AbortOne(self, ind):
+        self.proxy[ind - 1].command_inout("StopAcquisition")
 
-    def GetAxisExtraPar(self,ind,name):
+    def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            if self.device_available[ind-1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
+            if self.device_available[ind - 1]:
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
                 return tango_device
         elif name == "DataLength":
-            if self.device_available[ind-1]:
-                if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind-1] == False:
-                    if self.flagIsXIA[ind-1]:
-                        datalength = int(self.proxy[ind-1].read_attribute("McaLength").value)
-                    elif self.flagIsSPADQ[ind-1]:
-                        datalength = int(self.proxy[ind-1].read_attribute("ATDRecordLength").value)
+            if self.device_available[ind - 1]:
+                if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind - 1] == False:
+                    if self.flagIsXIA[ind - 1]:
+                        datalength = int(self.proxy[ind - 1].read_attribute("McaLength").value)
+                    elif self.flagIsSPADQ[ind - 1]:
+                        datalength = int(self.proxy[ind - 1].read_attribute("ATDRecordLength").value)
                     else:
-                        datalength = int(self.proxy[ind-1].read_attribute("DataLength").value)
-                elif self.flagIsAvantes[ind-1] == True:
+                        datalength = int(self.proxy[ind - 1].read_attribute("DataLength").value)
+                elif self.flagIsAvantes[ind - 1] == True:
                     datalength = 4096
                 else:
                     datalength = 255
                 return datalength
         elif name == "RoI1Start":
-            return self.RoI1_start[ind-1]
+            return self.RoI1_start[ind - 1]
         elif name == "RoI1End":
-            return self.RoI1_end[ind-1]
+            return self.RoI1_end[ind - 1]
         elif name == "CountsRoI1":
-            return self.Counts_RoI1[ind-1]
+            return self.Counts_RoI1[ind - 1]
         elif name == "RoI2Start":
-            return self.RoI2_start[ind-1]
+            return self.RoI2_start[ind - 1]
         elif name == "RoI2End":
-            return self.RoI2_end[ind-1]
+            return self.RoI2_end[ind - 1]
         elif name == "CountsRoI2":
-            return self.Counts_RoI2[ind-1]
+            return self.Counts_RoI2[ind - 1]
         elif name == "RoI3Start":
-            return self.RoI3_start[ind-1]
+            return self.RoI3_start[ind - 1]
         elif name == "RoI3End":
-            return self.RoI3_end[ind-1]
+            return self.RoI3_end[ind - 1]
         elif name == "CountsRoI3":
-            return self.Counts_RoI3[ind-1]
+            return self.Counts_RoI3[ind - 1]
         elif name == "RoI4Start":
-            return self.RoI4_start[ind-1]
+            return self.RoI4_start[ind - 1]
         elif name == "RoI4End":
-            return self.RoI4_end[ind-1]
+            return self.RoI4_end[ind - 1]
         elif name == "CountsRoI4":
-            return self.Counts_RoI4[ind-1]
+            return self.Counts_RoI4[ind - 1]
         elif name == "SpectrumName":
-            return self.SpectrumName[ind-1]
+            return self.SpectrumName[ind - 1]
 
-    def SetAxisExtraPar(self,ind,name,value):
-        if self.device_available[ind-1]:
+    def SetAxisExtraPar(self, ind, name, value):
+        if self.device_available[ind - 1]:
             if name == "DataLength":
-                if self.flagIsKromo[ind-1] == False and self.flagIsAvantes[ind-1] == False:
-                    if self.flagIsXIA[ind-1]:
-                        self.proxy[ind-1].write_attribute("McaLength",value)
-                    elif self.flagIsKromo[ind-1] == True:
-                        self.proxy[ind-1].write_attribute("DataLength",value)
+                if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind - 1] == False:
+                    if self.flagIsXIA[ind - 1]:
+                        self.proxy[ind - 1].write_attribute("McaLength", value)
+                    elif self.flagIsKromo[ind - 1] == True:
+                        self.proxy[ind - 1].write_attribute("DataLength", value)
             elif name == "RoI1Start":
-                self.RoI1_start[ind-1] = value
+                self.RoI1_start[ind - 1] = value
             elif name == "RoI1End":
-                self.RoI1_end[ind-1] = value
+                self.RoI1_end[ind - 1] = value
             elif name == "RoI2Start":
-                self.RoI2_start[ind-1] = value
+                self.RoI2_start[ind - 1] = value
             elif name == "RoI2End":
-                self.RoI2_end[ind-1] = value
+                self.RoI2_end[ind - 1] = value
             elif name == "RoI3Start":
-                self.RoI3_start[ind-1] = value
+                self.RoI3_start[ind - 1] = value
             elif name == "RoI3End":
-                self.RoI3_end[ind-1] = value
+                self.RoI3_end[ind - 1] = value
             elif name == "RoI4Start":
-                self.RoI4_start[ind-1] = value
+                self.RoI4_start[ind - 1] = value
             elif name == "RoI4End":
-                self.RoI4_end[ind-1] = value
+                self.RoI4_end[ind - 1] = value
             elif name == "SpectrumName":
-                self.SpectrumName[ind-1] = value
+                self.SpectrumName[ind - 1] = value
 
-    def SendToCtrl(self,in_data):
+    def SendToCtrl(self, in_data):
         return "Nothing sent"
 
     def __del__(self):

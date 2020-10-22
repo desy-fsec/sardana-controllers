@@ -15,14 +15,14 @@ class HasyDACCtrl(MotorController):
     "This class is the Tango Sardana Motor controller for standard Hasylab DACs"
 
 
-    axis_attributes = {'VoltageMax':{Type:float,Access:ReadWrite},
-                       'VoltageMin':{Type:float,Access:ReadWrite},
-                       'TangoDevice':{Type:str,Access:ReadOnly},
+    axis_attributes = {'VoltageMax': {Type: float, Access: ReadWrite},
+                       'VoltageMin': {Type: float, Access: ReadWrite},
+                       'TangoDevice': {Type: str, Access: ReadOnly},
                        }
 
 
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the Motor Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
+    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the Motor Tango devices'},
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     gender = "Motor"
     model = "Hasylab DAC"
@@ -30,22 +30,22 @@ class HasyDACCtrl(MotorController):
     state = ""
     status = ""
 
-    def __init__(self,inst,props,*args, **kwargs):
+    def __init__(self, inst, props,*args, **kwargs):
         self.TangoHost = None
-        MotorController.__init__(self,inst,props,*args, **kwargs)
+        MotorController.__init__(self, inst, props,*args, **kwargs)
 
-        if self.TangoHost == None:
+        if self.TangoHost is None:
             self.db = PyTango.Database()
         else:
             self.node = self.TangoHost
             self.port = 10000
-            if self.TangoHost.find( ':'):
+            if self.TangoHost.find(':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
             self.db = PyTango.Database(self.node, self.port)
 
-        name_dev_ask =  self.RootDeviceName + "*"
+        name_dev_ask = self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
@@ -55,36 +55,36 @@ class HasyDACCtrl(MotorController):
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
-            self.max_device =  self.max_device + 1
+            self.max_device = self.max_device + 1
         self.dft_VoltageMax = 0
         self.VoltageMax = []
         self.dft_VoltageMin = 0
         self.VoltageMin = []
 
-    def AddDevice(self,ind):
-        MotorController.AddDevice(self,ind)
+    def AddDevice(self, ind):
+        MotorController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
             return
-        proxy_name = self.tango_device[ind-1]
-        if self.TangoHost == None:
-            proxy_name = self.tango_device[ind-1]
+        proxy_name = self.tango_device[ind - 1]
+        if self.TangoHost is None:
+            proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind-1])
-        self.proxy[ind-1] = PyTango.DeviceProxy(proxy_name)
-        self.device_available[ind-1] = 1
+            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+        self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
+        self.device_available[ind - 1] = 1
         self.VoltageMax.append(self.dft_VoltageMax)
         self.VoltageMin.append(self.dft_VoltageMin)
 
-    def DeleteDevice(self,ind):
-        MotorController.DeleteDevice(self,ind)
-        self.proxy[ind-1] =  None
-        self.device_available[ind-1] = 0
+    def DeleteDevice(self, ind):
+        MotorController.DeleteDevice(self, ind)
+        self.proxy[ind - 1] = None
+        self.device_available[ind - 1] = 0
 
-    def StateOne(self,ind):
+    def StateOne(self, ind):
         status_template = "STATE(%s) LIM+(%s) LIM-(%s)"
-        if  self.device_available[ind-1] == 1:
-            sta = self.proxy[ind-1].command_inout("State")
+        if self.device_available[ind - 1] == 1:
+            sta = self.proxy[ind - 1].command_inout("State")
             switchstate = 0
             if sta == PyTango.DevState.ON:
                 status_template = "DAC is iddle"
@@ -97,47 +97,47 @@ class HasyDACCtrl(MotorController):
     def PreReadAll(self):
         pass
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
         pass
 
     def ReadAll(self):
         pass
 
-    def ReadOne(self,ind):
-        if self.device_available[ind-1] == 1:
-            return self.proxy[ind-1].read_attribute("Voltage").value
+    def ReadOne(self, ind):
+        if self.device_available[ind - 1] == 1:
+            return self.proxy[ind - 1].read_attribute("Voltage").value
 
     def PreStartAll(self):
         pass
 
-    def PreStartOne(self,ind,pos):
+    def PreStartOne(self, ind, pos):
         return True
 
-    def StartOne(self,ind,pos):
-        if self.device_available[ind-1] == 1:
-                self.proxy[ind-1].write_attribute("Voltage",pos)
+    def StartOne(self, ind, pos):
+        if self.device_available[ind - 1] == 1:
+                self.proxy[ind - 1].write_attribute("Voltage",pos)
 
-    def GetAxisExtraPar(self,ind,name):
-        if self.device_available[ind-1]:
+    def GetAxisExtraPar(self, ind, name):
+        if self.device_available[ind - 1]:
             if name == "VoltageMax":
-                return float(self.proxy[ind-1].read_attribute("VoltageMax").value)
+                return float(self.proxy[ind - 1].read_attribute("VoltageMax").value)
             elif name == "VoltageMin":
-                return float(self.proxy[ind-1].read_attribute("VoltageMin").value)
+                return float(self.proxy[ind - 1].read_attribute("VoltageMin").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind-1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
                 return tango_device
 
-    def SetAxisExtraPar(self,ind,name,value):
-        if self.device_available[ind-1]:
+    def SetAxisExtraPar(self, ind, name, value):
+        if self.device_available[ind - 1]:
             if name == "VoltageMax":
-                self.proxy[ind-1].write_attribute("VoltageMax",value)
+                self.proxy[ind - 1].write_attribute("VoltageMax", value)
             elif name == "VoltageMin":
-                self.proxy[ind-1].write_attribute("VoltageMin",value)
+                self.proxy[ind - 1].write_attribute("VoltageMin", value)
 
     def StartAll(self):
         pass
 
-    def SendToCtrl(self,in_data):
+    def SendToCtrl(self, in_data):
         return "Nothing sent"
 
     def AbortOne(self, ind):

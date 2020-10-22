@@ -17,11 +17,11 @@ class pilcTimerCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the PiLCTriggerGenerator used as timer"
 
 
-    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
+    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
                        }
 
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PiLCTriggerGenerator Tango device'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'},
+    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PiLCTriggerGenerator Tango device'},
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
                        }
 
     gender = "CounterTimer"
@@ -43,20 +43,20 @@ class pilcTimerCtrl(CounterTimerController):
     ## __init__ ##
     ##############
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        if self.TangoHost == None:
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
+        if self.TangoHost is None:
             self.db = PyTango.Database()
         else:
             self.node = self.TangoHost
             self.port = 10000
-            if self.TangoHost.find( ':'):
+            if self.TangoHost.find(':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
         self.db = PyTango.Database(self.node, self.port)
-        name_dev_ask =  self.RootDeviceName + "*"
+        name_dev_ask = self.RootDeviceName + "*"
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
@@ -72,7 +72,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## AbortOne ##
     ##############
 
-    def AbortOne(self,ind):
+    def AbortOne(self, ind):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].write_attribute('Arm',0)
 
@@ -81,15 +81,15 @@ class pilcTimerCtrl(CounterTimerController):
     ## AddDevice ##
     ###############
 
-    def AddDevice(self,ind):
-        CounterTimerController.AddDevice(self,ind)
+    def AddDevice(self, ind):
+        CounterTimerController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
             return
 
         proxy_name = self.tango_device[ind - 1]
 
-        if self.TangoHost == None:
+        if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
             proxy_name = (
@@ -106,9 +106,9 @@ class pilcTimerCtrl(CounterTimerController):
     ## DeleteDevice ##
     ##################
 
-    def DeleteDevice(self,ind):
-        CounterTimerController.DeleteDevice(self,ind)
-        self.proxy[ind - 1] =  None
+    def DeleteDevice(self, ind):
+        CounterTimerController.DeleteDevice(self, ind)
+        self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
 
@@ -116,7 +116,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## GetExtraAttributePar ##
     ##########################
 
-    def GetAxisExtraPar(self,ind,name):
+    def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
             if name == "TangoDevice":
                 tango_device = (self.node
@@ -132,9 +132,9 @@ class pilcTimerCtrl(CounterTimerController):
     ## LoadOne ##
     #############
 
-    def LoadOne(self,ind,value, repetitions, latency_time):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         if self.device_available[ind - 1] == 1:
-            self.proxy[ind - 1].write_attribute("TimeTriggerStepSize",value)
+            self.proxy[ind - 1].write_attribute("TimeTriggerStepSize", value)
 
 
     ################
@@ -149,7 +149,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## PreReadOne ##
     ################
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
         pass
 
 
@@ -166,7 +166,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## PreStartOne ##
     #################
 
-    def PreStartOne(self,ind,value):
+    def PreStartOne(self, ind, value):
         self.proxy[ind - 1].write_attribute('TriggerPulseLength',0.00005)
         self.proxy[ind - 1].write_attribute('TriggerMode',2)
         self.proxy[ind - 1].write_attribute('FileDir','/tmp')
@@ -188,7 +188,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## ReadOne ##
     #############
 
-    def ReadOne(self,ind):
+    def ReadOne(self, ind):
         if self.device_available[ind - 1] == 1:
             ## Elapsed time can not be read from the device
             ## so it is calculated by software.
@@ -214,7 +214,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## SendToCtrl ##
     ################
 
-    def SendToCtrl(self,in_data):
+    def SendToCtrl(self, in_data):
         return "Nothing sent"
 
 
@@ -222,7 +222,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## SetExtraAttributePar ##
     ##########################
 
-    def SetExtraAttributePar(self,ind,name,value):
+    def SetExtraAttributePar(self, ind, name, value):
         pass
 
 
@@ -241,7 +241,7 @@ class pilcTimerCtrl(CounterTimerController):
     ## StartOne ##
     ##############
 
-    def StartOne(self,ind,val):
+    def StartOne(self, ind,val):
         if self.device_available[ind - 1] == 1:
             self.wantedCT.append(ind - 1)
 
@@ -250,8 +250,8 @@ class pilcTimerCtrl(CounterTimerController):
     ## StateOne ##
     ##############
 
-    def StateOne(self,ind):
-        if  self.device_available[ind - 1] == 1:
+    def StateOne(self, ind):
+        if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
                 status_string = "Timer is in ON state"
