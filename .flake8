@@ -1,0 +1,13 @@
+[flake8]
+exclude=
+    .git,
+    docs,
+    doc,
+    .eggs,
+    dist,
+    __pycache__,
+    nxstest,
+    build,
+    lavuetaurus
+# max-complexity = 10
+# ignore = F401, F403, E722, C901

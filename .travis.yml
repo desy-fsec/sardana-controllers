@@ -1,0 +1,18 @@
+language: python
+dist: bionic
+
+env:
+  - TEST="flake8"
+
+services:
+  - docker
+
+before_install:
+  - if [ $TEST == "flake8" ]; then sudo apt-get update -qq ; fi
+  - if [ $TEST == "flake8" ]; then sudo pip install flake8; fi
+
+
+script:
+  - if [ $TEST == "flake8" ]; then flake8; fi
+
+
