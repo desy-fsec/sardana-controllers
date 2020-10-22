@@ -21,7 +21,7 @@ class HasyMCSCtrl(OneDController):
     }
 
     ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCS Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
@@ -114,8 +114,8 @@ class HasyMCSCtrl(OneDController):
 
     def ReadOne(self, ind):
         data = []
-        for i in range(0,self.proxy[ind - 1].NbAcquisitions):
-            for j in range(0,self.proxy[ind - 1].NbChannels):
+        for i in range(0, self.proxy[ind - 1].NbAcquisitions):
+            for j in range(0, self.proxy[ind - 1].NbChannels):
                 data.append(self.proxy[ind - 1].CountsArray[i][j])
         return data
 

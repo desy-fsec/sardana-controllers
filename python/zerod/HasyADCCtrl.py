@@ -19,14 +19,14 @@ class HasyADCCtrl(ZeroDController):
                        }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the VFCADC Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
     def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
         ZeroDController.__init__(self, inst, props, *args, **kwargs)
-#        print "PYTHON -> ZeroDController ctor for instance",inst
+#        print "PYTHON -> ZeroDController ctor for instance", inst
         if self.TangoHost is None:
             self.db = PyTango.Database()
         else:
@@ -57,7 +57,7 @@ class HasyADCCtrl(ZeroDController):
 
 
     def AddDevice(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In AddDevice method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In AddDevice method for index", ind
         ZeroDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
@@ -71,13 +71,13 @@ class HasyADCCtrl(ZeroDController):
         self.device_available[ind - 1] = 1
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In DeleteDevice method for index", ind
         ZeroDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StateOne method for index", ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -93,7 +93,7 @@ class HasyADCCtrl(ZeroDController):
         pass
 
     def PreReadOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreReadOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreReadOne method for index", ind
         pass
 
     def ReadAll(self):
@@ -101,7 +101,7 @@ class HasyADCCtrl(ZeroDController):
         pass
 
     def ReadOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In ReadOne method for index",ind
+#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In ReadOne method for index", ind
         if self.device_available[ind - 1] == 1:
             return self.proxy[ind - 1].read_attribute("Value").value*self.conversion[ind - 1]
 
@@ -113,7 +113,7 @@ class HasyADCCtrl(ZeroDController):
         pass
 
     def StartOne(self, ind):
-        # print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StartOne method for index",ind
+        # print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StartOne method for index", ind
         self.wanted.append(ind)
 
     def GetAxisExtraPar(self, ind, name):
@@ -130,7 +130,7 @@ class HasyADCCtrl(ZeroDController):
                 self.conversion[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

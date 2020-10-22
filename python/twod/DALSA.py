@@ -18,7 +18,7 @@ class DALSACtrl(TwoDController):
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the DALSA Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
@@ -109,7 +109,7 @@ class DALSACtrl(TwoDController):
         pass
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.proxy[ind - 1].write_attribute("ExtendedExposure",value*1000)
+        self.proxy[ind - 1].write_attribute("ExtendedExposure", value*1000)
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":

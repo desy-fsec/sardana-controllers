@@ -21,7 +21,7 @@ class LimaRoICounterCtrl(CounterTimerController):
                        'RoIy2': {Type: 'PyTango.DevLong', Access: ReadWrite}, }
 
     ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'Name of the roicounter lima device'},
-                       'TangoHost': {Type: str, Description: 'The tango host where LimaCCDs runs'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where LimaCCDs runs'}, }
 
     gender = "CounterTimer"
     model = "LimaCounter"

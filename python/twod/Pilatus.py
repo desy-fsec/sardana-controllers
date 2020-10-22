@@ -23,7 +23,7 @@ class PilatusCtrl(TwoDController):
                'LastImageTaken': {Type: 'PyTango.DevString', Access: ReadWrite},
                'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
                'NbExposures': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'ShutterEnable':{Type:'PyTango.DevBoolean',Access:ReadWrite},
+               'ShutterEnable': {Type: 'PyTango.DevBoolean', Access: ReadWrite},
                'TriggerMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
                'Threshold': {Type: 'PyTango.DevLong', Access: ReadWrite},
                'Gain': {Type: 'PyTango.DevLong', Access: ReadWrite},
@@ -33,7 +33,7 @@ class PilatusCtrl(TwoDController):
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the Pilatus Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
@@ -126,13 +126,13 @@ class PilatusCtrl(TwoDController):
         self.SettleTime.append(self.dft_SettleTime)
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> PilatusCtrl/", self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> PilatusCtrl/", self.inst_name,": In DeleteDevice method for index", ind
         TwoDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> PilatusCtrl/", self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> PilatusCtrl/", self.inst_name,": In StateOne method for index", ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -261,7 +261,7 @@ class PilatusCtrl(TwoDController):
                     self.SettleTime[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

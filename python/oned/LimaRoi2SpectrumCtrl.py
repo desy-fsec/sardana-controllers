@@ -15,7 +15,7 @@ ReadWrite = DataAccess.ReadWrite
 class LimaRoi2SpectrumCtrl(OneDController):
     "This class is the One D controller for the Roi2Spectrum Lima device"
 
-    axis_attributes = {'DataLength':{Type:int, Access: ReadWrite},}
+    axis_attributes = {'DataLength': {Type: int, Access: ReadWrite}, }
 
     ctrl_properties = {'Roi2SpectrumDeviceName': {Type: str, Description: 'The name of the Roi2SpectrumDeviceServer device from Lima'}}
 
@@ -58,7 +58,7 @@ class LimaRoi2SpectrumCtrl(OneDController):
         frame_id = self.proxy.CounterStatus
         # frame_id should be always 0 because we take only one image
         im.append(frame_id)
-        raw_spectrum = self.proxy.command_inout("readImage",im)
+        raw_spectrum = self.proxy.command_inout("readImage", im)
         if frame_id != 0:  # more than one spectrum is read
             rois_names = self.proxy.getNames()
             cmd = []

@@ -71,7 +71,7 @@ class TangoVimbaCtrl(TwoDController):
 
     def AddDevice(self, ind):
         # print "PYTHON -> TangoVimbaCtrl/", self.inst_name,": \
-        #        In AddDevice method for index",ind
+        #        In AddDevice method for index", ind
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
@@ -87,14 +87,14 @@ class TangoVimbaCtrl(TwoDController):
 
     def DeleteDevice(self, ind):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        # ": In DeleteDevice method for index",ind
+        # ": In DeleteDevice method for index", ind
         TwoDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        #     ": In StateOne method for index",ind
+        #     ": In StateOne method for index", ind
         if self.device_available[ind - 1] == 1:
             if time.time() - self.start_time[ind - 1] > \
                self.exp_time and self.started is True:
@@ -127,7 +127,7 @@ class TangoVimbaCtrl(TwoDController):
 
     def PreReadOne(self, ind):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        # ": In PreReadOne method for index",ind
+        # ": In PreReadOne method for index", ind
         try:
             self.proxy[ind - 1].command_inout("StopAcquisition")
         except Exception:
@@ -140,7 +140,7 @@ class TangoVimbaCtrl(TwoDController):
 
     def ReadOne(self, ind):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        # ": In ReadOne method for index",ind
+        # ": In ReadOne method for index", ind
         tmp_value = [(-1,), (-1,)]
         if self.device_available[ind - 1] == 1:
             return tmp_value
@@ -152,7 +152,7 @@ class TangoVimbaCtrl(TwoDController):
 
     def StartOne(self, ind, position=None):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        # ": In StartOne method for index",ind
+        # ": In StartOne method for index", ind
         self.proxy[ind - 1].FileSaving = True
         if self.acq_type[ind - 1] == 0:
             self.proxy[ind - 1].command_inout("StartAcquisition")
@@ -164,7 +164,7 @@ class TangoVimbaCtrl(TwoDController):
 
     def AbortOne(self, ind):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        # ": In AbortOne method for index",ind
+        # ": In AbortOne method for index", ind
         try:
             self.proxy[ind - 1].command_inout("StopAcquisition")
         except Exception:
@@ -175,7 +175,7 @@ class TangoVimbaCtrl(TwoDController):
 
     def GetAxisExtraPar(self, ind, name):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        # ": In GetExtraFeaturePar method for index",ind," name=",name
+        # ": In GetExtraFeaturePar method for index", ind," name=", name
         if self.device_available[ind - 1]:
             if name == "TangoDevice":
                 tango_device = self.node + ":" + str(self.port) + \
@@ -186,14 +186,14 @@ class TangoVimbaCtrl(TwoDController):
 
     def SetAxisExtraPar(self, ind, name, value):
         #        print "PYTHON -> TangoVimbaCtrl/", self.inst_name, \
-        # ": In SetExtraFeaturePar method for index",ind," name=",name, \
-        # " value=",value
+        # ": In SetExtraFeaturePar method for index", ind," name=", name, \
+        # " value=", value
         if self.device_available[ind - 1]:
             if name == "AcquisitionType":
                 self.acq_type[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-        #        print "Received value =",in_data
+        #        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

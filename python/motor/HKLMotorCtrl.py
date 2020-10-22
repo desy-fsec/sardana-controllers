@@ -7,7 +7,7 @@ class HKLMotorCtrl(MotorController):
     """
 
     # The property used to connect to the diffractometer controller
-    ctrl_properties = {'DiffracDevName':{'Type':'PyTango.DevString','Description':'The diffractometer device name'}}
+    ctrl_properties = {'DiffracDevName': {'Type': 'PyTango.DevString','Description':'The diffractometer device name'}}
 
     gender = "Motor"
     model = "HKLMotor"
@@ -95,36 +95,36 @@ class HKLMotorCtrl(MotorController):
         # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartAll method"
         pass
 
-    def PreStartOne(self,axis,pos):
+    def PreStartOne(self,axis, pos):
         """ Nothing special to do.
         @param axis to start
         @param pos to move to
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartOne method for axis",axis," with pos",pos
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartOne method for axis",axis," with pos", pos
         return True
 
-    def StartOne(self,axis,pos):
+    def StartOne(self,axis, pos):
         """ Move the axis separtely, for multiple movements use the macro br """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StartOne method for axis",axis," with pos",pos
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StartOne method for axis",axis," with pos", pos
 
         if axis == 1:
-            self.hkl_simu_device.write_attribute("h",pos)
+            self.hkl_simu_device.write_attribute("h", pos)
             pos1 = self.hkl_device[1].position
-            self.hkl_simu_device.write_attribute("k",pos1)
+            self.hkl_simu_device.write_attribute("k", pos1)
             pos1 = self.hkl_device[2].position
-            self.hkl_simu_device.write_attribute("l",pos1)
+            self.hkl_simu_device.write_attribute("l", pos1)
         elif axis == 2:
             pos1 = self.hkl_device[0].position
-            self.hkl_simu_device.write_attribute("h",pos1)
-            self.hkl_simu_device.write_attribute("k",pos)
+            self.hkl_simu_device.write_attribute("h", pos1)
+            self.hkl_simu_device.write_attribute("k", pos)
             pos1 = self.hkl_device[2].position
-            self.hkl_simu_device.write_attribute("l",pos1)
+            self.hkl_simu_device.write_attribute("l", pos1)
         elif axis == 3:
             pos1 = self.hkl_device[0].position
-            self.hkl_simu_device.write_attribute("h",pos1)
+            self.hkl_simu_device.write_attribute("h", pos1)
             pos1 = self.hkl_device[1].position
-            self.hkl_simu_device.write_attribute("k",pos1)
-            self.hkl_simu_device.write_attribute("l",pos)
+            self.hkl_simu_device.write_attribute("k", pos1)
+            self.hkl_simu_device.write_attribute("l", pos)
 
         self.diffrac.write_attribute("Simulated", 1)
 
@@ -168,7 +168,7 @@ class HKLMotorCtrl(MotorController):
         # print "PYTHON -> IcePapController/", self.inst_name,": In StartAll method"
         pass
 
-    def GetAxisExtraPar(self,axis,name):
+    def GetAxisExtraPar(self,axis, name):
         """ Get HKLMotor driver particular parameters.
         @param axis to get the parameter
         @param name of the parameter to retrive
@@ -176,13 +176,13 @@ class HKLMotorCtrl(MotorController):
         """
         pass
 
-    def SetAxisExtraPar(self,axis,name,value):
+    def SetAxisExtraPar(self,axis, name, value):
         """ Set HKLMotor driver particular parameters.
         @param axis to set the parameter
         @param name of the parameter
         @param value to be set
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In SetExtraAttributePar method for axis",axis," name=",name," value=",value
+        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In SetExtraAttributePar method for axis",axis," name=", name," value=", value
         pass
 
     def AbortOne(self,axis):
@@ -198,7 +198,7 @@ class HKLMotorCtrl(MotorController):
     def GOAbsolute(self, axis, finalpos):
         pass
 
-    def SendToCtrl(self,cmd):
+    def SendToCtrl(self, cmd):
         pass
 
     def __del__(self):

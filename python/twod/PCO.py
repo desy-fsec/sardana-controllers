@@ -18,11 +18,11 @@ class PCOCtrl(TwoDController):
                'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
                'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
                'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
-                       'TangoDevice': {Type: str, Access: ReadOnly},}
+                       'TangoDevice': {Type: str, Access: ReadOnly}, }
 
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PCO Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
@@ -141,7 +141,7 @@ class PCOCtrl(TwoDController):
             if self.device_available[ind - 1]:
                 return int(self.proxy[ind - 1].read_attribute("Heigth").value)
 
-    def SetAxisPar(self, ind,par_name,value):
+    def SetAxisPar(self, ind, par_name, value):
         if par_name == "XDim":
             if self.device_available[ind - 1]:
                 self.proxy[ind - 1].write_attribute("Width", value)
@@ -194,7 +194,7 @@ class PCOCtrl(TwoDController):
                 self.proxy[ind - 1].write_attribute("FileDir", value)
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

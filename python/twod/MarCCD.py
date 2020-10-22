@@ -22,7 +22,7 @@ class MarCCDCtrl(TwoDController):
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the MarCCD Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
@@ -181,7 +181,7 @@ class MarCCDCtrl(TwoDController):
                 self.proxy[ind - 1].write_attribute("ExposureTime", value)
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

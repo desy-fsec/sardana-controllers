@@ -18,16 +18,16 @@ class HasyOneDCtrl(OneDController):
                        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
                        'RoI1Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'RoI1End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI1':{Type:'PyTango.DevDouble',Access:ReadOnly},
+                       'CountsRoI1': {Type: 'PyTango.DevDouble', Access: ReadOnly},
                        'RoI2Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'RoI2End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI2':{Type:'PyTango.DevDouble',Access:ReadOnly},
+                       'CountsRoI2': {Type: 'PyTango.DevDouble', Access: ReadOnly},
                        'RoI3Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'RoI3End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI3':{Type:'PyTango.DevDouble',Access:ReadOnly},
+                       'CountsRoI3': {Type: 'PyTango.DevDouble', Access: ReadOnly},
                        'RoI4Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
                        'RoI4End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI4':{Type:'PyTango.DevDouble',Access:ReadOnly},
+                       'CountsRoI4': {Type: 'PyTango.DevDouble', Access: ReadOnly},
     }
 
     ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCA Tango devices'},
@@ -129,7 +129,7 @@ class HasyOneDCtrl(OneDController):
 
 
     def DeleteDevice(self, ind):
-        print("HasyOneDCtrl.DeleteDevice % s index %d " % (self.inst_name,ind))
+        print("HasyOneDCtrl.DeleteDevice % s index %d " % (self.inst_name, ind))
         OneDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
@@ -144,7 +144,7 @@ class HasyOneDCtrl(OneDController):
                     self.sta = PyTango.DevState.MOVING
                     self.status = "Acqusition time has not elapsed yet."
                 else:
-                    if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind - 1] == False:
+                    if self.flagIsKromo[ind - 1] is False and self.flagIsAvantes[ind - 1] is False:
                         self.proxy[ind - 1].command_inout("Stop")
                         if self.flagIsXIA[ind - 1] == 0:
                             self.proxy[ind - 1].command_inout("Read")
@@ -163,10 +163,10 @@ class HasyOneDCtrl(OneDController):
         return tup
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        if self.flagIsKromo[ind - 1] == True:
+        if self.flagIsKromo[ind - 1] is True:
              self.proxy[ind - 1].write_attribute("ExpositionTime", value)
-        if self.flagIsAvantes[ind - 1] == True:
-             self.proxy[ind - 1].write_attribute("intTime",value*1000)
+        if self.flagIsAvantes[ind - 1] is True:
+             self.proxy[ind - 1].write_attribute("intTime", value*1000)
         if value > 0:
             self.integ_time = value
             self.monitor_count = None
@@ -180,7 +180,7 @@ class HasyOneDCtrl(OneDController):
         pass
 
     def PreReadOne(self, ind):
-        if self.debugFlag: print("HasyOneDCtrl.PreReadOne %s index %d " % (self.inst_name,ind))
+        if self.debugFlag: print("HasyOneDCtrl.PreReadOne %s index %d " % (self.inst_name, ind))
 
 
     def ReadAll(self):
@@ -211,11 +211,11 @@ class HasyOneDCtrl(OneDController):
         # the state may be ON but one bank can be active
         sta = self.proxy[ind - 1].command_inout("State")
         if sta == PyTango.DevState.ON:
-            if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind - 1] == False:
+            if self.flagIsKromo[ind - 1] is False and self.flagIsAvantes[ind - 1] is False:
                 self.proxy[ind - 1].command_inout("Stop")
                 self.proxy[ind - 1].command_inout("Clear")
                 self.proxy[ind - 1].command_inout("Start")
-            elif self.flagIsAvantes[ind - 1] == True:
+            elif self.flagIsAvantes[ind - 1] is True:
                 pass
                 # self.proxy[ind - 1].command_inout("startMeasure")
             else:
@@ -224,11 +224,11 @@ class HasyOneDCtrl(OneDController):
             self.acqStartTime = time.time()
 
     def AbortOne(self, ind):
-        if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind - 1] == False:
+        if self.flagIsKromo[ind - 1] is False and self.flagIsAvantes[ind - 1] is False:
             self.proxy[ind - 1].command_inout("Stop")
             if self.flagIsXIA[ind - 1] == 0:
                 self.proxy[ind - 1].command_inout("Read")
-        elif self.flagIsAvantes[ind - 1] == False:
+        elif self.flagIsAvantes[ind - 1] is False:
             self.proxy[ind - 1].command_inout("StopAcquisition")
 
 
@@ -240,12 +240,12 @@ class HasyOneDCtrl(OneDController):
                 return tango_device
         elif name == "DataLength":
             if self.device_available[ind - 1]:
-                if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind - 1] == False:
+                if self.flagIsKromo[ind - 1] is False and self.flagIsAvantes[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
                         datalength = int(self.proxy[ind - 1].read_attribute("McaLength").value)
                     else:
                         datalength = int(self.proxy[ind - 1].read_attribute("DataLength").value)
-                elif self.flagIsAvantes[ind - 1] == True:
+                elif self.flagIsAvantes[ind - 1] is True:
                     datalength = 4096
                 else:
                     datalength = 255
@@ -278,10 +278,10 @@ class HasyOneDCtrl(OneDController):
     def SetAxisExtraPar(self, ind, name, value):
         if self.device_available[ind - 1]:
             if name == "DataLength":
-                if self.flagIsKromo[ind - 1] == False and self.flagIsAvantes[ind - 1] == False:
+                if self.flagIsKromo[ind - 1] is False and self.flagIsAvantes[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
                         self.proxy[ind - 1].write_attribute("McaLength", value)
-                    elif self.flagIsKromo[ind - 1] == True:
+                    elif self.flagIsKromo[ind - 1] is True:
                         self.proxy[ind - 1].write_attribute("DataLength", value)
             elif name == "RoI1Start":
                 self.RoI1_start[ind - 1] = value
@@ -301,7 +301,7 @@ class HasyOneDCtrl(OneDController):
                 self.RoI4_end[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-#        if self.debugFlag: print "Received value =",in_data
+#        if self.debugFlag: print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

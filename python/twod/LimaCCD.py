@@ -89,7 +89,7 @@ class LimaCCDCtrl(TwoDController):
         self.Reset = []
 
     def AddDevice(self, ind):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In AddDevice method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In AddDevice method for index", ind
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
@@ -116,21 +116,21 @@ class LimaCCDCtrl(TwoDController):
         self.Reset.append(self.dft_Reset)
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In DeleteDevice method for index", ind
         TwoDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In StateOne method for index", ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].read_attribute("acq_status").value
             if sta == "Ready":
-                tup = (PyTango.DevState.ON,"Camera ready")
+                tup = (PyTango.DevState.ON, "Camera ready")
             elif sta == "Running":
                 tup = (PyTango.DevState.MOVING, "Camera taking images")
             elif sta == "Fault":
-                tup = (PyTango.DevState.FAULT,"Camera in FAULT state")
+                tup = (PyTango.DevState.FAULT, "Camera in FAULT state")
             return tup
 
     def PreReadAll(self):
@@ -138,7 +138,7 @@ class LimaCCDCtrl(TwoDController):
         pass
 
     def PreReadOne(self, ind):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In PreReadOne method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In PreReadOne method for index", ind
         pass
 
     def ReadAll(self):
@@ -146,7 +146,7 @@ class LimaCCDCtrl(TwoDController):
         pass
 
     def ReadOne(self, ind):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In ReadOne method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In ReadOne method for index", ind
         # The LimaCCD return an Image in type encoded
         # Fill an ouput for avoiding reaout errors
         tmp_value = [(-1,), (-1,)]
@@ -158,13 +158,13 @@ class LimaCCDCtrl(TwoDController):
         pass
 
     def StartOne(self, ind, value):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In StartOne method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In StartOne method for index", ind
         self.proxy[ind - 1].write_attribute("acq_nb_frames", 1)
         self.proxy[ind - 1].command_inout("prepareAcq")
         self.proxy[ind - 1].command_inout("startAcq")
 
     def AbortOne(self, ind):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In AbortOne method for index",ind
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In AbortOne method for index", ind
         self.proxy[ind - 1].command_inout("stopAcq")
 
     def LoadOne(self, ind, value, repetitions, latency_time):
@@ -182,7 +182,7 @@ class LimaCCDCtrl(TwoDController):
             return 3
 
     def GetAxisExtraPar(self, ind, name):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In GetExtraFeaturePar method for index", ind," name=", name
         if name == "LatencyTime":
             if self.device_available[ind - 1]:
                 return self.proxy[ind - 1].read_attribute("latency_time").value
@@ -230,7 +230,7 @@ class LimaCCDCtrl(TwoDController):
             return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):
-#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
+#        print "PYTHON -> LimaCCDCtrl/", self.inst_name,": In SetExtraFeaturePar method for index", ind," name=", name," value=", value
         if name == "LatencyTime":
             if self.device_available[ind - 1]:
                 self.proxy[ind - 1].write_attribute("latency_time", value)
@@ -269,7 +269,7 @@ class LimaCCDCtrl(TwoDController):
                 self.proxy[ind - 1].command_inout("Reset")
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

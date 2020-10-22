@@ -16,7 +16,7 @@ class MCAroisCtrl(CounterTimerController):
 
     axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
                        'TangoAttribute': {Type: str, Access: ReadWrite},
-                       'FlagClear':{Type:int,Access:ReadWrite},
+                       'FlagClear': {Type: int, Access: ReadWrite},
                        }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the MCArois Tango devices'},

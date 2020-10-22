@@ -24,7 +24,7 @@ class LCXCameraCtrl(TwoDController):
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the LCXCamera Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 

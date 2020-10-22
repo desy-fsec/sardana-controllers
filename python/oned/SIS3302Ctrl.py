@@ -49,12 +49,12 @@ class SIS3302Ctrl(OneDController):
 
 
     def DeleteDevice(self, ind):
-        # print "SIS3302Ctrl.DeleteDevice", self.inst_name,"index",ind
+        # print "SIS3302Ctrl.DeleteDevice", self.inst_name,"index", ind
         OneDController.DeleteDevice(self, ind)
 
 
     def StateOne(self, ind):
-        # print "SIS3302Ctrl.StatOne", self.inst_name,"index",ind
+        # print "SIS3302Ctrl.StatOne", self.inst_name,"index", ind
         if self.acqStartTime is not None:  # acquisition was started
             now = time.time()
             elapsedTime = now - self.acqStartTime - 0.2
@@ -87,14 +87,14 @@ class SIS3302Ctrl(OneDController):
 
     def PreReadAll(self):
         # print "SIS3302Ctrl.PreReadAll", self.inst_name
-        # if self.started == True:
+        # if self.started is True:
         #    self.proxy.command_inout("Stop")
         #    self.started = False
         #    time.sleep(0.2)
         pass
 
     def PreReadOne(self, ind):
-        # print "SIS3302Ctrl.PreReadOne", self.inst_name,"index",ind
+        # print "SIS3302Ctrl.PreReadOne", self.inst_name,"index", ind
         pass
 
     def ReadAll(self):
@@ -103,7 +103,7 @@ class SIS3302Ctrl(OneDController):
         self.counts = self.proxy.read_attribute("Count").value
 
     def ReadOne(self, ind):
-        # print "SIS3302Ctrl.ReadOne", self.inst_name,"index",ind
+        # print "SIS3302Ctrl.ReadOne", self.inst_name,"index", ind
         if ind == 1:
             if self.flagreadspectrum == 1:
                 data = self.proxy.Data
@@ -120,7 +120,7 @@ class SIS3302Ctrl(OneDController):
         return True
 
     def StartAll(self):
-        if self.started == False:
+        if self.started is False:
             self.proxy.command_inout("Stop")
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
@@ -131,12 +131,12 @@ class SIS3302Ctrl(OneDController):
         pass
 
     def AbortOne(self, ind):
-        # print "SIS3302Ctrl.AbortOne", self.inst_name,"index",ind
+        # print "SIS3302Ctrl.AbortOne", self.inst_name,"index", ind
         self.proxy.command_inout("Stop")
         self.proxy.command_inout("Read")
 
     def GetAxisExtraPar(self, ind, name):
-        # print "SIS3302Ctrl.GetExtraAttrPar", self.inst_name,"index",ind, "name", name
+        # print "SIS3302Ctrl.GetExtraAttrPar", self.inst_name,"index", ind, "name", name
         if name == "TangoDevice":
             return self.proxy_name
         elif name == "DataLength":
@@ -149,7 +149,7 @@ class SIS3302Ctrl(OneDController):
             return self.flagreadspectrum
 
     def SetAxisExtraPar(self, ind, name, value):
-        # print "SIS3302Ctrl.SetExtraAttributePar", self.inst_name,"index",ind," name=",name," value=",value
+        # print "SIS3302Ctrl.SetExtraAttributePar", self.inst_name,"index", ind," name=", name," value=", value
         if name == "DataLength":
             if ind == 1:
                 self.proxy.write_attribute("DataLength", value)
@@ -157,7 +157,7 @@ class SIS3302Ctrl(OneDController):
             self.flagreadspectrum = value
 
     def SendToCtrl(self, in_data):
-        # print "Received value =",in_data
+        # print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

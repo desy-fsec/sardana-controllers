@@ -30,7 +30,7 @@ class VFCADCCtrl(CounterTimerController):
     def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
-#        print "PYTHON -> CounterTimerController ctor for instance",inst
+#        print "PYTHON -> CounterTimerController ctor for instance", inst
 
         if self.TangoHost is None:
             self.db = PyTango.Database()
@@ -70,7 +70,7 @@ class VFCADCCtrl(CounterTimerController):
 
 
     def AddDevice(self, ind):
-#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In AddDevice method for index",ind
+#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In AddDevice method for index", ind
         CounterTimerController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
@@ -85,13 +85,13 @@ class VFCADCCtrl(CounterTimerController):
 
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In DeleteDevice method for index",ind
+#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In DeleteDevice method for index", ind
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In StateOne method for index",ind
+#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In StateOne method for index", ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             tup = (sta, "State from connected Tango device")
@@ -102,7 +102,7 @@ class VFCADCCtrl(CounterTimerController):
         pass
 
     def PreReadOne(self, ind):
-#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In PreReadOne method for index",ind
+#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In PreReadOne method for index", ind
         pass
 
     def ReadAll(self):
@@ -110,7 +110,7 @@ class VFCADCCtrl(CounterTimerController):
         pass
 
     def ReadOne(self, ind):
-#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In ReadOne method for index",ind
+#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In ReadOne method for index", ind
         if self.device_available[ind - 1] == 1:
             if self.FlagReadVoltage[ind - 1] == 1:
                 return self.proxy[ind - 1].read_attribute("Value").value
@@ -130,7 +130,7 @@ class VFCADCCtrl(CounterTimerController):
             return False
 
     def StartOne(self, ind):
-        # print "PYTHON -> VFCADCCtrl/", self.inst_name,": In StartOne method for index",ind
+        # print "PYTHON -> VFCADCCtrl/", self.inst_name,": In StartOne method for index", ind
         self.wanted.append(ind)
 
     def StartAll(self):
@@ -144,7 +144,7 @@ class VFCADCCtrl(CounterTimerController):
         pass
 
     def GetAxisExtraPar(self, ind, name):
-#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In GetExtraFeaturePar method for index",ind," name=",name
+#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In GetExtraFeaturePar method for index", ind," name=", name
         if name == "Offset":
             if self.device_available[ind - 1]:
                 return float(self.proxy[ind - 1].read_attribute("Offset").value)
@@ -163,7 +163,7 @@ class VFCADCCtrl(CounterTimerController):
                 return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):
-#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In SetExtraFeaturePar method for index",ind," name=",name," value=",value
+#        print "PYTHON -> VFCADCCtrl/", self.inst_name,": In SetExtraFeaturePar method for index", ind," name=", name," value=", value
         if name == "Offset":
             if self.device_available[ind - 1]:
                 self.proxy[ind - 1].write_attribute("Offset", value)
@@ -181,7 +181,7 @@ class VFCADCCtrl(CounterTimerController):
                 self.FlagReadVoltage[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def start_acquisition(self, value=None):

@@ -14,11 +14,11 @@ class PerkinElmerCtrl(TwoDController):
 
     axis_attributes = {'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
                        'AcquireMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'TangoDevice': {Type: str, Access: ReadOnly},}
+                       'TangoDevice': {Type: str, Access: ReadOnly}, }
 
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PerkinElmer Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
@@ -148,7 +148,7 @@ class PerkinElmerCtrl(TwoDController):
             self.AcquireMode[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

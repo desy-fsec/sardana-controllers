@@ -19,12 +19,12 @@ class LambdaCtrl(TwoDController):
                'SaveFilePath': {Type: 'PyTango.DevString', Access: ReadWrite},
                'LastestImageNumber': {Type: 'PyTango.DevLong', Access: ReadWrite},
                'FrameNumbers': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'ThresholdEnergy':{Type:'PyTango.DevFloat',Access:ReadWrite},
+               'ThresholdEnergy': {Type: 'PyTango.DevFloat', Access: ReadWrite},
                        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
     ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the Lambda Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},}
+                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
 
     MaxDevice = 97
 
@@ -144,7 +144,7 @@ class LambdaCtrl(TwoDController):
             print("Not able to stop lambda if in ON state")
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.proxy[ind - 1].write_attribute("ShutterTime",value*1000) # Shutter Time is in ms
+        self.proxy[ind - 1].write_attribute("ShutterTime", value*1000)  # Shutter Time is in ms
 
 
     def GetAxisExtraPar(self, ind, name):
@@ -185,7 +185,7 @@ class LambdaCtrl(TwoDController):
                 self.proxy[ind - 1].write_attribute("ThresholdEnergy", value)
 
     def SendToCtrl(self, in_data):
-#        print "Received value =",in_data
+#        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

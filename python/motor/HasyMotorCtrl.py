@@ -15,13 +15,13 @@ class HasyMotorCtrl(MotorController):
     """
 
     axis_attributes = {
-        'UnitLimitMax': {Type:float,Access:DataAccess.ReadWrite,Memorize:NotMemorized},
-        'UnitLimitMin' :{Type:float,Access:DataAccess.ReadWrite,Memorize:NotMemorized},
-        'PositionSim': {Type:float,Access:DataAccess.ReadWrite},
-        'ResultSim': {Type:str,Access:DataAccess.ReadWrite},
-        'TangoDevice': {Type:str,Access:DataAccess.ReadOnly}, # used for handling limits between TangoServer and PoolDevice
-        'Calibrate': {Type:float,Access:DataAccess.ReadWrite},
-        'Conversion': {Type:float,Access:DataAccess.ReadWrite}
+        'UnitLimitMax': {Type:float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
+        'UnitLimitMin' : {Type:float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
+        'PositionSim': {Type:float, Access: DataAccess.ReadWrite},
+        'ResultSim': {Type:str, Access: DataAccess.ReadWrite},
+        'TangoDevice': {Type:str, Access: DataAccess.ReadOnly}, # used for handling limits between TangoServer and PoolDevice
+        'Calibrate': {Type:float, Access: DataAccess.ReadWrite},
+        'Conversion': {Type:float, Access: DataAccess.ReadWrite}
     }
     ctrl_properties = {
         'RootDeviceName': {
@@ -30,7 +30,7 @@ class HasyMotorCtrl(MotorController):
             Type:str,Description:'The tango host where searching the devices'},
     }
     ctrl_attributes = {
-        'ExtraParameterName': {Type:str,Access:DataAccess.ReadWrite}}
+        'ExtraParameterName': {Type:str, Access: DataAccess.ReadWrite}}
 
     attrNames_UnitLimitMax = [
         "UnitLimitMax", "SoftLimitMax", "SoftLimitCw", "SoftCwLimit"]
@@ -121,7 +121,7 @@ class HasyMotorCtrl(MotorController):
             self.UnitLimitMin.append(self.dft_UnitLimitMin)
             self.PositionSim.append(self.dft_PositionSim)
             self.ResultSim.append(self.dft_ResultSim)
-            self.poolmotor_proxy.append(None) #  Can not be created in AddDevice because the pool motor device does not exist
+            self.poolmotor_proxy.append(None)  #  Can not be created in AddDevice because the pool motor device does not exist
             self.set_for_memorized_min.append(1)
             self.set_for_memorized_max.append(1)
 

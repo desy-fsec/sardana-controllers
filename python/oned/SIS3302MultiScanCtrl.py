@@ -45,12 +45,12 @@ class SIS3302MultiScanCtrl(OneDController):
 
 
     def DeleteDevice(self, ind):
-        # print "SIS3302MultiScanCtrl.DeleteDevice", self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.DeleteDevice", self.inst_name,"index", ind
         OneDController.DeleteDevice(self, ind)
 
 
     def StateOne(self, ind):
-        # print "SIS3302MultiScanCtrl.StatOne", self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.StatOne", self.inst_name,"index", ind
         if self.proxy.MCAScanNofHistogramsPreset == 0:
             sta = PyTango.DevState.ON
             tup = (sta, "The MCA is always ON. MCAScanNofHistogramsPreset = 0")
@@ -78,21 +78,21 @@ class SIS3302MultiScanCtrl(OneDController):
 
     def PreReadAll(self):
         # print "SIS3302MultiScanCtrl.PreReadAll", self.inst_name
-        if self.started == True:
+        if self.started is True:
             if self.proxy.MCAScanNofHistogramsPreset == 0:
                 self.proxy.command_inout("MultiScanDisable")
                 time.sleep(0.2)
             self.started = False
 
     def PreReadOne(self, ind):
-        # print "SIS3302MultiScanCtrl.PreReadOne", self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.PreReadOne", self.inst_name,"index", ind
         pass
 
     def ReadAll(self):
         self.counts = self.proxy.read_attribute("Count").value
 
     def ReadOne(self, ind):
-        # print "SIS3302MultiScanCtrl.ReadOne", self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.ReadOne", self.inst_name,"index", ind
         if ind == 1:
             data = self.proxy.Data
         else:
@@ -106,7 +106,7 @@ class SIS3302MultiScanCtrl(OneDController):
         return True
 
     def StartAll(self):
-        if self.started == False:
+        if self.started is False:
             self.proxy.command_inout("MultiScanDisable")
             self.proxy.command_inout("MultiScanArmScanEnable")
             self.proxy.command_inout("MultiScanStartReset")
@@ -116,12 +116,12 @@ class SIS3302MultiScanCtrl(OneDController):
         pass
 
     def AbortOne(self, ind):
-        # print "SIS3302MultiScanCtrl.AbortOne", self.inst_name,"index",ind
+        # print "SIS3302MultiScanCtrl.AbortOne", self.inst_name,"index", ind
         self.proxy.command_inout("MultiScanDisable")
 
 
     def GetAxisExtraPar(self, ind, name):
-        # print "SIS3302MultiScanCtrl.GetExtraAttrPar", self.inst_name,"index",ind, "name", name
+        # print "SIS3302MultiScanCtrl.GetExtraAttrPar", self.inst_name,"index", ind, "name", name
         if name == "TangoDevice":
             return self.proxy_name
         elif name == "DataLength":
@@ -132,13 +132,13 @@ class SIS3302MultiScanCtrl(OneDController):
                 return datalength
 
     def SetAxisExtraPar(self, ind, name, value):
-        # print "SIS3302MultiScanCtrl.SetExtraAttributePar", self.inst_name,"index",ind," name=",name," value=",value
+        # print "SIS3302MultiScanCtrl.SetExtraAttributePar", self.inst_name,"index", ind," name=", name," value=", value
         if name == "DataLength":
             if ind == 1:
                 self.proxy.write_attribute("DataLength", value)
 
     def SendToCtrl(self, in_data):
-        # print "Received value =",in_data
+        # print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):
