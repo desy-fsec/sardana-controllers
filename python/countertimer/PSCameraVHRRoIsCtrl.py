@@ -1,11 +1,13 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
-import time
+# import time
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+# from sardana import State
+# from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description
+#  from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
@@ -15,12 +17,13 @@ ReadWrite = DataAccess.ReadWrite
 # in the MG
 # It only reads the counts.
 
+
 class PSCameraVHRRoIsCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller " + \
         "for the SIS3302 RoIs"
 
-
-    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
+    axis_attributes = {
+        'TangoDevice': {Type: str, Access: ReadOnly},
     }
 
     ctrl_properties = {
@@ -52,7 +55,8 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
         self.RoIAttributeName = []
         proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
 
     def AddDevice(self, ind):
@@ -62,7 +66,6 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         sta = self.proxy.command_inout("State")
@@ -80,15 +83,11 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
     def PreReadAll(self):
         pass
 
-
     def PreReadOne(self, ind):
         pass
 
     def ReadAll(self):
         pass
-
-    def PreStartOne(self, ind, pos):
-        return True
 
     def StartOne(self, ind):
         return True
@@ -103,6 +102,9 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
     def PreStartAll(self):
         self.wantedCT = []
 
+    # def PreStartOne(self, ind, pos):
+    #     return True
+
     def PreStartOne(self, ind):
         pass
 
@@ -114,9 +116,9 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
+            tango_device = self.node + ":" + str(self.port) + "/" + \
+                self.proxy.name()
             return tango_device
-
 
     def SetAxisExtraPar(self, ind, name, value):
         pass
