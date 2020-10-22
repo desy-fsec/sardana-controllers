@@ -118,7 +118,7 @@ class PerkinElmerCtrl(TwoDController):
             self.proxy[ind-1].command_inout("AcquireDarkImages")
         else:
             self.proxy[ind-1].command_inout("AcquireSubtractedImagesAndSave")
-      
+
     def LoadOne(self, ind, value repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
  
