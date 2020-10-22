@@ -20,7 +20,7 @@ class TangoVimbaCtrl(TwoDController):
     
     ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the TangoVimba Tango devices'},
                        'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
-			     
+                 
     MaxDevice = 97
 
     def __init__(self,inst,props, *args, **kwargs):
@@ -46,7 +46,7 @@ class TangoVimbaCtrl(TwoDController):
         self.start_time = []
         self.acq_type = []
         self.exp_time = 0
-	for name in self.devices.value_string:
+    for name in self.devices.value_string:
             self.tango_device.append(name)
             self.proxy.append(None)
             self.device_available.append(0)
@@ -124,7 +124,7 @@ class TangoVimbaCtrl(TwoDController):
     def PreStartAll(self):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In PreStartAll method"
         pass
-		
+        
     def StartOne(self,ind, position=None):
 #        print "PYTHON -> TangoVimbaCtrl/",self.inst_name,": In StartOne method for index",ind
         self.proxy[ind-1].FileSaving = True
