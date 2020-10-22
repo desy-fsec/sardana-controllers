@@ -119,7 +119,7 @@ class PerkinElmerCtrl(TwoDController):
         else:
             self.proxy[ind-1].command_inout("AcquireSubtractedImagesAndSave")
 
-    def LoadOne(self, ind, value repetitions, latency_time):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
  
     def GetAxisPar(self, ind, par_name):       
