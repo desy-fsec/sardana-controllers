@@ -1,30 +1,39 @@
 import PyTango
-import time, os
+# import time, os
 
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class LambdaCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the Lambda"
 
-
-    axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-               'ShutterTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-               'SaveFileName': {Type: 'PyTango.DevString', Access: ReadWrite},
-               'SaveFilePath': {Type: 'PyTango.DevString', Access: ReadWrite},
-               'LastestImageNumber': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'FrameNumbers': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'ThresholdEnergy': {Type: 'PyTango.DevFloat', Access: ReadWrite},
-                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
+    axis_attributes = {
+        'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+        'ShutterTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+        'SaveFileName': {Type: 'PyTango.DevString', Access: ReadWrite},
+        'SaveFilePath': {Type: 'PyTango.DevString', Access: ReadWrite},
+        'LastestImageNumber': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'FrameNumbers': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'ThresholdEnergy': {Type: 'PyTango.DevFloat', Access: ReadWrite},
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the Lambda Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the Lambda Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -69,7 +78,6 @@ class LambdaCtrl(TwoDController):
         self.dft_ThresholdEnergy = 0
         self.ThresholdEnergy = []
 
-
     def AddDevice(self, ind):
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -79,7 +87,8 @@ class LambdaCtrl(TwoDController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) \
+                + str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
         self.DelayTime.append(self.dft_DelayTime)
@@ -144,8 +153,8 @@ class LambdaCtrl(TwoDController):
             print("Not able to stop lambda if in ON state")
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.proxy[ind - 1].write_attribute("ShutterTime", value*1000)  # Shutter Time is in ms
-
+        # Shutter Time is in ms
+        self.proxy[ind - 1].write_attribute("ShutterTime", value * 1000)
 
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
@@ -158,13 +167,17 @@ class LambdaCtrl(TwoDController):
             elif name == "SaveFilePath":
                 return self.proxy[ind - 1].read_attribute("SaveFilePath").value
             elif name == "LatestImageNumber":
-                return self.proxy[ind - 1].read_attribute("LatestImageNumber").value
+                return self.proxy[ind - 1].read_attribute(
+                    "LatestImageNumber").value
             elif name == "FrameNumbers":
-                return self.proxy[ind - 1].read_attribute("FrameNumbers").value
+                return self.proxy[ind - 1].read_attribute(
+                    "FrameNumbers").value
             elif name == "ThresholdEnergy":
-                return self.proxy[ind - 1].read_attribute("ThresholdEnergy").value
+                return self.proxy[ind - 1].read_attribute(
+                    "ThresholdEnergy").value
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):
@@ -185,7 +198,7 @@ class LambdaCtrl(TwoDController):
                 self.proxy[ind - 1].write_attribute("ThresholdEnergy", value)
 
     def SendToCtrl(self, in_data):
-#        print "Received value =", in_data
+        #        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

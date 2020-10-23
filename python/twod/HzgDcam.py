@@ -1,24 +1,32 @@
 import PyTango
-import time, os
+# import time, os
 
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class HzgDcamCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the HzgDcam"
-
 
     axis_attributes = {
         'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the HzgDcam Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the HzgDcam Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -49,7 +57,6 @@ class HzgDcamCtrl(TwoDController):
             self.max_device = self.max_device + 1
         self.started = False
 
-
     def AddDevice(self, ind):
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -59,7 +66,8 @@ class HzgDcamCtrl(TwoDController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
 

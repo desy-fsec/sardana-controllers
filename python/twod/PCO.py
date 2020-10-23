@@ -1,28 +1,39 @@
 import PyTango
-import time, os
+# import os
+import time
 
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class PCOCtrl(TwoDController):
     "This class is the Tango Sardana Zero D controller for the PCO"
 
-    axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-               'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-               'ADCs': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
-               'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
-                       'TangoDevice': {Type: str, Access: ReadOnly}, }
+    axis_attributes = {
+        'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+        'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+        'ADCs': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+        'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+        'TangoDevice': {Type: str, Access: ReadOnly},
+    }
 
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PCO Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the PCO Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -65,7 +76,6 @@ class PCOCtrl(TwoDController):
         self.dft_FileDir = ""
         self.FileDir = []
 
-
     def AddDevice(self, ind):
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -75,7 +85,8 @@ class PCOCtrl(TwoDController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
         self.DelayTime.append(self.dft_DelayTime)
@@ -126,7 +137,8 @@ class PCOCtrl(TwoDController):
         pass
 
     def StartOne(self, ind, position=None):
-        while self.proxy[ind - 1].state() != PyTango.DevState.ON:  # Need it because the PCO goes to DISABLE after MOVING
+        # Need it because the PCO goes to DISABLE after MOVING
+        while self.proxy[ind - 1].state() != PyTango.DevState.ON:
             time.sleep(0.001)
         self.proxy[ind - 1].command_inout("StartStandardAcq")
 
@@ -170,7 +182,8 @@ class PCOCtrl(TwoDController):
                 return self.proxy[ind - 1].read_attribute("FileDir").value
         if name == "TangoDevice":
             if self.device_available[ind - 1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):
@@ -194,7 +207,7 @@ class PCOCtrl(TwoDController):
                 self.proxy[ind - 1].write_attribute("FileDir", value)
 
     def SendToCtrl(self, in_data):
-#        print "Received value =", in_data
+        # print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):
@@ -203,5 +216,5 @@ class PCOCtrl(TwoDController):
 
 if __name__ == "__main__":
     obj = TwoDController('test')
-#    obj.AddDevice(2)
-#    obj.DeleteDevice(2)
+    #  obj.AddDevice(2)
+    #  obj.DeleteDevice(2)

@@ -1,30 +1,39 @@
 import PyTango
-import time, os
+# import time, os
 
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class LCXCameraCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the LCXCamera"
 
-
-    axis_attributes = {'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-               'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-               'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
-               'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
-               'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
-               'Reset': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
+    axis_attributes = {
+        'DelayTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+        'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+        'FileStartNum': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'FilePrefix': {Type: 'PyTango.DevString', Access: ReadWrite},
+        'FileDir': {Type: 'PyTango.DevString', Access: ReadWrite},
+        'NbFrames': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'Reset': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly}
     }
 
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the LCXCamera Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the LCXCamera Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -71,7 +80,6 @@ class LCXCameraCtrl(TwoDController):
         self.dft_Reset = 0
         self.Reset = []
 
-
     def AddDevice(self, ind):
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -81,7 +89,8 @@ class LCXCameraCtrl(TwoDController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
         self.DelayTime.append(self.dft_DelayTime)
@@ -138,7 +147,6 @@ class LCXCameraCtrl(TwoDController):
     def LoadOne(self, ind, value, repetitions, latency_time):
         self.proxy[ind - 1].write_attribute("ExposureTime", value)
 
-
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
             if name == "DelayTime":
@@ -157,7 +165,8 @@ class LCXCameraCtrl(TwoDController):
                 if self.device_available[ind - 1]:
                     return 0
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):

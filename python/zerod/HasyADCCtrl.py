@@ -1,25 +1,35 @@
 import PyTango
 
-import time, os
+# import time, os
 
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import ZeroDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class HasyADCCtrl(ZeroDController):
-    "This class is the Tango Sardana Zero D controller for a generic Hasylab ADC"
+    "This class is the Tango Sardana Zero D controller " \
+        + "for a generic Hasylab ADC"
 
     axis_attributes = {
-                       'TangoDevice': {Type: str, Access: ReadOnly},
-                       'Conversion': {Type: float, Access: ReadWrite},
-                       }
+        'TangoDevice': {Type: str, Access: ReadOnly},
+        'Conversion': {Type: float, Access: ReadWrite},
+    }
 
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the VFCADC Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the VFCADC Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -55,9 +65,9 @@ class HasyADCCtrl(ZeroDController):
             self.max_device = self.max_device + 1
         self.started = False
 
-
     def AddDevice(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In AddDevice method for index", ind
+        #        print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        # In AddDevice method for index", ind
         ZeroDController.AddDevice(self, ind)
         if ind > self.max_device:
             print("False index")
@@ -66,18 +76,21 @@ class HasyADCCtrl(ZeroDController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
 
     def DeleteDevice(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In DeleteDevice method for index", ind
+        #        print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        # In DeleteDevice method for index", ind
         ZeroDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
     def StateOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StateOne method for index", ind
+        #        print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        # In StateOne method for index", ind
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
             if sta == PyTango.DevState.ON:
@@ -89,37 +102,45 @@ class HasyADCCtrl(ZeroDController):
             return tup
 
     def PreReadAll(self):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreReadAll method"
+        #    print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        # In PreReadAll method"
         pass
 
     def PreReadOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreReadOne method for index", ind
+        #        print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        #     In PreReadOne method for index", ind
         pass
 
     def ReadAll(self):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In ReadAll method"
+        #        print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        #     In ReadAll method"
         pass
 
     def ReadOne(self, ind):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In ReadOne method for index", ind
+        #        print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        #     In ReadOne method for index", ind
         if self.device_available[ind - 1] == 1:
-            return self.proxy[ind - 1].read_attribute("Value").value*self.conversion[ind - 1]
+            return self.proxy[ind - 1].read_attribute("Value").value \
+                * self.conversion[ind - 1]
 
     def PreStartAll(self):
-#        print "PYTHON -> HasyADCCtrl/", self.inst_name,": In PreStartAll method"
+        #        print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        #     In PreStartAll method"
         self.wanted = []
 
     def PreStartOne(self, ind):
         pass
 
     def StartOne(self, ind):
-        # print "PYTHON -> HasyADCCtrl/", self.inst_name,": In StartOne method for index", ind
+        # print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
+        #     In StartOne method for index", ind
         self.wanted.append(ind)
 
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
             if name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 return tango_device
             elif name == "Conversion":
                 return self.conversion[ind - 1]
@@ -130,7 +151,7 @@ class HasyADCCtrl(ZeroDController):
                 self.conversion[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-#        print "Received value =", in_data
+        #        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):

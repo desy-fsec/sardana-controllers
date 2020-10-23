@@ -1,24 +1,35 @@
 import PyTango
-import time, os
+# import time, os
 
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class PerkinElmerCtrl(TwoDController):
-    "This class is the Tango Sardana Two D controller for the PerkinElmer detector"
+    "This class is the Tango Sardana Two D controller " \
+        "for the PerkinElmer detector"
 
-    axis_attributes = {'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
-                       'AcquireMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'TangoDevice': {Type: str, Access: ReadOnly}, }
+    axis_attributes = {
+        'ExposureTime': {Type: 'PyTango.DevDouble', Access: ReadWrite},
+        'AcquireMode': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'TangoDevice': {Type: str, Access: ReadOnly},
+    }
 
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PerkinElmer Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the PerkinElmer Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -53,7 +64,6 @@ class PerkinElmerCtrl(TwoDController):
         self.AcquireMode = []
         self.value = 1
 
-
     def AddDevice(self, ind):
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -63,7 +73,8 @@ class PerkinElmerCtrl(TwoDController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
         self.ExposureTime.append(self.dft_ExposureTime)
@@ -103,8 +114,6 @@ class PerkinElmerCtrl(TwoDController):
     def PreStartAll(self):
         pass
 
-
-
     def StartOne(self, ind, position=None):
         if self.AcquireMode[ind - 1] == 0:
             self.proxy[ind - 1].command_inout("AcquireSubtractedImagesAndSave")
@@ -128,7 +137,6 @@ class PerkinElmerCtrl(TwoDController):
         elif par_name == "YDim":
             return 1
 
-
     def GetAxisExtraPar(self, ind, name):
         if name == "ExposureTime":
             if self.device_available[ind - 1]:
@@ -137,7 +145,8 @@ class PerkinElmerCtrl(TwoDController):
             return self.AcquireMode[ind - 1]
         if name == "TangoDevice":
             if self.device_available[ind - 1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):
@@ -148,7 +157,7 @@ class PerkinElmerCtrl(TwoDController):
             self.AcquireMode[ind - 1] = value
 
     def SendToCtrl(self, in_data):
-#        print "Received value =", in_data
+        #        print "Received value =", in_data
         return "Nothing sent"
 
     def __del__(self):
