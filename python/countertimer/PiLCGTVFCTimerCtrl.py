@@ -2,24 +2,34 @@ import PyTango
 from sardana.pool.controller import CounterTimerController
 import time
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+# from sardana import State, DataAccess
+# from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class PiLCGTVFCTimerCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the PiLCGateTriggeredVFC used as timer"
+    "This class is the Tango Sardana CounterTimer controller " + \
+        "for the PiLCGateTriggeredVFC used as timer"
 
+    axis_attributes = {
+        'TangoDevice': {Type: str, Access: ReadOnly},
+    }
 
-    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       }
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the PiLCTriggerGenerator Tango device'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
-                       }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description:
+            'The root name of the PiLCTriggerGenerator Tango device'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "PiLCGateTriggeredVFC"
@@ -27,14 +37,12 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     state = ""
     status = ""
 
-
     ############
     # __del__ ##
     ############
 
     def __del__(self):
         print("PYTHON -> PiLCGTVFCTimerCtrl.py dying")
-
 
     #############
     # __init__ ##
@@ -73,7 +81,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].write_attribute('Arm', 0)
 
-
     ##############
     # AddDevice ##
     ##############
@@ -98,7 +105,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
 
-
     #################
     # DeleteDevice ##
     #################
@@ -107,7 +113,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
-
 
     #########################
     # GetExtraAttributePar ##
@@ -124,7 +129,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
                                 )
                 return tango_device
 
-
     ############
     # LoadOne ##
     ############
@@ -133,14 +137,12 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].write_attribute("GateLength", value)
 
-
     ###############
     # PreReadAll ##
     ###############
 
     def PreReadAll(self):
         pass
-
 
     ###############
     # PreReadOne ##
@@ -149,7 +151,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     def PreReadOne(self, ind):
         pass
 
-
     ################
     # PreStartAll ##
     ################
@@ -157,7 +158,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     def PreStartAll(self):
         self.wantedCT = []
         self.startTime = [0.0 for _ in range(len(self.proxy))]
-
 
     ################
     # PreStartOne ##
@@ -168,14 +168,12 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
 
         return True
 
-
     ############
     # ReadAll ##
     ############
 
     def ReadAll(self):
         pass
-
 
     ############
     # ReadOne ##
@@ -202,7 +200,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
 
             return exposureTime
 
-
     ###############
     # SendToCtrl ##
     ###############
@@ -210,14 +207,12 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     def SendToCtrl(self, in_data):
         return "Nothing sent"
 
-
     #########################
     # SetExtraAttributePar ##
     #########################
 
     def SetAxisExtraPar(self, ind, name, value):
         pass
-
 
     #############
     # StartAll ##
@@ -228,8 +223,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
             self.proxy[i].write_attribute('Arm', 1)
             self.startTime[i] = time.time()
 
-
-
     #############
     # StartOne ##
     #############
@@ -237,7 +230,6 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
     def StartOne(self, ind, val):
         if self.device_available[ind - 1] == 1:
             self.wantedCT.append(ind - 1)
-
 
     #############
     # StateOne ##
@@ -252,5 +244,3 @@ class PiLCGTVFCTimerCtrl(CounterTimerController):
                 status_string = "Timer is busy"
 
             return (sta, status_string)
-
-
