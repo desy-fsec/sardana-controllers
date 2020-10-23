@@ -1,23 +1,29 @@
 import PyTango
 from sardana.pool.controller import OneDController
-import time, os
+# import time, os
 
-
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
-
+from sardana import DataAccess
+# from sardana import State, DataAccess
+# from sardana.pool.controller import MotorController
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
+
 
 class LimaRoi2SpectrumCtrl(OneDController):
     "This class is the One D controller for the Roi2Spectrum Lima device"
 
     axis_attributes = {'DataLength': {Type: int, Access: ReadWrite}, }
 
-    ctrl_properties = {'Roi2SpectrumDeviceName': {Type: str, Description: 'The name of the Roi2SpectrumDeviceServer device from Lima'}}
+    ctrl_properties = {
+        'Roi2SpectrumDeviceName': {
+            Type: str,
+            Description:
+            'The name of the Roi2SpectrumDeviceServer device from Lima'}
+    }
 
     gender = "OneD"
     model = "LimaRoi2Spectrum"
@@ -30,15 +36,12 @@ class LimaRoi2SpectrumCtrl(OneDController):
         self.proxy = PyTango.DeviceProxy(self.Roi2SpectrumDeviceName)
         self.started = False
 
-
     def AddDevice(self, ind):
         OneDController.AddDevice(self, ind)
-
 
     def DeleteDevice(self, ind):
         OneDController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         sta = self.proxy.command_inout("State")
@@ -87,7 +90,6 @@ class LimaRoi2SpectrumCtrl(OneDController):
 
     def AbortOne(self, ind):
         pass
-
 
     def GetAxisExtraPar(self, ind, name):
         if name == "DataLength":

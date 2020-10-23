@@ -5,7 +5,9 @@ import os
 from sardana import DataAccess
 from sardana.pool.controller import MotorController
 from sardana.pool.controller import Type, Access, Description
-from sardana.pool.controller import (Memorize, Memorized, NotMemorized, DefaultValue)
+# from sardana.pool.controller import (Memorize, Memorized,
+#                                      NotMemorized, DefaultValue)
+from sardana.pool.controller import Memorize, NotMemorized
 
 
 class HasyMotorCtrl(MotorController):
@@ -15,19 +17,27 @@ class HasyMotorCtrl(MotorController):
     """
 
     axis_attributes = {
-        'UnitLimitMax': {Type: float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
-        'UnitLimitMin' : {Type: float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
-        'PositionSim': {Type: float, Access: DataAccess.ReadWrite},
-        'ResultSim': {Type: str, Access: DataAccess.ReadWrite},
-        'TangoDevice': {Type: str, Access: DataAccess.ReadOnly}, # used for handling limits between TangoServer and PoolDevice
+        'UnitLimitMax': {
+            Type: float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
+        'UnitLimitMin': {
+            Type: float, Access: DataAccess.ReadWrite, Memorize: NotMemorized},
+        'PositionSim': {
+            Type: float, Access: DataAccess.ReadWrite},
+        'ResultSim': {
+            Type: str, Access: DataAccess.ReadWrite},
+        # used for handling limits between TangoServer and PoolDevice
+        'TangoDevice': {
+            Type: str, Access: DataAccess.ReadOnly},
         'Calibrate': {Type: float, Access: DataAccess.ReadWrite},
         'Conversion': {Type: float, Access: DataAccess.ReadWrite}
     }
     ctrl_properties = {
         'RootDeviceName': {
-            Type: str, Description: 'The root name of the Motor Tango devices'},
+            Type: str,
+            Description: 'The root name of the Motor Tango devices'},
         'TangoHost': {
-            Type: str, Description: 'The tango host where searching the devices'},
+            Type: str,
+            Description: 'The tango host where searching the devices'},
     }
     ctrl_attributes = {
         'ExtraParameterName': {Type: str, Access: DataAccess.ReadWrite}}
@@ -91,7 +101,6 @@ class HasyMotorCtrl(MotorController):
         self.cmdName_Abort = []
         self.conversion_included = []
 
-
         self.dft_UnitLimitMax = 0
         self.UnitLimitMax = []
         self.dft_UnitLimitMin = 0
@@ -121,12 +130,13 @@ class HasyMotorCtrl(MotorController):
             self.UnitLimitMin.append(self.dft_UnitLimitMin)
             self.PositionSim.append(self.dft_PositionSim)
             self.ResultSim.append(self.dft_ResultSim)
-            self.poolmotor_proxy.append(None)  #  Can not be created in AddDevice because the pool motor device does not exist
+            #  Can not be created in AddDevice because
+            #     the pool motor device does not exist
+            self.poolmotor_proxy.append(None)
             self.set_for_memorized_min.append(1)
             self.set_for_memorized_max.append(1)
 
             self.max_device = self.max_device + 1
-
 
     def AddDevice(self, ind):
         MotorController.AddDevice(self, ind)
@@ -138,14 +148,16 @@ class HasyMotorCtrl(MotorController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         if self.debugFlag:
             print("HasyMotorCtrl.AddDevice %s index %d" % (proxy_name, ind))
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
 
         attrs = self.proxy[ind - 1].get_attribute_list()
-        cmds = [cmd.cmd_name for cmd in self.proxy[ind - 1].command_list_query()]
+        cmds = [
+            cmd.cmd_name for cmd in self.proxy[ind - 1].command_list_query()]
         for attrName in HasyMotorCtrl.attrNames_UnitLimitMax:
             if attrName in attrs:
                 self.attrName_UnitLimitMax[ind - 1] = attrName
@@ -174,9 +186,11 @@ class HasyMotorCtrl(MotorController):
             if cmdName in cmds:
                 self.cmdName_Abort[ind - 1] = cmdName
                 break
-        if self.proxy[ind - 1].info().dev_class in HasyMotorCtrl.servers_ConversionIncluded:
+        if self.proxy[ind - 1].info().dev_class in \
+           HasyMotorCtrl.servers_ConversionIncluded:
             # there are two different GalilDMC servers used at DESY
-            if not (self.proxy[ind - 1].info().dev_class == "GalilDMCMotor" and self.attrName_Acceleration[ind - 1] == "SlewRate"):
+            if not (self.proxy[ind - 1].info().dev_class == "GalilDMCMotor"
+                    and self.attrName_Acceleration[ind - 1] == "SlewRate"):
                 self.conversion_included[ind - 1] = True
 
     def DeleteDevice(self, ind):
@@ -191,9 +205,11 @@ class HasyMotorCtrl(MotorController):
             lower = 0
             upper = 0
             if self.attrName_CwLimit[ind - 1] is not None:
-                lower = self.proxy[ind - 1].read_attribute(self.attrName_CwLimit[ind - 1]).value
+                lower = self.proxy[ind - 1].read_attribute(
+                    self.attrName_CwLimit[ind - 1]).value
             if self.attrName_CcwLimit[ind - 1] is not None:
-                upper = self.proxy[ind - 1].read_attribute(self.attrName_CcwLimit[ind - 1]).value
+                upper = self.proxy[ind - 1].read_attribute(
+                    self.attrName_CcwLimit[ind - 1]).value
             switchstate = lower * 4 + upper * 2
             status_string = status_template % (sta, upper, lower)
             tup = (sta, status_string, switchstate)
@@ -227,58 +243,74 @@ class HasyMotorCtrl(MotorController):
         if self.device_available[ind - 1]:
             if name == "UnitLimitMax":
                 if self.poolmotor_proxy[ind - 1] is None:
-                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                value = float(self.proxy[ind - 1].read_attribute(self.attrName_UnitLimitMax[ind - 1]).value)
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(
+                        self.GetAxisName(ind))
+                value = float(self.proxy[ind - 1].read_attribute(
+                    self.attrName_UnitLimitMax[ind - 1]).value)
                 cfg = []
-                config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
+                config = self.poolmotor_proxy[ind - 1].get_attribute_config(
+                    "Position")
                 config.max_value = str(value)
                 cfg.append(config)
                 self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
 
             elif name == "UnitLimitMin":
                 if self.poolmotor_proxy[ind - 1] is None:
-                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                value = float(self.proxy[ind - 1].read_attribute(self.attrName_UnitLimitMin[ind - 1]).value)
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(
+                        self.GetAxisName(ind))
+                value = float(self.proxy[ind - 1].read_attribute(
+                    self.attrName_UnitLimitMin[ind - 1]).value)
 
                 cfg = []
-                config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
+                config = self.poolmotor_proxy[ind - 1].get_attribute_config(
+                    "Position")
                 config.min_value = str(value)
                 cfg.append(config)
                 self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
 
             elif name == "PositionSim":
-                value = float(self.proxy[ind - 1].read_attribute("PositionSim").value)
+                value = float(self.proxy[ind - 1].read_attribute(
+                    "PositionSim").value)
             elif name == "ResultSim":
-                value = str(self.proxy[ind - 1].read_attribute("ResultSim").value)
+                value = str(self.proxy[ind - 1].read_attribute(
+                    "ResultSim").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 value = tango_device
             elif name == "Calibrate":
                 value = -1
             elif name == "Conversion":
-                value = float(self.proxy[ind - 1].read_attribute("Conversion").value)
+                value = float(self.proxy[ind - 1].read_attribute(
+                    "Conversion").value)
         return value
 
     def SetAxisExtraPar(self, ind, name, value):
         if self.device_available[ind - 1]:
             if name == "UnitLimitMax":
                 if self.poolmotor_proxy[ind - 1] is None:
-                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                self.proxy[ind - 1].write_attribute(self.attrName_UnitLimitMax[ind - 1], value)
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(
+                        self.GetAxisName(ind))
+                self.proxy[ind - 1].write_attribute(
+                    self.attrName_UnitLimitMax[ind - 1], value)
                 if not self.set_for_memorized_max[ind - 1]:
                     cfg = []
-                    config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
+                    config = self.poolmotor_proxy[
+                        ind - 1].get_attribute_config("Position")
                     config.max_value = str(value)
                     cfg.append(config)
                     self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
                 self.set_for_memorized_max[ind - 1] = 0
             elif name == "UnitLimitMin":
                 if self.poolmotor_proxy[ind - 1] is None:
-                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(self.GetAxisName(ind))
-                self.proxy[ind - 1].write_attribute(self.attrName_UnitLimitMin[ind - 1], value)
+                    self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(
+                        self.GetAxisName(ind))
+                self.proxy[ind - 1].write_attribute(
+                    self.attrName_UnitLimitMin[ind - 1], value)
                 if not self.set_for_memorized_min[ind - 1]:
                     cfg = []
-                    config = self.poolmotor_proxy[ind - 1].get_attribute_config("Position")
+                    config = self.poolmotor_proxy[
+                        ind - 1].get_attribute_config("Position")
                     config.min_value = str(value)
                     cfg.append(config)
                     self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
@@ -298,23 +330,29 @@ class HasyMotorCtrl(MotorController):
             name = name.lower()
             if name == "acceleration" or name == "deceleration":
                 try:
-                    velocity = float(self.proxy[ind - 1].read_attribute(self.attrName_Velocity[ind - 1]).value)
+                    velocity = float(self.proxy[ind - 1].read_attribute(
+                        self.attrName_Velocity[ind - 1]).value)
                 except Exception:
                     velocity = 1.0
                 if value == 0.0:
                     value = 1.0
-                self.proxy[ind - 1].write_attribute(self.attrName_Acceleration[ind - 1], int(velocity / value))
+                self.proxy[ind - 1].write_attribute(
+                    self.attrName_Acceleration[ind - 1], int(velocity / value))
             elif name == "base_rate":
                 self.proxy[ind - 1].write_attribute("BaseRate", int(value))
             elif name == "velocity":
                 if not self.conversion_included[ind - 1]:
                     try:
-                        conversion = abs(float(self.proxy[ind - 1].read_attribute("Conversion").value))
+                        conversion = abs(
+                            float(self.proxy[ind - 1].read_attribute(
+                                "Conversion").value))
                     except Exception:
                         conversion = 1.0
-                    self.proxy[ind - 1].write_attribute(self.attrName_Velocity[ind - 1], (value * conversion))
+                    self.proxy[ind - 1].write_attribute(
+                        self.attrName_Velocity[ind - 1], (value * conversion))
                 else:
-                    self.proxy[ind - 1].write_attribute(self.attrName_Velocity[ind - 1], value)
+                    self.proxy[ind - 1].write_attribute(
+                        self.attrName_Velocity[ind - 1], value)
             elif name == "step_per_unit":
                 self.proxy[ind - 1].write_attribute("Conversion", value)
 
@@ -323,9 +361,11 @@ class HasyMotorCtrl(MotorController):
         if self.device_available[ind - 1]:
             name = name.lower()
             if name == "acceleration" or name == "deceleration":
-                value = float(self.proxy[ind - 1].read_attribute(self.attrName_Acceleration[ind - 1]).value)
+                value = float(self.proxy[ind - 1].read_attribute(
+                    self.attrName_Acceleration[ind - 1]).value)
                 try:
-                    velocity = float(self.proxy[ind - 1].read_attribute(self.attrName_Velocity[ind - 1]).value)
+                    velocity = float(self.proxy[ind - 1].read_attribute(
+                        self.attrName_Velocity[ind - 1]).value)
                 except Exception:
                     velocity = 1.0
                 if value == 0.0:
@@ -333,25 +373,32 @@ class HasyMotorCtrl(MotorController):
                 value = velocity / value
             elif name == "base_rate":
                 try:
-                    value = float(self.proxy[ind - 1].read_attribute("BaseRate").value)
+                    value = float(self.proxy[ind - 1].read_attribute(
+                        "BaseRate").value)
                     try:
-                        conversion = abs(float(self.proxy[ind - 1].read_attribute("Conversion").value))
+                        conversion = abs(float(
+                            self.proxy[ind - 1].read_attribute(
+                                "Conversion").value))
                     except Exception:
                         conversion = 1.0
                     value /= conversion
                 except Exception:
                     value = 0.0
             elif name == "velocity":
-                value = float(self.proxy[ind - 1].read_attribute(self.attrName_Velocity[ind - 1]).value)
+                value = float(self.proxy[ind - 1].read_attribute(
+                    self.attrName_Velocity[ind - 1]).value)
                 if not self.conversion_included[ind - 1]:
                     try:
-                        conversion = abs(float(self.proxy[ind - 1].read_attribute("Conversion").value))
+                        conversion = abs(
+                            float(self.proxy[ind - 1].read_attribute(
+                                "Conversion").value))
                     except Exception:
                         conversion = 1.0
                     value /= conversion
             elif name == "step_per_unit":
                 try:
-                    value = float(self.proxy[ind - 1].read_attribute("Conversion").value)
+                    value = float(self.proxy[ind - 1].read_attribute(
+                        "Conversion").value)
                 except Exception:
                     value = 1.0
         return value

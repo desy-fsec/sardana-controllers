@@ -1,11 +1,13 @@
-
-import time, os
+import time
+# import time, os
 
 import PyTango
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import OneDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
@@ -14,25 +16,32 @@ ReadWrite = DataAccess.ReadWrite
 class SPADQOneDCtrl(OneDController):
     "This class is the One D controller for SPADQDigitizer"
 
-    axis_attributes = {'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
-                       'SpectrumName': {Type: 'PyTango.DevString', Access: ReadWrite},
-                       'RoI1Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoI1End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI1': {Type: 'PyTango.DevDouble', Access: ReadOnly},
-                       'RoI2Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoI2End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI2': {Type: 'PyTango.DevDouble', Access: ReadOnly},
-                       'RoI3Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoI3End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI3': {Type: 'PyTango.DevDouble', Access: ReadOnly},
-                       'RoI4Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoI4End': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'CountsRoI4': {Type: 'PyTango.DevDouble', Access: ReadOnly},
+    axis_attributes = {
+        'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+        'SpectrumName': {Type: 'PyTango.DevString', Access: ReadWrite},
+        'RoI1Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoI1End': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'CountsRoI1': {Type: 'PyTango.DevDouble', Access: ReadOnly},
+        'RoI2Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoI2End': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'CountsRoI2': {Type: 'PyTango.DevDouble', Access: ReadOnly},
+        'RoI3Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoI3End': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'CountsRoI3': {Type: 'PyTango.DevDouble', Access: ReadOnly},
+        'RoI4Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoI4End': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'CountsRoI4': {Type: 'PyTango.DevDouble', Access: ReadOnly},
     }
 
-    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCA Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: 'PyTango.DevString',
+            Description: 'The root name of the MCA Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -93,8 +102,6 @@ class SPADQOneDCtrl(OneDController):
         self.acqTime = 0
         self.acqStartTime = None
 
-
-
     def AddDevice(self, ind):
         OneDController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -103,16 +110,15 @@ class SPADQOneDCtrl(OneDController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
-
 
     def DeleteDevice(self, ind):
         OneDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
-
 
     def StateOne(self, ind):
         if self.device_available[ind - 1] is True:
@@ -134,23 +140,26 @@ class SPADQOneDCtrl(OneDController):
             self.monitor_count = -value
         self.acqTime = value
 
-
     def PreReadAll(self):
         pass
 
     def PreReadOne(self, ind):
         pass
 
-
     def ReadAll(self):
         pass
 
     def ReadOne(self, ind):
-        data = self.proxy[ind - 1].read_attribute(self.SpectrumName[ind - 1]).value
-        self.Counts_RoI1[ind - 1] = data[self.RoI1_start[ind - 1]:self.RoI1_end[ind - 1]].sum()
-        self.Counts_RoI2[ind - 1] = data[self.RoI2_start[ind - 1]:self.RoI2_end[ind - 1]].sum()
-        self.Counts_RoI3[ind - 1] = data[self.RoI3_start[ind - 1]:self.RoI3_end[ind - 1]].sum()
-        self.Counts_RoI4[ind - 1] = data[self.RoI4_start[ind - 1]:self.RoI4_end[ind - 1]].sum()
+        data = self.proxy[ind - 1].read_attribute(
+            self.SpectrumName[ind - 1]).value
+        self.Counts_RoI1[ind - 1] = data[
+            self.RoI1_start[ind - 1]:self.RoI1_end[ind - 1]].sum()
+        self.Counts_RoI2[ind - 1] = data[
+            self.RoI2_start[ind - 1]:self.RoI2_end[ind - 1]].sum()
+        self.Counts_RoI3[ind - 1] = data[
+            self.RoI3_start[ind - 1]:self.RoI3_end[ind - 1]].sum()
+        self.Counts_RoI4[ind - 1] = data[
+            self.RoI4_start[ind - 1]:self.RoI4_end[ind - 1]].sum()
         return data
 
     def PreStartAll(self):
@@ -172,17 +181,22 @@ class SPADQOneDCtrl(OneDController):
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
             if self.device_available[ind - 1]:
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + \
+                    "/" + self.proxy[ind - 1].name()
                 return tango_device
         elif name == "DataLength":
             if self.device_available[ind - 1]:
-                if self.flagIsKromo[ind - 1] is False and self.flagIsAvantes[ind - 1] is False:
+                if self.flagIsKromo[ind - 1] is False and \
+                   self.flagIsAvantes[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
-                        datalength = int(self.proxy[ind - 1].read_attribute("McaLength").value)
+                        datalength = int(self.proxy[ind - 1].read_attribute(
+                            "McaLength").value)
                     elif self.flagIsSPADQ[ind - 1]:
-                        datalength = int(self.proxy[ind - 1].read_attribute("ATDRecordLength").value)
+                        datalength = int(self.proxy[ind - 1].read_attribute(
+                            "ATDRecordLength").value)
                     else:
-                        datalength = int(self.proxy[ind - 1].read_attribute("DataLength").value)
+                        datalength = int(self.proxy[ind - 1].read_attribute(
+                            "DataLength").value)
                 elif self.flagIsAvantes[ind - 1] is True:
                     datalength = 4096
                 else:
@@ -218,11 +232,13 @@ class SPADQOneDCtrl(OneDController):
     def SetAxisExtraPar(self, ind, name, value):
         if self.device_available[ind - 1]:
             if name == "DataLength":
-                if self.flagIsKromo[ind - 1] is False and self.flagIsAvantes[ind - 1] is False:
+                if self.flagIsKromo[ind - 1] is False and \
+                   self.flagIsAvantes[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
                         self.proxy[ind - 1].write_attribute("McaLength", value)
                     elif self.flagIsKromo[ind - 1] is True:
-                        self.proxy[ind - 1].write_attribute("DataLength", value)
+                        self.proxy[ind - 1].write_attribute(
+                            "DataLength", value)
             elif name == "RoI1Start":
                 self.RoI1_start[ind - 1] = value
             elif name == "RoI1End":
@@ -251,5 +267,5 @@ class SPADQOneDCtrl(OneDController):
 
 if __name__ == "__main__":
     obj = OneDController('test')
-#    obj.AddDevice(2)
-#    obj.DeleteDevice(2)
+    #    obj.AddDevice(2)
+    #    obj.DeleteDevice(2)
