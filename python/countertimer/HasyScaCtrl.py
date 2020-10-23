@@ -1,12 +1,15 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
-import time, os
+import time
+# import time, os
 
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+# from sardana import State, DataAccess
+# from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
@@ -16,9 +19,10 @@ class HasyScaCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the HasySca"
 #    axis_attributes = {'Offset': {Type: float, Access: ReadWrite}}
 
-    ctrl_properties = {'mca': {Type: str, Description: 'The MCA name, tango device'},
-                       'roi1': {Type: str, Description: 'The lower ROI limit'},
-                       'roi2': {Type: str, Description: 'The upper ROI limit'},
+    ctrl_properties = {
+        'mca': {Type: str, Description: 'The MCA name, tango device'},
+        'roi1': {Type: str, Description: 'The lower ROI limit'},
+        'roi2': {Type: str, Description: 'The upper ROI limit'},
     }
 
     gender = "CounterTimer"
@@ -35,7 +39,6 @@ class HasyScaCtrl(CounterTimerController):
         self.device_available = [0]
         self.started = False
 
-
     def AddDevice(self, ind):
         CounterTimerController.AddDevice(self, ind)
         if ind > self.max_device:
@@ -44,17 +47,16 @@ class HasyScaCtrl(CounterTimerController):
         self.proxy[ind - 1] = PyTango.DeviceProxy(self.mca)
         self.device_available[ind - 1] = 1
 
-
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
 
-
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:
             #
-            # at this point the state of the mca-controller somehow stays MOVING
+            # at this point the state of the mca-controller
+            #     somehow stays MOVING
             #
             sta = self.proxy[ind - 1].State()
             sta = PyTango.DevState.ON
@@ -74,7 +76,9 @@ class HasyScaCtrl(CounterTimerController):
         if self.device_available[ind - 1] == 0:
             return False
         if self.proxy[ind - 1].BankId != 0:
-            self._log.error("HasyScaCtrl, BankId != 0 (%d) for %s" % (self.proxy[ind - 1].BankId, self.proxy[ind - 1].name()))
+            self._log.error("HasyScaCtrl, BankId != 0 (%d) for %s"
+                            % (self.proxy[ind - 1].BankId,
+                               self.proxy[ind - 1].name()))
             return 0
 
         if self.proxy[ind - 1].StateBank0 != 0:
@@ -109,8 +113,8 @@ class HasyScaCtrl(CounterTimerController):
     def GetAxisExtraPar(self, ind, name):
         if name == "Offset":
             if self.device_available[ind - 1]:
-                return float(self.proxy[ind - 1].read_attribute("Offset").value)
-
+                return float(
+                    self.proxy[ind - 1].read_attribute("Offset").value)
 
     def SetAxisExtraPar(self, ind, name, value):
         if name == "Offset":

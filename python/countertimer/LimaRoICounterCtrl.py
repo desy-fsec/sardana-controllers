@@ -1,27 +1,39 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
-import time
+# import time
 
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+# from sardana import State, DataAccess
+# from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 
 class LimaRoICounterCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for getting the Lima RoIs as counters"
-    axis_attributes = {'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
-                       'RoIx1': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoIx2': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoIy1': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoIy2': {Type: 'PyTango.DevLong', Access: ReadWrite}, }
+    "This class is the Tango Sardana CounterTimer controller " \
+        + "for getting the Lima RoIs as counters"
 
-    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'Name of the roicounter lima device'},
-                       'TangoHost': {Type: str, Description: 'The tango host where LimaCCDs runs'}, }
+    axis_attributes = {
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+        'RoIx1': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoIx2': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoIy1': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoIy2': {Type: 'PyTango.DevLong', Access: ReadWrite},
+    }
+
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: 'PyTango.DevString',
+            Description: 'Name of the roicounter lima device'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where LimaCCDs runs'},
+    }
 
     gender = "CounterTimer"
     model = "LimaCounter"
@@ -40,7 +52,8 @@ class LimaRoICounterCtrl(CounterTimerController):
                 self.port = int(lst[1])
         self.proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-                self.proxy_name = str(self.node) + (":%s/" % self.port) + str(self.proxy_name)
+                self.proxy_name = str(self.node) + (":%s/" % self.port) + \
+                    str(self.proxy_name)
         self.proxy = PyTango.DeviceProxy(self.proxy_name)
         self.proxy.Stop()
         self.proxy.Start()
@@ -58,7 +71,6 @@ class LimaRoICounterCtrl(CounterTimerController):
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         try:
@@ -82,7 +94,6 @@ class LimaRoICounterCtrl(CounterTimerController):
 
     def PreReadAll(self):
         pass
-
 
     def PreReadOne(self, ind):
         pass
@@ -128,7 +139,6 @@ class LimaRoICounterCtrl(CounterTimerController):
             roi = self.proxy.getRois(self.roi_name[ind - 1])
             return roi[4]
 
-
     def SetAxisExtraPar(self, ind, name, value):
         roi = self.proxy.getRois(self.roi_name[ind - 1])
         if name == "RoIx1":
@@ -144,14 +154,12 @@ class LimaRoICounterCtrl(CounterTimerController):
             roi[4] = value
             self.proxy.setRois(roi)
 
-
     def SendToCtrl(self, in_data):
         return "Nothing sent"
-
 
     def __del__(self):
         print("PYTHON -> LimaCounterCtrl  dying ")
 
 
 if __name__ == "__main__":
-    obj = LimaCounterCtrl('test')
+    obj = LimaRoICounterCtrl('test')

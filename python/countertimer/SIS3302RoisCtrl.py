@@ -16,6 +16,7 @@ ReadWrite = DataAccess.ReadWrite
 # for the sis3302 in the MG
 # It only reads the counts.
 
+
 class SIS3302RoisCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for" + \
         " the SIS3302 RoIs"

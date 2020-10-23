@@ -1,11 +1,13 @@
 
-import time, os
+# import time, os
 
 import PyTango
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import CounterTimerController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
@@ -14,16 +16,24 @@ global last_sta
 
 
 class HasyRoIsCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for making RoIs from OneD"
+    "This class is the Tango Sardana CounterTimer controller " + \
+        "for making RoIs from OneD"
 
-    axis_attributes = {'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
-                       'RoIStart': {Type: 'PyTango.DevLong', Access: ReadWrite},
-                       'RoIEnd': {Type: 'PyTango.DevLong', Access: ReadWrite},
+    axis_attributes = {
+        'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+        'RoIStart': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'RoIEnd': {Type: 'PyTango.DevLong', Access: ReadWrite},
     }
 
-    ctrl_properties = {'RootDeviceName': {Type: 'PyTango.DevString', Description: 'The root name of the MCA Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: 'PyTango.DevString',
+            Description: 'The root name of the MCA Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     MaxDevice = 97
 
@@ -53,18 +63,20 @@ class HasyRoIsCtrl(CounterTimerController):
         self.value = []
         proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
+            proxy_name = str(self.node) + \
+                (":%s/" % self.port) + str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
         if hasattr(self.proxy, 'BankId'):
             self.flagIsMCA8715 = True
-        if hasattr(self.proxy, 'Spectrum') and hasattr(self.proxy, 'McaLength'):
+        if hasattr(self.proxy, 'Spectrum') and \
+           hasattr(self.proxy, 'McaLength'):
             self.flagIsXIA = True
-        if hasattr(self.proxy, 'ADCxInputInvert') or hasattr(self.proxy, 'TriggerPeakingTime'):
+        if hasattr(self.proxy, 'ADCxInputInvert') or \
+           hasattr(self.proxy, 'TriggerPeakingTime'):
             self.flagIsSIS3320 = True
 
         global last_sta
         last_sta = PyTango.DevState.ON
-
 
     def AddDevice(self, ind):
         CounterTimerController.AddDevice(self, ind)
@@ -75,7 +87,6 @@ class HasyRoIsCtrl(CounterTimerController):
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         global last_sta
@@ -94,7 +105,7 @@ class HasyRoIsCtrl(CounterTimerController):
         return tup
 
     def LoadOne(self, axis, value, repetitions, latency_time):
-        idx = axis - 1
+        # idx = axis - 1
         if value > 0:
             self.integ_time = value
             self.monitor_count = None
@@ -153,10 +164,10 @@ class HasyRoIsCtrl(CounterTimerController):
         if self.flagIsXIA == 0:
             self.proxy.command_inout("Read")
 
-
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
+            tango_device = self.node + ":" + str(self.port) + "/" + \
+                self.proxy.name()
             return tango_device
         elif name == "DataLength":
             if self.flagIsXIA:

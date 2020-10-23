@@ -2,26 +2,34 @@ import PyTango
 from sardana.pool.controller import CounterTimerController
 import time
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+# from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana.pool.controller import MotorController
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class MCAroisCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the MCA RoIs"
 
+    axis_attributes = {
+        'TangoDevice': {Type: str, Access: ReadOnly},
+        'TangoAttribute': {Type: str, Access: ReadWrite},
+        'FlagClear': {Type: int, Access: ReadWrite},
+    }
 
-    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       'TangoAttribute': {Type: str, Access: ReadWrite},
-                       'FlagClear': {Type: int, Access: ReadWrite},
-                       }
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the MCArois Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
-                       }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the MCArois Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "MCArois"
@@ -44,12 +52,12 @@ class MCAroisCtrl(CounterTimerController):
         self.flag_clear = 0
         proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
         self.start_time = time.time()
         self.exp_time = 0
         self.scanning = 0
-
 
     def AddDevice(self, ind):
         CounterTimerController.AddDevice(self, ind)
@@ -58,7 +66,6 @@ class MCAroisCtrl(CounterTimerController):
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         if time.time() - self.start_time < self.exp_time:
@@ -83,9 +90,6 @@ class MCAroisCtrl(CounterTimerController):
     def ReadAll(self):
         pass
 
-    def PreStartOne(self, ind, pos):
-        return True
-
     def StartOne(self, ind):
         pass
 
@@ -98,6 +102,9 @@ class MCAroisCtrl(CounterTimerController):
 
     def PreStartAll(self):
         self.wantedCT = []
+
+    # def PreStartOne(self, ind, pos):
+    #     return True
 
     def PreStartOne(self, ind):
         pass
@@ -116,13 +123,13 @@ class MCAroisCtrl(CounterTimerController):
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
+            tango_device = self.node + ":" + str(self.port) + "/" + \
+                self.proxy.name()
             return tango_device
         if name == "TangoAttribute":
             return self.AttributeNames[ind - 1]
         if name == "FlagClear":
             return self.flag_clear
-
 
     def SetAxisExtraPar(self, ind, name, value):
         if name == "TangoAttribute":
@@ -135,4 +142,3 @@ class MCAroisCtrl(CounterTimerController):
 
     def __del__(self):
         print("PYTHON -> MCAroisCtrl dying")
-

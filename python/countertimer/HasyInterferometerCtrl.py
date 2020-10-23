@@ -1,25 +1,34 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
-import time
+# import time
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+# from sardana import State, DataAccess
+# from sardana.pool.controller import MotorController
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+
 class HasyInterferometerCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the Interferometers"
+    "This class is the Tango Sardana CounterTimer controller " + \
+        "for the Interferometers"
 
+    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly}, }
 
-    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       }
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The name of the Interferometer Tango device'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the device'},
-                       }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The name of the Interferometer Tango device'
+        },
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the device'
+        },
+    }
 
     gender = "CounterTimer"
     model = "Interferometer"
@@ -41,7 +50,8 @@ class HasyInterferometerCtrl(CounterTimerController):
         self.time_to_set = 0
         proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
 
     def AddDevice(self, ind):
@@ -50,7 +60,6 @@ class HasyInterferometerCtrl(CounterTimerController):
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         sta = self.proxy.command_inout("State")
@@ -62,20 +71,11 @@ class HasyInterferometerCtrl(CounterTimerController):
     def PreReadAll(self):
         pass
 
-
-    def PreReadOne(self, ind):
-        pass
-
-
     def ReadAll(self):
         pass
 
-    def PreStartOne(self, ind, pos):
-        return True
-
     def StartOne(self, ind):
         pass
-
 
     def ReadOne(self, ind):
         value = -1
@@ -86,6 +86,9 @@ class HasyInterferometerCtrl(CounterTimerController):
 
     def PreStartAll(self):
         self.wantedCT = []
+
+    # def PreStartOne(self, ind, pos):
+    #     return True
 
     def PreStartOne(self, ind):
         pass
@@ -98,9 +101,9 @@ class HasyInterferometerCtrl(CounterTimerController):
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
+            tango_device = self.node + ":" + str(self.port) + "/" + \
+                self.proxy.name()
             return tango_device
-
 
     def SetAxisExtraPar(self, ind, name, value):
         pass
@@ -110,4 +113,3 @@ class HasyInterferometerCtrl(CounterTimerController):
 
     def __del__(self):
         print("PYTHON -> HasyInterferometerCtrl dying")
-

@@ -1,28 +1,36 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
-import time
+# import time
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+# from sardana import State, DataAccess
+# from sardana.pool.controller import MotorController
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 global last_sta
 
+
 class XMCDCtrl(CounterTimerController):
     "This class is the Tango Sardana CounterTimer controller for the XMCD"
 
+    axis_attributes = {
+        'TangoDevice': {Type: str, Access: ReadOnly},
+        'TangoAttribute': {Type: str, Access: ReadWrite},
+    }
 
-    axis_attributes = {'TangoDevice': {Type: str, Access: ReadOnly},
-                       'TangoAttribute': {Type: str, Access: ReadWrite},
-                       }
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The name of the XMCD Tango device'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'},
-                       }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The name of the XMCD Tango device'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "XMCD"
@@ -46,7 +54,8 @@ class XMCDCtrl(CounterTimerController):
         self.AttributeNames = []
         proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
         global last_sta
         last_sta = PyTango.DevState.ON
@@ -59,7 +68,6 @@ class XMCDCtrl(CounterTimerController):
     def DeleteDevice(self, ind):
         CounterTimerController.DeleteDevice(self, ind)
         self.proxy = None
-
 
     def StateOne(self, ind):
         global last_sta
@@ -80,23 +88,19 @@ class XMCDCtrl(CounterTimerController):
     def PreReadAll(self):
         pass
 
-
     def PreReadOne(self, ind):
         pass
 
-
     def ReadAll(self):
         pass
-
-    def PreStartOne(self, ind, pos):
-        return True
 
     def StartOne(self, ind):
         pass
 
     def ReadOne(self, ind):
         try:
-            value = self.proxy.read_attribute(self.AttributeNames[ind - 1]).value
+            value = self.proxy.read_attribute(
+                self.AttributeNames[ind - 1]).value
         except Exception:
             value = -999
         return value
@@ -106,6 +110,9 @@ class XMCDCtrl(CounterTimerController):
 
     def PreStartAll(self):
         self.wantedCT = []
+
+    # def PreStartOne(self, ind, pos):
+    #     return True
 
     def PreStartOne(self, ind):
         pass
@@ -118,11 +125,11 @@ class XMCDCtrl(CounterTimerController):
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name()
+            tango_device = self.node + ":" + str(self.port) + "/" + \
+                self.proxy.name()
             return tango_device
         if name == "TangoAttribute":
             return self.AttributeNames[ind - 1]
-
 
     def SeAxistExtraPar(self, ind, name, value):
         if name == "TangoAttribute":
@@ -133,4 +140,3 @@ class XMCDCtrl(CounterTimerController):
 
     def __del__(self):
         print("PYTHON -> XMCDCtrl dying ")
-
