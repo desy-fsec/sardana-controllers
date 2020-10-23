@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import os
-import imp
+# import os
+# import imp
 from setuptools import setup
 from datetime import datetime
 
@@ -20,7 +20,7 @@ setup(name='PoolController',
       author_email="fs-ec@desy.de",
       maintainer="DESY",
       maintainer_email="fs-ec@desy.de",
-      url="https://sourceforge.net/u/tere29/sardanacontrollers/ci/master/tree/",
+      url="https://github.com/desy-fsec/sardana-controllers/",
       packages=packages,
       package_dir=package_dir,
       include_package_data=True,

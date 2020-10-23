@@ -1,13 +1,19 @@
-from sardana import pool
+# from sardana import pool
 import PyTango
 from sardana.pool.controller import MotorController
 
+
 class HKLMotorCtrl(MotorController):
-    """This class is the Tango Sardana motor controller for the HKL axis of the diffractometer device.
+    """This class is the Tango Sardana motor controller
+    for the HKL axis of the diffractometer device.
     """
 
     # The property used to connect to the diffractometer controller
-    ctrl_properties = {'DiffracDevName': {'Type': 'PyTango.DevString', 'Description': 'The diffractometer device name'}}
+    ctrl_properties = {
+        'DiffracDevName': {
+            'Type': 'PyTango.DevString',
+            'Description': 'The diffractometer device name'}
+    }
 
     gender = "Motor"
     model = "HKLMotor"
@@ -62,23 +68,19 @@ class HKLMotorCtrl(MotorController):
         @param axis to read the state
         @return the state value: {ALARM|ON|MOVING}
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StateOne method for axis", axis
         sta = self.hkl_device[axis-1].command_inout("State")
         tup = (sta, 0)
         return tup
 
     def PreReadAll(self):
         """ Nothing special to do"""
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreReadAll method"
         pass
 
     def PreReadOne(self, axis):
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreReadOne method for axis", axis
         pass
 
     def ReadAll(self):
         """ We connect to the Icepap system for each axis. """
-        # print "PYTHON -> IcePapController/", self.inst_name,": In ReadAll method"
         pass
 
     def ReadOne(self, axis):
@@ -86,13 +88,11 @@ class HKLMotorCtrl(MotorController):
         @param axis to read the position
         @return the current axis position
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In ReadOne method for axis", axis
 
         return self.hkl_device[axis-1].position
 
     def PreStartAll(self):
         """ Nothing special to do"""
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartAll method"
         pass
 
     def PreStartOne(self, axis, pos):
@@ -100,12 +100,11 @@ class HKLMotorCtrl(MotorController):
         @param axis to start
         @param pos to move to
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In PreStartOne method for axis", axis," with pos", pos
         return True
 
     def StartOne(self, axis, pos):
-        """ Move the axis separtely, for multiple movements use the macro br """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In StartOne method for axis", axis," with pos", pos
+        """ Move the axis separtely,
+        for multiple movements use the macro br """
 
         if axis == 1:
             self.hkl_simu_device.write_attribute("h", pos)
@@ -127,7 +126,6 @@ class HKLMotorCtrl(MotorController):
             self.hkl_simu_device.write_attribute("l", pos)
 
         self.diffrac.write_attribute("Simulated", 1)
-
 
         angles_to_set = {}
 
@@ -162,10 +160,8 @@ class HKLMotorCtrl(MotorController):
 
         self.diffrac.write_attribute("Simulated", 0)
 
-
     def StartAll(self):
         """ Nothis special to do """
-        # print "PYTHON -> IcePapController/", self.inst_name,": In StartAll method"
         pass
 
     def GetAxisExtraPar(self, axis, name):
@@ -182,7 +178,6 @@ class HKLMotorCtrl(MotorController):
         @param name of the parameter
         @param value to be set
         """
-        # print "PYTHON -> HKLMotorCtrl/", self.inst_name,": In SetExtraAttributePar method for axis", axis," name=", name," value=", value
         pass
 
     def AbortOne(self, axis):
@@ -190,7 +185,6 @@ class HKLMotorCtrl(MotorController):
 
     def StopOne(self, axis):
         pass
-
 
     def DefinePosition(self, axis, position):
         pass

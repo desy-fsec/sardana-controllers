@@ -6,6 +6,7 @@ from threading import Timer
 
 TANGO_DEV = 'TangoDevice'
 
+
 class OxfordCryostream700Ctrl(MotorController):
     """This class is the Tango Sardana motor controller for the
        Tango OxfordCryostream700 device. Each 'axis' is represents,
@@ -39,7 +40,8 @@ class OxfordCryostream700Ctrl(MotorController):
                 proxy = PoolUtil().get_device(self.GetName(), devName)
                 self.proxy[axis] = proxy
                 if proxy is None and raiseOnConnError:
-                    raise Exception("Proxy for '%s' could not be created" % devName)
+                    raise Exception(
+                        "Proxy for '%s' could not be created" % devName)
                 if self.velocity[axis] == 0.0:
                     try:
                         self.velocity[axis] = \
@@ -115,7 +117,7 @@ class OxfordCryostream700Ctrl(MotorController):
         diff = time.time() - self.restarted[axis][0]
         if diff < OxfordCryostream700Ctrl.RESTART_INTERVAL:
             self.delay_timer[axis] = \
-                Timer(OxfordCryostream700Ctrl.RESTART_INTERVAL - diff, \
+                Timer(OxfordCryostream700Ctrl.RESTART_INTERVAL - diff,
                       self.StartOne, [axis, position])
             self.delay_timer[axis].start()
             return
@@ -131,7 +133,7 @@ class OxfordCryostream700Ctrl(MotorController):
             proxy.command_inout("Restart")
             self.restarted[axis] = [time.time(), current_pos]
             self.delay_timer[axis] = \
-                Timer(OxfordCryostream700Ctrl.RESTART_INTERVAL, \
+                Timer(OxfordCryostream700Ctrl.RESTART_INTERVAL,
                       self.StartOne, [axis, position])
             self.delay_timer[axis].start()
 
@@ -202,5 +204,3 @@ class OxfordCryostream700Ctrl(MotorController):
 
     def DefinePosition(self, axis, position):
         raise Exception('not implemented')
-
-

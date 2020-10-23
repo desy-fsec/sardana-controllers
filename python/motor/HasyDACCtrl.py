@@ -1,28 +1,36 @@
 import PyTango
 
-import time
+# import time
 
-from sardana import State, DataAccess
+from sardana import DataAccess
+# from sardana import State, DataAccess
 from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 
 class HasyDACCtrl(MotorController):
-    "This class is the Tango Sardana Motor controller for standard Hasylab DACs"
+    """This class is the Tango Sardana Motor controller
+    for standard Hasylab DACs"""
 
+    axis_attributes = {
+        'VoltageMax': {Type: float, Access: ReadWrite},
+        'VoltageMin': {Type: float, Access: ReadWrite},
+        'TangoDevice': {Type: str, Access: ReadOnly},
+    }
 
-    axis_attributes = {'VoltageMax': {Type: float, Access: ReadWrite},
-                       'VoltageMin': {Type: float, Access: ReadWrite},
-                       'TangoDevice': {Type: str, Access: ReadOnly},
-                       }
-
-
-    ctrl_properties = {'RootDeviceName': {Type: str, Description: 'The root name of the Motor Tango devices'},
-                       'TangoHost': {Type: str, Description: 'The tango host where searching the devices'}, }
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the Motor Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "Motor"
     model = "Hasylab DAC"
@@ -70,7 +78,8 @@ class HasyDACCtrl(MotorController):
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
         else:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(self.tango_device[ind - 1])
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
         self.device_available[ind - 1] = 1
         self.VoltageMax.append(self.dft_VoltageMax)
@@ -120,11 +129,14 @@ class HasyDACCtrl(MotorController):
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
             if name == "VoltageMax":
-                return float(self.proxy[ind - 1].read_attribute("VoltageMax").value)
+                return float(self.proxy[ind - 1].read_attribute(
+                    "VoltageMax").value)
             elif name == "VoltageMin":
-                return float(self.proxy[ind - 1].read_attribute("VoltageMin").value)
+                return float(self.proxy[ind - 1].read_attribute(
+                    "VoltageMin").value)
             elif name == "TangoDevice":
-                tango_device = self.node + ":" + str(self.port) + "/" + self.proxy[ind - 1].name()
+                tango_device = self.node + ":" + str(self.port) + "/" + \
+                    self.proxy[ind - 1].name()
                 return tango_device
 
     def SetAxisExtraPar(self, ind, name, value):
