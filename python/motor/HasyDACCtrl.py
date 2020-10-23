@@ -124,7 +124,7 @@ class HasyDACCtrl(MotorController):
 
     def StartOne(self, ind, pos):
         if self.device_available[ind - 1] == 1:
-                self.proxy[ind - 1].write_attribute("Voltage", pos)
+            self.proxy[ind - 1].write_attribute("Voltage", pos)
 
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:

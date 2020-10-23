@@ -52,8 +52,8 @@ class LimaRoICounterCtrl(CounterTimerController):
                 self.port = int(lst[1])
         self.proxy_name = self.RootDeviceName
         if self.TangoHost is not None:
-                self.proxy_name = str(self.node) + (":%s/" % self.port) + \
-                    str(self.proxy_name)
+            self.proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.proxy_name)
         self.proxy = PyTango.DeviceProxy(self.proxy_name)
         self.proxy.Stop()
         self.proxy.Start()
