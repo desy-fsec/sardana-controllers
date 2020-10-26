@@ -1,63 +1,73 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
-import time
+# import time
 
-from sardana import State, DataAccess
-from sardana.pool.controller import MotorController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana import DataAccess
+# from sardana import State
+# from sardana.pool.controller import MotorController
+from sardana.pool.controller import Type, Access, Description
+#  from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
 
-# This controller has to be used with another controller for the sis3302 in the MG
+# This controller has to be used with another controller for the sis3302
+# in the MG
 # It only reads the counts.
 
-class PSCameraVHRRoIsCtrl(CounterTimerController):
-    "This class is the Tango Sardana CounterTimer controller for the SIS3302 RoIs"
-	
 
-    axis_attributes = {'TangoDevice':{Type:str,Access:ReadOnly},
-                       }
-		     
-    ctrl_properties = {'RootDeviceName':{Type:str,Description:'The root name of the PSCameraVHRRoIs Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, 
-                       }
+class PSCameraVHRRoIsCtrl(CounterTimerController):
+    "This class is the Tango Sardana CounterTimer controller " + \
+        "for the SIS3302 RoIs"
+
+    axis_attributes = {
+        'TangoDevice': {Type: str, Access: ReadOnly},
+    }
+
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: str,
+            Description: 'The root name of the PSCameraVHRRoIs Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
 
     gender = "CounterTimer"
     model = "PSCameraVHRRoIs"
     organization = "DESY"
     state = ""
     status = ""
-    
-    def __init__(self,inst,props, *args, **kwargs):
+
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        CounterTimerController.__init__(self,inst,props, *args, **kwargs)
-        if self.TangoHost != None:
+        CounterTimerController.__init__(self, inst, props, *args, **kwargs)
+        if self.TangoHost is not None:
             self.node = self.TangoHost
             self.port = 10000
-            if self.TangoHost.find( ':'):
+            if self.TangoHost.find(':'):
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
         self.started = False
         self.RoIAttributeName = []
         proxy_name = self.RootDeviceName
-        if self.TangoHost != None:
-            proxy_name = str(self.node) + (":%s/" % self.port) + str(proxy_name)
+        if self.TangoHost is not None:
+            proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(proxy_name)
         self.proxy = PyTango.DeviceProxy(proxy_name)
 
-    def AddDevice(self,ind):
-        CounterTimerController.AddDevice(self,ind)
+    def AddDevice(self, ind):
+        CounterTimerController.AddDevice(self, ind)
         self.RoIAttributeName.append("")
-        
-    def DeleteDevice(self,ind):
-        CounterTimerController.DeleteDevice(self,ind)
-        self.proxy =  None
-        
-		
-    def StateOne(self,ind):
+
+    def DeleteDevice(self, ind):
+        CounterTimerController.DeleteDevice(self, ind)
+        self.proxy = None
+
+    def StateOne(self, ind):
         sta = self.proxy.command_inout("State")
         if sta == PyTango.DevState.ON:
             status_string = "Device in ON state"
@@ -66,57 +76,55 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
             status_string = "Device MOVING"
         elif sta == PyTango.DevState.OFF:
             sta = PyTango.DevState.FAULT
-            status_string = "Error detected" 
+            status_string = "Error detected"
         tup = (sta, status_string)
         return tup
 
     def PreReadAll(self):
         pass
-        
 
-    def PreReadOne(self,ind):
+    def PreReadOne(self, ind):
         pass
 
     def ReadAll(self):
         pass
 
-    def PreStartOne(self,ind,pos):
+    def StartOne(self, ind):
         return True
-        
-    def StartOne(self,ind):
-        return True
-            
-    def ReadOne(self,ind):
+
+    def ReadOne(self, ind):
         value = self.proxy.read_attribute("RoICounts").value
-        return  value
-	
-    def AbortOne(self,ind):
+        return value
+
+    def AbortOne(self, ind):
         pass
-        
+
     def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOne(self,ind):
+    # def PreStartOne(self, ind, pos):
+    #     return True
+
+    def PreStartOne(self, ind):
         pass
-	
+
     def StartAll(self):
         pass
-		     	
-    def LoadOne(self,ind,value, repetitions, latency_time):
+
+    def LoadOne(self, ind, value, repetitions, latency_time):
         pass
-	
-    def GetAxisExtraPar(self,ind,name):
+
+    def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
-            tango_device = self.node + ":" + str(self.port) + "/" + self.proxy.name() 
+            tango_device = self.node + ":" + str(self.port) + "/" + \
+                self.proxy.name()
             return tango_device
-        
-            
-    def SetAxisExtraPar(self,ind,name,value):
+
+    def SetAxisExtraPar(self, ind, name, value):
         pass
-			
-    def SendToCtrl(self,in_data):
+
+    def SendToCtrl(self, in_data):
         return "Nothing sent"
 
     def __del__(self):
         print("PYTHON -> PSCameraVHRRoIsCtrl dying")
-

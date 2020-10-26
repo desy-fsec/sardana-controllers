@@ -1,11 +1,12 @@
-
-import time, os
+import time
+# import os
 
 import PyTango
 from sardana import State, DataAccess
 from sardana.pool.controller import OneDController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
-from sardana.pool import PoolUtil
+from sardana.pool.controller import Type, Access, Description
+# from sardana.pool.controller import Type, Access, Description, DefaultValue
+# from sardana.pool import PoolUtil
 
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
@@ -14,51 +15,56 @@ ReadWrite = DataAccess.ReadWrite
 class SIS3302Ctrl(OneDController):
     "This class is the Tango Sardana One D controller for Hasylab"
 
-    axis_attributes = {'DataLength':{Type:'PyTango.DevLong',Access:ReadWrite},
-                       'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}, 
-                       'FlagReadSpectrum':{Type:'PyTango.DevLong',Access:ReadWrite},     
+    axis_attributes = {
+        'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
+        'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
+        'FlagReadSpectrum': {Type: 'PyTango.DevLong', Access: ReadWrite},
     }
-    
-    ctrl_properties = {'RootDeviceName':{Type:'PyTango.DevString',Description:'The root name of the MCA Tango devices'},
-                       'TangoHost':{Type:str,Description:'The tango host where searching the devices'}, }
-    
+
+    ctrl_properties = {
+        'RootDeviceName': {
+            Type: 'PyTango.DevString',
+            Description: 'The root name of the MCA Tango devices'},
+        'TangoHost': {
+            Type: str,
+            Description: 'The tango host where searching the devices'},
+    }
+
     MaxDevice = 97
 
-    def __init__(self,inst,props, *args, **kwargs):
+    def __init__(self, inst, props, *args, **kwargs):
         self.TangoHost = None
-        OneDController.__init__(self,inst,props, *args, **kwargs)
-        if self.TangoHost != None:
+        OneDController.__init__(self, inst, props, *args, **kwargs)
+        if self.TangoHost is not None:
             self.node = self.TangoHost
             self.port = 10000
             if self.TangoHost.find(':') != -1:
                 lst = self.TangoHost.split(':')
                 self.node = lst[0]
-                self.port = int( lst[1])
+                self.port = int(lst[1])
         self.started = False
         self.proxy_name = self.RootDeviceName
-        if self.TangoHost != None:
-            self.proxy_name = str(self.node) + (":%s/" % self.port) + str(self.proxy_name)
+        if self.TangoHost is not None:
+            self.proxy_name = str(self.node) + (":%s/" % self.port) + \
+                str(self.proxy_name)
         self.proxy = PyTango.DeviceProxy(self.proxy_name)
         self.started = False
         self.acqTime = 0
         self.acqStartTime = None
         self.flagreadspectrum = 1
-        
-    def AddDevice(self,ind):
-        OneDController.AddDevice(self,ind)
 
-       
-    def DeleteDevice(self,ind):
-        #print "SIS3302Ctrl.DeleteDevice",self.inst_name,"index",ind
-        OneDController.DeleteDevice(self,ind)
-        
-        
-    def StateOne(self,ind):
-        #print "SIS3302Ctrl.StatOne",self.inst_name,"index",ind
-        if self.acqStartTime != None: #acquisition was started
+    def AddDevice(self, ind):
+        OneDController.AddDevice(self, ind)
+
+    def DeleteDevice(self, ind):
+        OneDController.DeleteDevice(self, ind)
+
+    def StateOne(self, ind):
+        if self.acqStartTime is not None:  # acquisition was started
             now = time.time()
             elapsedTime = now - self.acqStartTime - 0.2
-            if elapsedTime < self.acqTime: #acquisition has probably not finished yet
+            # acquisition has probably not finished yet
+            if elapsedTime < self.acqTime:
                 self.sta = State.Moving
                 self.status = "Acqusition time has not elapsed yet."
             else:
@@ -72,10 +78,9 @@ class SIS3302Ctrl(OneDController):
             self.status = "Device is ON"
         tup = (self.sta, self.status)
         return tup
-    
+
     def LoadOne(self, axis, value, repetitions, latency_time):
-        #print "SIS3302Ctrl.LoadOne",self.inst_name,"axis", axis
-        idx = axis - 1
+        # idx = axis - 1
         if value > 0:
             self.integ_time = value
             self.monitor_count = None
@@ -83,28 +88,27 @@ class SIS3302Ctrl(OneDController):
             self.integ_time = None
             self.monitor_count = -value
         self.acqTime = value
-        
 
     def PreReadAll(self):
-        #print "SIS3302Ctrl.PreReadAll",self.inst_name
-        #if self.started == True:
+        # print "SIS3302Ctrl.PreReadAll", self.inst_name
+        # if self.started is True:
         #    self.proxy.command_inout("Stop")
         #    self.started = False
         #    time.sleep(0.2)
         pass
-        
-    def PreReadOne(self,ind):
-        #print "SIS3302Ctrl.PreReadOne",self.inst_name,"index",ind
+
+    def PreReadOne(self, ind):
+        # print "SIS3302Ctrl.PreReadOne", self.inst_name,"index", ind
         pass
 
     def ReadAll(self):
-        #while(self.proxy.command_inout("State") != PyTango.DevState.ON):
+        # while(self.proxy.command_inout("State") != PyTango.DevState.ON):
         #    sleep(0.1)
         self.counts = self.proxy.read_attribute("Count").value
 
-    def ReadOne(self,ind):
-        #print "SIS3302Ctrl.ReadOne",self.inst_name,"index",ind
-        if ind == 1: 
+    def ReadOne(self, ind):
+        # print "SIS3302Ctrl.ReadOne", self.inst_name,"index", ind
+        if ind == 1:
             if self.flagreadspectrum == 1:
                 data = self.proxy.Data
             else:
@@ -116,28 +120,27 @@ class SIS3302Ctrl(OneDController):
     def PreStartAll(self):
         pass
 
-    def PreStartOne(self,ind, value):
+    def PreStartOne(self, ind, value):
         return True
-        
+
     def StartAll(self):
-        if self.started == False:
+        if self.started is False:
             self.proxy.command_inout("Stop")
             self.proxy.command_inout("Clear")
             self.proxy.command_inout("Start")
             self.started = True
             self.acqStartTime = time.time()
-        
-    def StartOne(self,ind, value):
+
+    def StartOne(self, ind, value):
         pass
-            
-    def AbortOne(self,ind):
-        #print "SIS3302Ctrl.AbortOne",self.inst_name,"index",ind
+
+    def AbortOne(self, ind):
+        # print "SIS3302Ctrl.AbortOne", self.inst_name,"index", ind
         self.proxy.command_inout("Stop")
         self.proxy.command_inout("Read")
-    
-    def GetAxisExtraPar(self,ind,name):
-        #print "SIS3302Ctrl.GetExtraAttrPar",self.inst_name,"index",ind, "name", name
-        if name == "TangoDevice": 
+
+    def GetAxisExtraPar(self, ind, name):
+        if name == "TangoDevice":
             return self.proxy_name
         elif name == "DataLength":
             if ind == 1:
@@ -148,23 +151,23 @@ class SIS3302Ctrl(OneDController):
         elif name == "FlagReadSpectrum":
             return self.flagreadspectrum
 
-    def SetAxisExtraPar(self,ind,name,value):
-        #print "SIS3302Ctrl.SetExtraAttributePar",self.inst_name,"index",ind," name=",name," value=",value
+    def SetAxisExtraPar(self, ind, name, value):
         if name == "DataLength":
             if ind == 1:
-                self.proxy.write_attribute("DataLength",value)
+                self.proxy.write_attribute("DataLength", value)
         elif name == "FlagReadSpectrum":
             self.flagreadspectrum = value
-                
-    def SendToCtrl(self,in_data):
-        #print "Received value =",in_data
+
+    def SendToCtrl(self, in_data):
+        # print "Received value =", in_data
         return "Nothing sent"
-        
+
     def __del__(self):
-        #print "SIS3302Ctrl/",self.inst_name,": Aarrrrrg, I am dying"
+        # print "SIS3302Ctrl/", self.inst_name,": Aarrrrrg, I am dying"
         pass
-        
+
+
 if __name__ == "__main__":
     obj = OneDController('test')
-#    obj.AddDevice(2)
-#    obj.DeleteDevice(2)
+    #    obj.AddDevice(2)
+    #    obj.DeleteDevice(2)
