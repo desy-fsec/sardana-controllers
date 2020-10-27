@@ -133,11 +133,11 @@ class DGG2Ctrl(CounterTimerController):
     def PreStartAll(self):
         self.wantedCT = []
 
-    # def PreStartOne(self, ind, pos):
-    #     return True
+    def PreStartOne(self, ind, pos):
+        return True
 
-    def PreStartOne(self, ind):
-        pass
+    # def PreStartOne(self, ind):
+    #     pass
 
     def StartOne(self, ind):
         if self.device_available[ind - 1] == 1:

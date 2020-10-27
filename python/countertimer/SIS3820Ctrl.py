@@ -128,7 +128,7 @@ class SIS3820Ctrl(CounterTimerController):
     def PreStartAll(self):
         self.wantedCT = []
 
-    def PreStartOne(self, ind):
+    def PreStartOne(self, ind, value):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].command_inout("Reset")
             self.intern_sta[ind - 1] = State.Moving

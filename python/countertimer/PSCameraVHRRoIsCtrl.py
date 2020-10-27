@@ -102,11 +102,11 @@ class PSCameraVHRRoIsCtrl(CounterTimerController):
     def PreStartAll(self):
         self.wantedCT = []
 
-    # def PreStartOne(self, ind, pos):
-    #     return True
+    def PreStartOne(self, ind, pos):
+        return True
 
-    def PreStartOne(self, ind):
-        pass
+    # def PreStartOne(self, ind):
+    #     pass
 
     def StartAll(self):
         pass

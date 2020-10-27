@@ -128,7 +128,7 @@ class HasyADCCtrl(ZeroDController):
         #     In PreStartAll method"
         self.wanted = []
 
-    def PreStartOne(self, ind):
+    def PreStartOne(self, ind, value):
         pass
 
     def StartOne(self, ind):
