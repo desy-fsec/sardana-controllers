@@ -165,7 +165,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
         except Exception:
             self.error_amptek = 1
 
-    def PreStartOne(self, ind):
+    def PreStartOne(self, ind, value):
         return True
 
     def StartOne(self, ind):
@@ -318,7 +318,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
     def PreStartAll(self):
         self.amptekPX5.ClearSpectrum()
 
-    def PreStartOne(self, ind):
+    def PreStartOne(self, ind, value):
         return True
 
     def StartOne(self, ind):

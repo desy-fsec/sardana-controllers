@@ -137,7 +137,7 @@ class VFCADCCtrl(CounterTimerController):
         #     In PreStartAll method"
         self.wanted = []
 
-    def PreStartOne(self, ind):
+    def PreStartOne(self, ind, value):
         if self.device_available[ind - 1] == 1:
             self.proxy[ind - 1].command_inout("Reset")
             return True
