@@ -5,7 +5,8 @@ import time
 # import datetime
 # import sys
 # from HasyVirtualCounterLib import *
-from HasyVirtualCounterLib import reset, myread
+from sardana.PoolController.countertimer.HasyVirtualCounterLib import (
+    reset, myread)
 
 
 class HasyVirtualCounterCtrl(CounterTimerController):
