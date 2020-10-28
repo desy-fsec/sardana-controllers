@@ -68,7 +68,7 @@ class HasyVirtualCounterCtrl(CounterTimerController):
     def PreStartAll(self):
         pass
 
-    def StartOne(self, axis):
+    def StartOne(self, axis, value):
         reset(self.LibId)
         pass
 

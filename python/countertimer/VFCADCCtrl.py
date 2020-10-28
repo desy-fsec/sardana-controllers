@@ -145,7 +145,7 @@ class VFCADCCtrl(CounterTimerController):
             raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         # print "PYTHON -> VFCADCCtrl/", self.inst_name,": \
         # In StartOne method for index", ind
         self.wanted.append(ind)

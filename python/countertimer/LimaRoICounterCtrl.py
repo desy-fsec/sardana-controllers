@@ -114,7 +114,7 @@ class LimaRoICounterCtrl(CounterTimerController):
     def PreStartOne(self, ind, value):
         return True
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         self.wantedCT.append(ind)
 
     def StartAll(self):

@@ -169,7 +169,7 @@ class AmptekPX5CounterTimerController(CounterTimerController):
     def PreStartOne(self, ind, value):
         return True
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         pass
 
     def StartAll(self):
@@ -322,7 +322,7 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
     def PreStartOne(self, ind, value):
         return True
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         pass
 
     def StartAll(self):
