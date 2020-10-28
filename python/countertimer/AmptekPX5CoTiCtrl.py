@@ -27,7 +27,8 @@ import PyTango
 import taurus
 
 from sardana import State
-from sardana.pool.controller import CounterTimerController, Memorized
+from sardana.pool.controller import CounterTimerController, \
+    Memorized, Description, Type, DefaultValue
 # from sardana.pool import AcqTriggerType
 
 
@@ -38,9 +39,9 @@ class AmptekPX5CounterTimerController(CounterTimerController):
 
     ctrl_properties = {
         'deviceName': {
-            'Type': str,
-            'Description': 'AmptekPX5 Tango device name',
-            'DefaultValue': None},
+            Type: str,
+            Description: 'AmptekPX5 Tango device name',
+            DefaultValue: None},
     }
 
     axis_attributes = {
@@ -204,9 +205,9 @@ class AmptekPX5SoftCounterTimerController(CounterTimerController):
     MaxDevice = 17
 
     ctrl_properties = {
-        'deviceName': {'Type': str,
-                       'Description': 'AmptekPX5 Tango device name',
-                       'DefaultValue': None},
+        'deviceName': {Type: str,
+                       Description: 'AmptekPX5 Tango device name',
+                       DefaultValue: None},
     }
 
     axis_attributes = {

@@ -1,12 +1,13 @@
 import PyTango
 # from sardana import pool
-from sardana.pool.controller import CounterTimerController
+from sardana.pool.controller import CounterTimerController, Type, \
+    Description, DefaultValue
 import time
 # import datetime
 # import sys
 # from HasyVirtualCounterLib import *
-from sardana.PoolController.countertimer.HasyVirtualCounterLib import (
-    reset, myread)
+from sardana.PoolController.countertimer.HasyVirtualCounterLib import \
+    reset, myread
 
 
 class HasyVirtualCounterCtrl(CounterTimerController):
@@ -14,9 +15,9 @@ class HasyVirtualCounterCtrl(CounterTimerController):
         "for defined virtual counters"
 
     ctrl_properties = {
-        'LibId': {'Type': 'PyTango.DevLong',
-                  'Description': 'Id for the functions argument',
-                  'DefaultValue': 1}
+        'LibId': {Type: 'PyTango.DevLong',
+                  Description: 'Id for the functions argument',
+                  DefaultValue: 1}
     }
 
     gender = "VirtualCounter"
