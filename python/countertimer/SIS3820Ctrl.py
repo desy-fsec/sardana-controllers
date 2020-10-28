@@ -137,7 +137,7 @@ class SIS3820Ctrl(CounterTimerController):
             raise RuntimeError("Ctrl Tango's proxy null!!!")
             return False
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         self.wantedCT.append(ind)
 
     def StartAll(self):

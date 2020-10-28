@@ -139,7 +139,7 @@ class DGG2Ctrl(CounterTimerController):
     # def PreStartOne(self, ind):
     #     pass
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         if self.device_available[ind - 1] == 1:
             self.wantedCT.append(ind)
 

@@ -93,7 +93,7 @@ class MythenRoisCtrl(CounterTimerController):
     def ReadAll(self):
         pass
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         pass
 
     def ReadOne(self, ind):

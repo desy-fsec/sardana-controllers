@@ -131,7 +131,7 @@ class HasyADCCtrl(ZeroDController):
     def PreStartOne(self, ind, value):
         pass
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         # print "PYTHON -> HasyADCCtrl/", self.inst_name,": \
         #     In StartOne method for index", ind
         self.wanted.append(ind)
