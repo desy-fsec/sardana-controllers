@@ -104,7 +104,7 @@ class SIS3302RoisCtrl(CounterTimerController):
         if self.FlagMaster == 0:
             self.counts = self.proxy.read_attribute("Count").value
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         return True
 
     def ReadOne(self, ind):

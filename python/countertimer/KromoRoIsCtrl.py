@@ -90,7 +90,7 @@ class KromoRoIsCtrl(CounterTimerController):
     def ReadAll(self):
         pass
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         return True
 
     def ReadOne(self, ind):

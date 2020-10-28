@@ -88,7 +88,7 @@ class MHzDAQp01Ctrl(CounterTimerController):
     def ReadAll(self):
         pass
 
-    def StartOne(self, ind):
+    def StartOne(self, ind, value):
         try:
             sta = self.proxy.command_inout("State")
         except Exception:
