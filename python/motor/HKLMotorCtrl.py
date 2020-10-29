@@ -1,6 +1,6 @@
 # from sardana import pool
 import PyTango
-from sardana.pool.controller import MotorController
+from sardana.pool.controller import MotorController, Description, Type
 
 
 class HKLMotorCtrl(MotorController):
@@ -11,8 +11,8 @@ class HKLMotorCtrl(MotorController):
     # The property used to connect to the diffractometer controller
     ctrl_properties = {
         'DiffracDevName': {
-            'Type': 'PyTango.DevString',
-            'Description': 'The diffractometer device name'}
+            Type: 'PyTango.DevString',
+            Description: 'The diffractometer device name'}
     }
 
     gender = "Motor"
