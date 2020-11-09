@@ -11,7 +11,7 @@ package_dir = {"sardana.PoolController": "python"}
 
 packages = ["sardana.PoolController"]
 
-provides =    ['python']
+provides = ['python']
 
 
 setup(name='PoolController',
