@@ -1,6 +1,27 @@
 import PyTango
-# import time, os
+'''
 
+this controller should be able to handle 'ct' and 'ascan', 'dscan', etc. 
+'ct' has no hooks. therefore the controller itself has to arm or disarm
+the detector, if necessary. 
+
+NbTriggers = 1
+
+initial state
+  device: ON/idle
+  filewriter: ON/ready
+
+device.arm()
+  device: ON/ready
+  filewriter: MOVING/acquire
+
+device.trigger()
+  device: ON/ready
+  filewriter: MOVING/acquire
+
+Even for ascans NbTriggers == 1. We create a file for every stop
+because we don't know how many stops a scan will have.
+'''
 # from sardana import State, DataAccess
 from sardana import DataAccess
 from sardana.pool.controller import TwoDController
@@ -8,9 +29,12 @@ from sardana.pool.controller import TwoDController
 from sardana.pool.controller import Type, Access, Description
 # from sardana.pool import PoolUtil
 
+import HasyUtils
+import time, os
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
+TIME_SLEEP = 0.01
 
 class EigerDectrisCtrl(TwoDController):
     "This class is the Tango Sardana Two D controller for the EigerDectris"
@@ -52,13 +76,27 @@ class EigerDectrisCtrl(TwoDController):
         self.devices = self.db.get_device_exported(name_dev_ask)
         self.max_device = 0
         self.tango_device = []
+        self.tango_device_fw = [] # file writer
         self.proxy = []
+        self.proxy_fw = []
         self.device_available = []
+        self.APIVersion = []
         for name in self.devices.value_string:
             self.tango_device.append(name)
+            self.tango_device_fw.append( self.getFwName( name))
+
             self.proxy.append(None)
+            self.proxy_fw.append(None)
             self.device_available.append(0)
             self.max_device = self.max_device + 1
+            if len( self.APIVersion) == 0:
+                #
+                # temp '1.8.0'
+                #
+                #temp = HasyUtils.getDeviceProperty( "p62/eiger/e4m", 'APIVersion')[0]
+                #temp = HasyUtils.getDeviceProperty( "p10/eigerdectris/lab.01", 'APIVersion')[0]
+                temp = HasyUtils.getDeviceProperty( name, 'APIVersion')[0]
+                self.APIVersion = [ l for l in temp.split( '.')] 
         self.started = False
         self.dft_CountTime = 0
         self.CountTime = []
@@ -69,18 +107,38 @@ class EigerDectrisCtrl(TwoDController):
         self.dft_NbTriggers = 0
         self.NbTriggers = []
 
+        self.isatty = os.isatty( 1)
+
+    def getFwName( self, name):
+        '''
+        get the filewriter name belonging to name, e.g.: p62/eiger/e4m 
+        so we look at the list of filewriters and check theis EigerDevice
+        property to find the filewriter in charge of name
+        '''
+        devsFw = HasyUtils.getDeviceNamesByClass( "EigerFilewriter", tangoHost = self.TangoHost)
+        for devFw in devsFw:
+            prop = HasyUtils.getDeviceProperty( devFw, 'EigerDevice', tangoHost = self.TangoHost)
+            if prop[0] == name:
+                return devFw
+        return None
+        
     def AddDevice(self, ind):
         TwoDController.AddDevice(self, ind)
         if ind > self.max_device:
-            print("False index")
+            print("EigerDectris.AddDevice: ind %d > max_device %d" % (ind, self.max_device))
             return
         proxy_name = self.tango_device[ind - 1]
+        proxy_name_fw = self.tango_device_fw[ind - 1]
         if self.TangoHost is None:
             proxy_name = self.tango_device[ind - 1]
+            proxy_name_fw = self.tango_device_fw[ind - 1]
         else:
             proxy_name = str(self.node) + (":%s/" % self.port) + \
                 str(self.tango_device[ind - 1])
+            proxy_name_fw = str(self.node) + (":%s/" % self.port) + \
+                str(self.tango_device_fw[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
+        self.proxy_fw[ind - 1] = PyTango.DeviceProxy(proxy_name_fw)
         self.device_available[ind - 1] = 1
         self.CountTime.append(self.dft_CountTime)
         self.CountTimeInte.append(self.dft_CountTimeInte)
@@ -88,10 +146,13 @@ class EigerDectrisCtrl(TwoDController):
         self.NbTriggers.append(self.dft_NbTriggers)
 
     def DeleteDevice(self, ind):
+        if self.isatty:
+            print( "EigerDectris.deleteDevice %s" % self.tango_device[ ind - 1])
         TwoDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
+        self.proxy_fw[ind - 1] = None
         self.device_available[ind - 1] = 0
-
+ 
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:
             sta = self.proxy[ind - 1].command_inout("State")
@@ -101,7 +162,18 @@ class EigerDectrisCtrl(TwoDController):
                 tup = (sta, "Camera taking images")
             elif sta == PyTango.DevState.FAULT:
                 tup = (sta, "Camera in FAULT state")
+            # +++
+            elif sta == PyTango.DevState.OFF:
+                tup = (sta, "Camera in OFF state")
+            else:
+                tup = (sta, "Camera in %s state" % repr( sta))
+            # +++
+            if self.isatty:
+                print( "EigerDectris.stateOne, %s, %s" % (self.tango_device[ ind - 1], repr( tup)))
             return tup
+        else:
+            if self.isatty:
+                print( "EigerDectris, %s is not available" % (self.tango_device[ ind - 1]))
 
     def PreReadAll(self):
         pass
@@ -113,10 +185,33 @@ class EigerDectrisCtrl(TwoDController):
         pass
 
     def ReadOne(self, ind):
+        if self.isatty:
+            print( "EigerDectris.ReadOne, %s, status %s " % (self.tango_device[ind - 1], repr( self.proxy[ ind - 1].status())))
+        #
+        #
+        #
+        if self.proxy[ ind - 1].status() == 'idle' and \
+           self.proxy_fw[ ind - 1].state() == PyTango.DevState.MOVING:
+            if self.isatty:
+                print( "EigerDectris.ReadOne, disarm, %s" % self.tango_device[ind - 1])
+            self.proxy[ind - 1].command_inout("Disarm")
+            startTime = time.time()
+            while self.proxy_fw[ ind - 1].state() != PyTango.DevState.ON:
+                time.sleep( TIME_SLEEP)
+                if (time.time() - startTime) > 2:
+                    print( "EigerDectris.ReadOne: filewriter does not become ON")
+                    return
+            while self.proxy_fw[ ind - 1].status() != 'ready':
+                time.sleep( TIME_SLEEP)
+                if (time.time() - startTime) > 2:
+                    print( "EigerDectris.ReadOne: filewriter does not become ready")
+                    return
+            
         # The EigerDectris return an Image in type encoded
         tmp_value = [(-1,), (-1,)]
         if self.device_available[ind - 1] == 1:
             return tmp_value
+        return 
 
     def PreStartAll(self):
         pass
@@ -125,14 +220,77 @@ class EigerDectrisCtrl(TwoDController):
         return True
 
     def StartOne(self, ind, position=None):
+        if self.isatty:
+            print( "EigerDectris.StartOne, %s, state %s" % (self.tango_device[ind - 1],  repr( self.proxy[ ind - 1].state())))
+        #
+        # after the detector has been armed, the filewrite has to be MOVING
+        #
+        if self.proxy_fw[ ind - 1].state() != PyTango.DevState.MOVING:
+            if self.isatty:
+                print( "EigerDectris.StartOne, filewriter not MOVING, sending arm()")
+            if self.proxy[ ind - 1].state() != PyTango.DevState.ON:
+                print( "EigerDectris.StartOne: FW != MOVING -> detector state should be ON, return")
+                return
+            if self.proxy[ ind - 1].status() != 'idle':
+                print( "EigerDectris.StartOne: FW != MOVING -> detector status should be 'idle', return")
+                return
+            if self.isatty:
+                print( "EigerDectris.StartOne, arm()")
+            self.proxy[ind - 1].command_inout("Arm")
+            startTime = time.time()
+            while self.proxy[ ind - 1].status() != 'ready':
+                time.sleep( TIME_SLEEP)
+                if (time.time() - startTime) > 2:
+                    print( "EigerDectris.StartOne: detector does not become 'ready'")
+                    return
+            if self.isatty:
+                print( "EigerDectris.StartOne, status is 'ready', OK")
+            startTime = time.time()
+            while self.proxy_fw[ ind - 1].state() != PyTango.DevState.MOVING:
+                time.sleep( TIME_SLEEP)
+                if (time.time() - startTime) > 2:
+                    print( "EigerDectris.StartOne: filewrite does not become MOVING")
+                    return
+            if self.isatty:
+                print( "EigerDectris.StartOne, state_fw is MOVING, OK")
+            
+        if self.isatty:
+            print( "EigerDectris.StartOne, calling Trigger(), state %s"  % self.proxy[ ind - 1].state())
+            
         self.proxy[ind - 1].command_inout("Trigger")
+        #
+        # was necessary because Eiger1@haspp10lab
+        #
+        #while self.proxy[ ind - 1].status() != 'acquire':
+        #    time.sleep( TIME_SLEEP)
+        #    if (time.time() - startTime) > 2:
+        #        print( "EigerDectris.StartOne: detector does not become 'acquire'")
+        #        return
+        
+        if self.isatty:
+            print( "EigerDectris.StartOne, after Trigger(), status %s"  % self.proxy[ ind - 1].status())
 
     def AbortOne(self, ind):
         pass
-
-    def LoadOne(self, ind, value, repetitions, latency_time):
+    #
+    # +++
+    # 'repetitions' and 'latency_time' need the '= None' because
+    # the interface changes from Python2.7 to Python3
+    #
+    def LoadOne(self, ind, value, repetitions = None, latency_time = None):
+        if self.isatty:
+            print( "EigerDectris.loadOne, %s, countTime %g, state %s" % (self.tango_device[ ind - 1], value,  
+                                                                         str( self.proxy[ ind - 1].state())))
         self.proxy[ind - 1].write_attribute("CountTime", value)
         self.proxy[ind - 1].write_attribute("CountTimeInte", value)
+        #
+        # to set NbTriggers here interfers with actions we do in the hooks.
+        # 
+        #
+        #self.proxy[ind - 1].write_attribute("NbTriggers", 1)
+        if self.isatty:
+            print( "EigerDectris.loadOne DONE, %s, state %s" % (self.tango_device[ ind - 1], 
+                                                                         str( self.proxy[ ind - 1].state())))
 
     def GetAxisExtraPar(self, ind, name):
         if self.device_available[ind - 1]:
