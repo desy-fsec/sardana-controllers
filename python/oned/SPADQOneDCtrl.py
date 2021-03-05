@@ -113,7 +113,7 @@ class SPADQOneDCtrl(OneDController):
             proxy_name = str(self.node) + (":%s/" % self.port) + \
                 str(self.tango_device[ind - 1])
         self.proxy[ind - 1] = PyTango.DeviceProxy(proxy_name)
-        self.device_available[ind - 1] = 1
+        self.device_available[ind - 1] = True
 
     def DeleteDevice(self, ind):
         OneDController.DeleteDevice(self, ind)
