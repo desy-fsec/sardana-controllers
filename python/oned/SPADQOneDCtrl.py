@@ -258,6 +258,10 @@ class SPADQOneDCtrl(OneDController):
             elif name == "SpectrumName":
                 self.SpectrumName[ind - 1] = value
 
+    def GetAxisPar(self, axis, par):
+        if par == "shape":
+            return [100]
+
     def SendToCtrl(self, in_data):
         return "Nothing sent"
 
