@@ -111,7 +111,7 @@ class TimePixCtrl(TwoDController):
             else:
                 sta = PyTango.DevState.ON
                 tup = (sta, "Camera ready")
-                
+
             return tup
 
     def PreReadAll(self):
