@@ -100,7 +100,7 @@ class EigerDectrisCtrl(TwoDController):
                 # temp = HasyUtils.getDeviceProperty(
                 #            "p10/eigerdectris/lab.01", 'APIVersion')[0]
                 temp = HasyUtils.getDeviceProperty(name, 'APIVersion')[0]
-                self.APIVersion = [l for l in temp.split('.')]
+                self.APIVersion = [ll for ll in temp.split('.')]
         self.started = False
         self.dft_CountTime = 0
         self.CountTime = []
