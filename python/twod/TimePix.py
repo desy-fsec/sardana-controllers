@@ -99,7 +99,9 @@ class TimePixCtrl(TwoDController):
             if time.time() - self.start_time[ind - 1] > \
                self.exp_time and self.started is True:
                 try:
-                    self.proxy[ind - 1].command_inout("stop_acquisition")
+                    sta_tmp = self.proxy[ind - 1].command_inout("State")
+                    if sta_tmp == PyTango.DevState.MOVING:
+                        self.proxy[ind - 1].command_inout("stop_acquisition")
                     self.started = False
                 except Exception:
                     pass
@@ -111,7 +113,7 @@ class TimePixCtrl(TwoDController):
             else:
                 sta = PyTango.DevState.ON
                 tup = (sta, "Camera ready")
-                
+
             return tup
 
     def PreReadAll(self):
@@ -123,7 +125,9 @@ class TimePixCtrl(TwoDController):
         #        print "PYTHON -> TimePixCtrl/", self.inst_name, \
         # ": In PreReadOne method for index", ind
         try:
-            self.proxy[ind - 1].command_inout("stop_acquisition")
+            sta_tmp = self.proxy[ind - 1].command_inout("State")
+            if sta_tmp == PyTango.DevState.MOVING:
+                self.proxy[ind - 1].command_inout("stop_acquisition")
         except Exception:
             pass
 
@@ -156,7 +160,9 @@ class TimePixCtrl(TwoDController):
         #        print "PYTHON -> TimePixCtrl/", self.inst_name, \
         # ": In AbortOne method for index", ind
         try:
-            self.proxy[ind - 1].command_inout("stop_acquisition")
+            sta_tmp = self.proxy[ind - 1].command_inout("State")
+            if sta_tmp == PyTango.DevState.MOVING:
+                self.proxy[ind - 1].command_inout("stop_acquisition")
         except Exception:
             pass
 
