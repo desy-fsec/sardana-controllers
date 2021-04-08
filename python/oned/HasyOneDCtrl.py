@@ -139,8 +139,9 @@ class HasyOneDCtrl(OneDController):
             self.flagIsAvantes[ind - 1] = True
 
     def DeleteDevice(self, ind):
-        print("HasyOneDCtrl.DeleteDevice % s index %d "
-              % (self.inst_name, ind))
+        if self.debugFlag:
+            print("HasyOneDCtrl.DeleteDevice % s index %d "
+                  % (self.inst_name, ind))
         OneDController.DeleteDevice(self, ind)
         self.proxy[ind - 1] = None
         self.device_available[ind - 1] = 0
