@@ -29,7 +29,6 @@ from sardana.pool.controller import TwoDController
 from sardana.pool.controller import Type, Access, Description
 # from sardana.pool import PoolUtil
 
-import HasyUtils
 import time, os
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
@@ -83,8 +82,8 @@ class EigerDectrisCtrl(TwoDController):
         self.APIVersion = []
         for name in self.devices.value_string:
             self.tango_device.append(name)
-            self.tango_device_fw.append( self.getFwName( name))
-
+            temp = self.getFwName( name)
+            self.tango_device_fw.append( temp)
             self.proxy.append(None)
             self.proxy_fw.append(None)
             self.device_available.append(0)
@@ -93,9 +92,7 @@ class EigerDectrisCtrl(TwoDController):
                 #
                 # temp '1.8.0'
                 #
-                #temp = HasyUtils.getDeviceProperty( "p62/eiger/e4m", 'APIVersion')[0]
-                #temp = HasyUtils.getDeviceProperty( "p10/eigerdectris/lab.01", 'APIVersion')[0]
-                temp = HasyUtils.getDeviceProperty( name, 'APIVersion')[0]
+                temp = getDeviceProperty( name, 'APIVersion')[0]
                 self.APIVersion = [ l for l in temp.split( '.')] 
         self.started = False
         self.dft_CountTime = 0
@@ -115,9 +112,9 @@ class EigerDectrisCtrl(TwoDController):
         so we look at the list of filewriters and check theis EigerDevice
         property to find the filewriter in charge of name
         '''
-        devsFw = HasyUtils.getDeviceNamesByClass( "EigerFilewriter", tangoHost = self.TangoHost)
+        devsFw = getDeviceNamesByClass( "EigerFilewriter", tangoHost = self.TangoHost)
         for devFw in devsFw:
-            prop = HasyUtils.getDeviceProperty( devFw, 'EigerDevice', tangoHost = self.TangoHost)
+            prop = getDeviceProperty( devFw, 'EigerDevice', tangoHost = self.TangoHost)
             if prop[0] == name:
                 return devFw
         return None
@@ -327,6 +324,92 @@ class EigerDectrisCtrl(TwoDController):
 
     def __del__(self):
         print("PYTHON -> EigerDectrisCtrl dying")
+#
+#
+#
+db = None
+
+def findDB( tangoHost = None):
+    '''
+    handle these cases:
+      - tangoHost == None: use TANGO_HOST DB
+      - tangoHost == "haspp99:10000" return db link
+      - tangoHost == "haspp99" insert 100000 and return db link
+    '''
+    if tangoHost is None:
+        global db
+        if db is None: 
+            db = PyTango.Database()
+        return db
+
+    #
+    # unexpeccted: tango://haspe212oh.desy.de:10000/motor/dummy_mot_ctrl/1
+    #
+    if tangoHost.find( 'tango://') == 0:
+        PyTango.Except.throw_exception( "n.n.", "bad TANGO_HOST syntax %s" % tangoHost, "EigerDectris.findDB") 
+    #
+    # tangHost "haspp99:10000"
+    #
+    lst = tangoHost.split( ':')
+    if len(lst) == 2:
+        return PyTango.Database( lst[0], lst[1])
+    #
+    # tangHost "haspp99"
+    #
+    elif len(lst) == 1:
+        return PyTango.Database( lst[0], "10000")
+    else:
+        return None
+
+def getDeviceNamesByClass( className, tangoHost = None):
+    '''Return a list of all devices of a specified class, 
+        'DGG2' -> ['p09/dgg2/exp.01', 'p09/dgg2/exp.02']
+    '''
+    srvs = getServerNameByClass( className, tangoHost)
+    argout = []
+    
+    db = findDB( tangoHost)
+    if not db:
+        return None
+
+    for srv in srvs:
+        lst = db.get_device_name( srv, className).value_string
+        for i in range(0, len( lst)):
+            argout.append( lst[i])
+    return argout
+
+def getServerNameByClass( argin, tangoHost = None): 
+    '''Return a list of servers containing the specified class '''
+
+    db = findDB( tangoHost)
+
+    srvs = db.get_server_list( "*").value_string
+
+    argout = []
+
+    for srv in srvs:
+        classList = db.get_server_class_list( srv).value_string
+        for clss in classList:
+            if clss == argin:
+                argout.append( srv)
+                break
+    return argout
+#
+#
+# 
+def getDeviceProperty( devName, propName, tangoHost = None):
+    '''
+    devName: p10/eigerfilewriter/lab.01, propName: EigerDevice
+    return: ['p10/eigerdectris/lab.01']
+    '''
+    
+    db = findDB( tangoHost)
+    if not db:
+        return None
+
+    dct = db.get_device_property( devName, [ propName])
+
+    return list(dct[ propName])
 
 
 if __name__ == "__main__":
