@@ -43,7 +43,10 @@ class AmptekPX5CounterTimerController(CounterTimerController):
 
     def __init__(self, inst, props, *args, **kwargs):
         CounterTimerController.__init__(self, inst, props, *args, **kwargs)
-        self.amptekPX5 = taurus.Device(self.deviceName)
+        try:
+            self.amptekPX5 = taurus.Device(self.deviceName) # taurus complains if not tango://
+	except:
+            self.amptekPX5 = PyTango.DeviceProxy(self.deviceName)
         self.amptekPX5.set_timeout_millis(7000)
         self.acqTime = 0
         self.sta = State.On

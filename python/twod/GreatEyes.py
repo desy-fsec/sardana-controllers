@@ -9,15 +9,15 @@ from sardana.pool import PoolUtil
 ReadOnly = DataAccess.ReadOnly
 ReadWrite = DataAccess.ReadWrite
 
-class PSCameraVHRCtrl(TwoDController):
-    "This class is the Tango Sardana Two D controller for the PSCameraVHR"
+class GreatEyesCtrl(TwoDController):
+    "This class is the Tango Sardana Two D controller for the GreatEyes"
 
 
     ctrl_extra_attributes = {
                              'TangoDevice':{Type:'PyTango.DevString',Access:ReadOnly}
                              }
 			     
-    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the PSCameraVHR Tango devices'},
+    class_prop = {'RootDeviceName':{Type:str,Description:'The root name of the GreatEyes Tango devices'},
                   'TangoHost':{Type:str,Description:'The tango host where searching the devices'},}
 			     
     MaxDevice = 97
@@ -26,7 +26,7 @@ class PSCameraVHRCtrl(TwoDController):
         self.TangoHost = None
         TwoDController.__init__(self,inst,props, *args, **kwargs)
 
-        self.ct_name = "PSCameraVHRCtrl/" + self.inst_name
+        self.ct_name = "GreatEyesCtrl/" + self.inst_name
         if self.TangoHost == None:
             self.db = PyTango.Database()
         else:
@@ -101,10 +101,11 @@ class PSCameraVHRCtrl(TwoDController):
         pass
     
     def PreStartOne(self, ind, value):
+        self.proxy[ind-1].command_inout("PrepareAcq")
         return True
             
     def StartOne(self,ind, position=None):
-        self.proxy[ind-1].command_inout("StartAcquisition")
+        self.proxy[ind-1].command_inout("StartAcq")
         
     def AbortOne(self,ind):
         pass
@@ -112,9 +113,6 @@ class PSCameraVHRCtrl(TwoDController):
     def LoadOne(self, ind, value):
         self.proxy[ind-1].write_attribute("ExposureTime",value)
 
-    def GetAxisPar(self, ind, par_name):
-        pass
- 
     def GetExtraAttributePar(self,ind,name):
         if self.device_available[ind-1]:
             if name == "TangoDevice":
@@ -124,11 +122,12 @@ class PSCameraVHRCtrl(TwoDController):
     def SetExtraAttributePar(self,ind,name,value):
         pass
         
+        
     def SendToCtrl(self,in_data):
         return "Nothing sent"
         
     def __del__(self):
-        print "PYTHON -> PSCameraVHRCtrl/",self.inst_name,": dying"
+        print "PYTHON -> GreatEyesCtrl/",self.inst_name,": dying"
 
         
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ class SIS3302MultiScanCtrl(OneDController):
     def StateOne(self,ind):
         #print "SIS3302MultiScanCtrl.StatOne",self.inst_name,"index",ind
         if self.proxy.MCAScanNofHistogramsPreset == 0:
-            sta == PyTango.DevState.ON
+            sta = PyTango.DevState.ON
             tup = (sta, "The MCA is always ON. MCAScanNofHistogramsPreset = 0")
         else:
             sta = self.proxy.command_inout("State")

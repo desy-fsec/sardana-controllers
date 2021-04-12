@@ -34,9 +34,8 @@
 
 import PyTango
 
-from sardana import pool
-from sardana.pool import PoolUtil
-from sardana.pool.controller import MotorController
+from sardana.pool.controller import MotorController, Description, Type, \
+    Access, DataAccess
 
 
 class TurboPmacController(MotorController):
@@ -47,108 +46,110 @@ class TurboPmacController(MotorController):
 
     MaxDevice = 32
     class_prop = {
-        'PmacEthDevName': {
-            'Type': 'PyTango.DevString',
-            'Description': 'Device name of the PmacEth DS'}}
+        'PmacEthDevName': {Type: str,
+                           Description: 'Device name of the PmacEth DS'}
+    }
 
     motor_extra_attributes = {  # First Word
-        "MotorActivated": {'Type': 'PyTango.DevBoolean',
-                           'R/W Type': 'PyTango.READ'},
-        "NegativeEndLimitSet": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "PositiveEndLimitSet": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "ExtendedServoAlgorithmEnabled": {'Type': 'PyTango.DevBoolean',
-                                          'R/W Type': 'PyTango.READ'},
+        "MotorActivated": {Type: bool,
+                           Access: DataAccess.ReadOnly},
+        "NegativeEndLimitSet": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "PositiveEndLimitSet": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "ExtendedServoAlgorithmEnabled": {Type: bool,
+                                          Access: DataAccess.ReadOnly},
 
-        "AmplifierEnabled": {'Type': 'PyTango.DevBoolean',
-                             'R/W Type': 'PyTango.READ_WRITE'},
-        "OpenLoopMode": {'Type': 'PyTango.DevBoolean',
-                         'R/W Type': 'PyTango.READ'},
-        "MoveTimerActive": {'Type': 'PyTango.DevBoolean',
-                            'R/W Type': 'PyTango.READ'},
-        "IntegrationMode": {'Type': 'PyTango.DevBoolean',
-                            'R/W Type': 'PyTango.READ'},
+        "AmplifierEnabled": {Type: bool,
+                             Access: DataAccess.ReadWrite},
+        "OpenLoopMode": {Type: bool,
+                         Access: DataAccess.ReadOnly},
+        "MoveTimerActive": {Type: bool,
+                            Access: DataAccess.ReadOnly},
+        "IntegrationMode": {Type: bool,
+                            Access: DataAccess.ReadOnly},
 
-        "DwellInProgress": {'Type': 'PyTango.DevBoolean',
-                            'R/W Type': 'PyTango.READ'},
-        "DataBlockError": {'Type': 'PyTango.DevBoolean',
-                           'R/W Type': 'PyTango.READ'},
-        "DesiredVelocityZero": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "AbortDeceleration": {'Type': 'PyTango.DevBoolean',
-                              'R/W Type': 'PyTango.READ'},
+        "DwellInProgress": {Type: bool,
+                            Access: DataAccess.ReadOnly},
+        "DataBlockError": {Type: bool,
+                           Access: DataAccess.ReadOnly},
+        "DesiredVelocityZero": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "AbortDeceleration": {Type: bool,
+                              Access: DataAccess.ReadOnly},
 
-        "BlockRequest": {'Type': 'PyTango.DevBoolean',
-                         'R/W Type': 'PyTango.READ'},
-        "HomeSearchInProgress": {'Type': 'PyTango.DevBoolean',
-                                 'R/W Type': 'PyTango.READ'},
-        "User-WrittenPhaseEnable": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
-        "User-WrittenServoEnable": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
+        "BlockRequest": {Type: bool,
+                         Access: DataAccess.ReadOnly},
+        "HomeSearchInProgress": {Type: bool,
+                                 Access: DataAccess.ReadOnly},
+        "User-WrittenPhaseEnable": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
+        "User-WrittenServoEnable": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
 
-        "AlternateSource_Destination": {'Type': 'PyTango.DevBoolean',
-                                        'R/W Type': 'PyTango.READ'},
-        "PhasedMotor": {'Type': 'PyTango.DevBoolean',
-                        'R/W Type': 'PyTango.READ'},
-        "FollowingOffsetMode": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "FollowingEnabled": {'Type': 'PyTango.DevBoolean',
-                             'R/W Type': 'PyTango.READ'},
+        "AlternateSource_Destination": {Type: bool,
+                                        Access: DataAccess.ReadOnly},
+        "PhasedMotor": {Type: bool,
+                        Access: DataAccess.ReadOnly},
+        "FollowingOffsetMode": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "FollowingEnabled": {Type: bool,
+                             Access: DataAccess.ReadOnly},
 
-        "ErrorTriger": {'Type': 'PyTango.DevBoolean',
-                        'R/W Type': 'PyTango.READ'},
-        "SoftwarePositionCapture": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
-        "IntegratorInVelocityLoop": {'Type': 'PyTango.DevBoolean',
-                                     'R/W Type': 'PyTango.READ'},
-        "AlternateCommand-OutputMode": {'Type': 'PyTango.DevBoolean',
-                                        'R/W Type': 'PyTango.READ'},
+        "ErrorTriger": {Type: bool,
+                        Access: DataAccess.ReadOnly},
+        "SoftwarePositionCapture": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
+        "IntegratorInVelocityLoop": {Type: bool,
+                                     Access: DataAccess.ReadOnly},
+        "AlternateCommand-OutputMode": {Type: bool,
+                                        Access: DataAccess.ReadOnly},
         # Second Word
-        "CoordinateSystem": {'Type': 'PyTango.DevLong',
-                             'R/W Type': 'PyTango.READ'},
+        "CoordinateSystem": {Type: int,
+                             Access: DataAccess.ReadOnly},
 
-        "CoordinateDefinition": {'Type': 'PyTango.DevString',
-                                 'R/W Type': 'PyTango.READ'},
+        "CoordinateDefinition": {Type: str,
+                                 Access: DataAccess.ReadOnly},
 
-        "AssignedToCoordinateSystem": {'Type': 'PyTango.DevBoolean',
-                                       'R/W Type': 'PyTango.READ'},
+        "AssignedToCoordinateSystem": {Type: bool,
+                                       Access: DataAccess.ReadOnly},
         # Reserved for future use
-        "ForegroundInPosition": {'Type': 'PyTango.DevBoolean',
-                                 'R/W Type': 'PyTango.READ'},
-        "StoppedOnDesiredPositionLimit": {'Type': 'PyTango.DevBoolean',
-                                          'R/W Type': 'PyTango.READ'},
+        "ForegroundInPosition": {Type: bool,
+                                 Access: DataAccess.ReadOnly},
+        "StoppedOnDesiredPositionLimit": {Type: bool,
+                                          Access: DataAccess.ReadOnly},
 
-        "StoppedOnPositionLimit": {'Type': 'PyTango.DevBoolean',
-                                   'R/W Type': 'PyTango.READ'},
-        "HomeComplete": {'Type': 'PyTango.DevBoolean',
-                         'R/W Type': 'PyTango.READ'},
-        "PhasingSearch_ReadActive": {'Type': 'PyTango.DevBoolean',
-                                     'R/W Type': 'PyTango.READ'},
-        "PhasingReferenceError": {'Type': 'PyTango.DevBoolean',
-                                  'R/W Type': 'PyTango.READ'},
+        "StoppedOnPositionLimit": {Type: bool,
+                                   Access: DataAccess.ReadOnly},
+        "HomeComplete": {Type: bool,
+                         Access: DataAccess.ReadOnly},
+        "PhasingSearch_ReadActive": {Type: bool,
+                                     Access: DataAccess.ReadOnly},
+        "PhasingReferenceError": {Type: bool,
+                                  Access: DataAccess.ReadOnly},
 
-        "TriggerMove": {'Type': 'PyTango.DevBoolean',
-                        'R/W Type': 'PyTango.READ'},
-        "IntegratedFatalFollowingError": {'Type': 'PyTango.DevBoolean',
-                                          'R/W Type': 'PyTango.READ'},
-        "I2T_amplifierFaultError": {'Type': 'PyTango.DevBoolean',
-                                    'R/W Type': 'PyTango.READ'},
-        "BacklashDirectionFlag": {'Type': 'PyTango.DevBoolean',
-                                  'R/W Type': 'PyTango.READ'},
+        "TriggerMove": {Type: bool,
+                        Access: DataAccess.ReadOnly},
+        "IntegratedFatalFollowingError": {Type: bool,
+                                          Access: DataAccess.ReadOnly},
+        "I2T_amplifierFaultError": {Type: bool,
+                                    Access: DataAccess.ReadOnly},
+        "BacklashDirectionFlag": {Type: bool,
+                                  Access: DataAccess.ReadOnly},
 
-        "AmplifierFaultError": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "FatalFollowingError": {'Type': 'PyTango.DevBoolean',
-                                'R/W Type': 'PyTango.READ'},
-        "WarningFollowingError": {'Type': 'PyTango.DevBoolean',
-                                  'R/W Type': 'PyTango.READ'},
-        "InPosition": {'Type': 'PyTango.DevBoolean',
-                       'R/W Type': 'PyTango.READ'}}
+        "AmplifierFaultError": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "FatalFollowingError": {Type: bool,
+                                Access: DataAccess.ReadOnly},
+        "WarningFollowingError": {Type: bool,
+                                  Access: DataAccess.ReadOnly},
+        "InPosition": {Type: bool,
+                       Access: DataAccess.ReadOnly}}
 
-    cs_extra_attributes = {"MotionProgramRunning": {
-        'Type': 'PyTango.DevBoolean', 'R/W Type': 'PyTango.READ'}}
+    cs_extra_attributes = {
+        "MotionProgramRunning": {Type: bool,
+                                 Access: DataAccess.ReadOnly}
+    }
 
     ctrl_extra_attributes = {}
     ctrl_extra_attributes.update(motor_extra_attributes)
@@ -181,7 +182,7 @@ class TurboPmacController(MotorController):
         self.pmacEthOk = False
         try:
             pmacEthState = self.pmacEth.state()
-        except PyTango.DevFailed as e:
+        except PyTango.DevFailed:
             self._log.error(
                 "PreStateAll(): PmacEth DeviceProxy state command failed.")
         if pmacEthState == PyTango.DevState.ON:
@@ -195,7 +196,7 @@ class TurboPmacController(MotorController):
             return
         try:
             motStateAns = self.pmacEth.command_inout("SendCtrlChar", "B")
-        except PyTango.DevFailed as e:
+        except PyTango.DevFailed:
             self._log.error("StateAll(): SendCtrlChar('B') command called on "
                             "PmacEth DeviceProxy failed.")
             self.pmacEthOk = False
@@ -205,7 +206,7 @@ class TurboPmacController(MotorController):
 
         try:
             csStateAns = self.pmacEth.command_inout("SendCtrlChar", "C")
-        except PyTango.DevFailed as e:
+        except PyTango.DevFailed:
             self._log.error("StateAll(): SendCtrlChar('C') command called on "
                             "PmacEth DeviceProxy failed.")
             self.pmacEthOk = False
@@ -222,7 +223,8 @@ class TurboPmacController(MotorController):
             attributes["MotorActivated"] = bool(motBinState[0] & 0x8)
             attributes["NegativeEndLimitSet"] = bool(motBinState[0] & 0x4)
             attributes["PositiveEndLimitSet"] = bool(motBinState[0] & 0x2)
-            attributes["ExtendedServoAlgorithmEnabled"] = bool(motBinState[0] & 0x1)
+            value = bool(motBinState[0] & 0x1)
+            attributes["ExtendedServoAlgorithmEnabled"] = value
 
             attributes["AmplifierEnabled"] = bool(motBinState[1] & 0x8)
             attributes["OpenLoopMode"] = bool(motBinState[1] & 0x4)
@@ -248,18 +250,21 @@ class TurboPmacController(MotorController):
             attributes["ErrorTriger"] = bool(motBinState[5] & 0x8)
             attributes["SoftwarePositionCapture"] = bool(motBinState[5] & 0x4)
             attributes["IntegratorInVelocityLoop"] = bool(motBinState[5] & 0x2)
-            attributes["AlternateCommand-OutputMode"] = bool(motBinState[5] & 0x1)
+            value = bool(motBinState[5] & 0x1)
+            attributes["AlternateCommand-OutputMode"] = value
             # Second Word
             # We add one because these bits together hold a value equal to the
             # Coordinate System nr minus one
             attributes["CoordinateSystem"] = motBinState[6] + 1
+            value = self.translateCoordinateDefinition(motBinState[7])
+            attributes["CoordinateDefinition"] = value
 
-            attributes["CoordinateDefinition"] = self.translateCoordinateDefinition(motBinState[7])
-
-            attributes["AssignedToCoordinateSystem"] = bool(motBinState[8] & 0x8)
+            value = bool(motBinState[8] & 0x8)
+            attributes["AssignedToCoordinateSystem"] = value
             # Reserved for future use
             attributes["ForegroundInPosition"] = bool(motBinState[8] & 0x2)
-            attributes["StoppedOnDesiredPositionLimit"] = bool(motBinState[8] & 0x1)
+            value = bool(motBinState[8] & 0x1)
+            attributes["StoppedOnDesiredPositionLimit"] = value
 
             attributes["StoppedOnPositionLimit"] = bool(motBinState[9] & 0x8)
             attributes["HomeComplete"] = bool(motBinState[9] & 0x4)
@@ -267,7 +272,8 @@ class TurboPmacController(MotorController):
             attributes["PhasingReferenceError"] = bool(motBinState[9] & 0x1)
 
             attributes["TriggerMove"] = bool(motBinState[10] & 0x8)
-            attributes["IntegratedFatalFollowingError"] = bool(motBinState[10] & 0x4)
+            value = bool(motBinState[10] & 0x4)
+            attributes["IntegratedFatalFollowingError"] = value
             attributes["I2T_amplifierFaultError"] = bool(motBinState[10] & 0x2)
             attributes["BacklashDirectionFlag"] = bool(motBinState[10] & 0x1)
 
@@ -277,21 +283,21 @@ class TurboPmacController(MotorController):
             attributes["InPosition"] = bool(motBinState[11] & 0x1)
 
             csBinState = csStateBinArray[attributes["CoordinateSystem"] - 1]
-            self.attributes[axis]["MotionProgramRunning"] = bool(csBinState[5] & 0x1)
+            value = bool(csBinState[5] & 0x1)
+            self.attributes[axis]["MotionProgramRunning"] = value
 
     def StateOne(self, axis):
         switchstate = 0
         if not self.pmacEthOk:
             state = PyTango.DevState.ALARM
-            status = "Ethernet connection with TurboPmac failed. \n(Check if " \
-                     "PmacEth DS is running and if its state is ON)"
+            status = "Ethernet connection with TurboPmac failed. \n(Check " \
+                     "if PmacEth DS is running and if its state is ON)"
         elif not self.attributes[axis]["MotorActivated"]:
             state = PyTango.DevState.FAULT
             status = "Motor is deactivated - it is not under Pmac control (" \
                      "Check Ix00 variable)."
         else:
             state = PyTango.DevState.MOVING
-            #state = PyTango.DevState.ON
             status = "Motor is in MOVING state."
             # motion cases
             if self.attributes[axis]["InPosition"] and (
@@ -324,7 +330,7 @@ class TurboPmacController(MotorController):
                 status += "\nAt least one of the negative/positive limit is " \
                           "activated"
                 switchstate += 2
-        return (state, status, switchstate)
+        return state, status, switchstate
 
     def PreReadAll(self):
         self.positionMultiple = {}
@@ -341,7 +347,8 @@ class TurboPmacController(MotorController):
             self.positionMultiple[axis] = motPosFloatArray[axis - 1]
 
     def ReadOne(self, axis):
-        return self.positionMultiple[axis] / self.attributes[axis]["step_per_unit"]
+        spu = self.attributes[axis]["step_per_unit"]
+        return self.positionMultiple[axis] / spu
 
     def PreStartAll(self):
         self._log.debug("Entering PreStartAll")
@@ -376,7 +383,7 @@ class TurboPmacController(MotorController):
             try:
                 self.pmacEth.command_inout(
                     "SetIVariable", (float(ivar), float(pmacVelocity)))
-            except PyTango.DevFailed as e:
+            except PyTango.DevFailed:
                 self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,"
                                 "%d) command called on PmacEth DeviceProxy "
                                 "failed.", axis, name, value, ivar,
@@ -392,7 +399,7 @@ class TurboPmacController(MotorController):
             try:
                 self.pmacEth.command_inout(
                     "SetIVariable", (float(ivar), float(pmacAcceleration)))
-            except PyTango.DevFailed as e:
+            except PyTango.DevFailed:
                 self._log.error("SetPar(%d,%s,%s): SetIVariable(%d,"
                                 "%d) command called on PmacEth DeviceProxy "
                                 "failed.", axis, name, value, ivar,
@@ -402,7 +409,7 @@ class TurboPmacController(MotorController):
             self.attributes[axis]["step_per_unit"] = float(value)
         elif name.lower() == "base_rate":
             self.attributes[axis]["base_rate"] = float(value)
-        #@todo implement base_rate
+        # @todo implement base_rate
 
     def GetPar(self, axis, name):
         """ Get the standard pool motor parameters.
@@ -414,7 +421,7 @@ class TurboPmacController(MotorController):
             ivar = long("%d22" % axis)
             try:
                 pmacVelocity = self.pmacEth.command_inout("GetIVariable", ivar)
-            except PyTango.DevFailed as e:
+            except PyTango.DevFailed:
                 self._log.error("GetPar(%d,%s): GetIVariable(%d) command "
                                 "called on PmacEth DeviceProxy failed.",
                                 axis, name, ivar)
@@ -432,7 +439,7 @@ class TurboPmacController(MotorController):
             try:
                 pmacAcceleration = self.pmacEth.command_inout(
                     "GetIVariable", ivar)
-            except PyTango.DevFailed as e:
+            except PyTango.DevFailed:
                 self._log.error("GetPar(%d,%s): GetIVariable(%d) command "
                                 "called on PmacEth DeviceProxy failed.",
                                 axis, name, ivar)
@@ -442,7 +449,7 @@ class TurboPmacController(MotorController):
 
         elif name.lower() == "step_per_unit":
             return self.attributes[axis]["step_per_unit"]
-            #@todo implement base_rate
+            # @todo implement base_rate
         elif name.lower() == "base_rate":
             return self.attributes[axis]["base_rate"]
         else:
@@ -453,7 +460,7 @@ class TurboPmacController(MotorController):
             abortCmd = "&%da" % self.attributes[axis]["CoordinateSystem"]
             try:
                 self.pmacEth.command_inout("OnlineCmd", abortCmd)
-            except PyTango.DevFailed as e:
+            except PyTango.DevFailed:
                 self._log.error("AbortOne(%d): OnlineCmd(%s) command called "
                                 "on PmacEth DeviceProxy failed." %
                                 axis, abortCmd)
@@ -461,7 +468,7 @@ class TurboPmacController(MotorController):
         else:
             try:
                 self.pmacEth.command_inout("JogStop", [axis])
-            except PyTango.DevFailed as e:
+            except PyTango.DevFailed:
                 self._log.error("AbortOne(%d): JogStop(%d) command called on "
                                 "PmacEth DeviceProxy failed." %
                                 axis, axis)

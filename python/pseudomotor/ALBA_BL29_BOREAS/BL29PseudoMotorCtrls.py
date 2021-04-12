@@ -1702,18 +1702,32 @@ class BL29MaresSpecularMagnet(BL29MaresSpecular):
         """
         # do not allow movement if velocity of all motors is not similar
         velocities = []
-        for i in range(len(self.motor_roles)):
+        for i in [self.motor_roles.index('2theta'),
+                  self.motor_roles.index('theta'),
+                  self.motor_roles.index('magnet')]:
+            # get motor velocities in proper order for later comparing
             motor = self.GetMotor(i)
             velocities.append(motor.velocity)
-        for idx, v1 in enumerate(velocities):
-            for v2 in velocities[idx+1:]:
-                if abs(v1-v2) > self.velocity_tolerance:
-                    msg = (
-                        'Velocities of all physical motors are not similar. '
-                        'Please check velocity_tolerance and velocities of '
-                        'all involved motors')
-                    self._log.error(msg)
-                    raise Exception(msg)
+
+        # check if motors velocities are correctly configured
+        th2_velocity = velocities[0]
+        velocities_match = 0
+        for vel in velocities[1:]:
+            if abs(th2_velocity-vel*2.0) < self.velocity_tolerance:
+                velocities_match += 1
+            elif abs(th2_velocity-vel) < self.velocity_tolerance:
+                velocities_match -= 1
+            else:
+                msg = (
+                    'Velocities of all physical motors are not similar. '
+                    'Please check velocity_tolerance and velocities of '
+                    'all involved motors')
+                self._log.error(msg)
+                raise Exception(msg)
+        if velocities_match == 2:
+            velocities_adjusted = True
+        else:
+            velocities_adjusted = False
 
         # do not allow movement if current pseudo position is NaN: this
         # means that motors are not aligned and there may be a collision
@@ -1755,8 +1769,9 @@ class BL29MaresSpecularMagnet(BL29MaresSpecular):
 
             # th and hts speed must be exactly half the speed of 2th in
             # order for the movement to be synchronized
-            self.th_motor.velocity = self.th_velocity / 2.0
-            self.hts_motor.velocity = self.hts_velocity / 2.0
+            if not velocities_adjusted:
+                self.th_motor.velocity = self.th_velocity / 2.0
+                self.hts_motor.velocity = self.hts_velocity / 2.0
 
             return targets
         except:  # in case of any error restore original velocity
@@ -1766,8 +1781,8 @@ class BL29MaresSpecularMagnet(BL29MaresSpecular):
 
     def on_pseudo_change(self, evt_src, evt_type, evt_value):
         """
-        Callback function to restore theta velocity after the pseudo motor
-        finished a movement.
+        Callback function to restore theta and hts velocity after the pseudo
+        motor finished a movement.
         """
         if (evt_src != self.pseudo_motor_magspecular or
                 evt_type.get_name().lower() != 'state' or

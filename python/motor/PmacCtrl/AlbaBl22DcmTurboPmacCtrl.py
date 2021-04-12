@@ -41,7 +41,8 @@ from TurboPmacCtrl import TurboPmacController
 
 class DcmTurboPmacController(TurboPmacController):
     """
-    This class is a Sardana motor controller for DCM of CLAESS beamline at ALBA.
+    This class is a Sardana motor controller for DCM of CLAESS beamline at
+    ALBA.
     DCM comprises many motors, and two of them: Bragg and
     2ndXtalPerpendicular are controlled from TurboPmac Motor Controller
     """
@@ -77,25 +78,31 @@ class DcmTurboPmacController(TurboPmacController):
         self.move_bragg_only = False
         self.user_qExafs = False
         self.next_position = []
+        self.move_started = {1: False, 3: False}
 
     def StateOne(self, axis):
         switchstate = 0
         if not self.pmacEthOk:
             state = PyTango.DevState.ALARM
-            status = "Ethernet connection with TurboPmac failed. \n(Check if " \
-                     "PmacEth DS is running and if its state is ON)"
+            status = "Ethernet connection with TurboPmac failed. \n(Check " \
+                     "if PmacEth DS is running and if its state is ON)"
         elif not self.attributes[axis]["MotorActivated"]:
             state = PyTango.DevState.FAULT
             status = "Motor is deactivated - it is not under Pmac control (" \
                      "Check Ix00 variable)."
+        elif not self.move_started[axis]:
+            state = PyTango.DevState.ON
+            status = "Motor is in ON state.\nMotor is stopped in position"
         else:
             state = PyTango.DevState.MOVING
             # state = PyTango.DevState.ON
             status = "Motor is in MOVING state."
             # motion cases
-            if self.attributes[axis]["ForegroundInPosition"] and \
+            if self.move_started[axis] and \
+                    self.attributes[axis]["ForegroundInPosition"] and \
                     (not self.attributes[axis]["MotionProgramRunning"]):
                 state = PyTango.DevState.ON
+                self.move_started[axis] = False
                 status = "Motor is in ON state.\nMotor is stopped in position"
             else:
                 if self.attributes[axis]["HomeSearchInProgress"]:
@@ -141,16 +148,18 @@ class DcmTurboPmacController(TurboPmacController):
             if self.user_qExafs and (self.next_position != []):
                 try:
                     w_pos = (bragg_deg, perp)
-                    np.testing.assert_almost_equal(w_pos, self.next_position, 5)
-                except Exception as e:
-                    self._log.error('The positions set were wrong %r. Use '
-                                    'backup position %r' % (w_pos,
-                                                            self.next_position))
+                    np.testing.assert_almost_equal(w_pos,
+                                                   self.next_position,
+                                                   5)
+                except Exception:
+                    self._log.error('The positions set were wrong %r. '
+                                    'Use backup position '
+                                    '%r' % (w_pos, self.next_position))
                     bragg_deg, perp = self.next_position
-            
-            self.user_qExafs = False    
+
+            self.user_qExafs = False
             self.next_position = []
-            
+
             bragg_rad = math.radians(bragg_deg)
 
             # we calculate exit offset form the current position of the
@@ -164,8 +173,9 @@ class DcmTurboPmacController(TurboPmacController):
                 program = 12
             self.pmacEth.command_inout("RunMotionProg", program)
         else:
-            # self.superklass.StartAll(self)
             super(DcmTurboPmacController, self).StartAll()
+        for axis in self.startMultiple:
+            self.move_started[axis] = True
         self._log.debug("Leaving StartAll")
 
     def set_move_bragg(self, value):

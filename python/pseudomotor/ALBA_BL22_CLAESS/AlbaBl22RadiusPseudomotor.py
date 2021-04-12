@@ -1,42 +1,47 @@
-import math, logging
-from sardana import pool 
-from sardana.pool import PoolUtil
-from sardana.pool.controller import PseudoMotorController
+from sardana.pool.controller import PseudoMotorController, Description, \
+    DataAccess, Type, Access, DefaultValue
+
 
 class RadiusController(PseudoMotorController):
-    """This pseudomotor controller does the calculation of radius 
+    """This pseudomotor controller does the calculation of radius
        of VCM mirror"""
-    
+
     pseudo_motor_roles = ('radius',)
     motor_roles = ('bender',)
-                             
-    class_prop = { 'conversion':{'Type' : 'PyTango.DevDouble', 'Description' : 'Conversion factor (half steps to 1/km)', 'DefaultValue':1.0}}
 
-    ctrl_extra_attributes = {"PusherOffset":{ "Type":"PyTango.DevDouble", "R/W Type": "PyTango.READ_WRITE"}}
+    class_prop = {
+        'conversion': {Type: float,
+                       Description: 'Conversion factor (half steps to 1/km)',
+                       DefaultValue: 1.0}}
 
-    def __init__(self, inst, props, *args, **kwargs):    
+    ctrl_extra_attributes = {
+        "PusherOffset": {Type: float,
+                         Access: DataAccess.ReadWrite}
+    }
+
+    def __init__(self, inst, props, *args, **kwargs):
         PseudoMotorController.__init__(self, inst, props, *args, **kwargs)
-        #Setting the default value for Pusher Offset
-        self.pusherOffset = 0 
-        
+        # Setting the default value for Pusher Offset
+        self.pusherOffset = 0
+
     def calc_physical(self, index, pseudos):
         return self.calc_all_physical(pseudos)[index - 1]
-    
+
     def calc_pseudo(self, index, physicals):
         return self.calc_all_pseudo(physicals)[index - 1]
-    
+
     def calc_all_physical(self, pseudos):
         radius, = pseudos
-        bender = self.conversion/radius + self.pusherOffset 
-        return (bender,)
-        
+        bender = self.conversion/radius + self.pusherOffset
+        return bender,
+
     def calc_all_pseudo(self, physicals):
         bender, = physicals
         try:
             radius = self.conversion/(bender - self.pusherOffset)
         except ZeroDivisionError:
             radius = float('Infinity')
-        return (radius,)
+        return radius,
 
     def GetExtraAttributePar(self, axis, name):
         """Get Radius pseudomotor extra attribute.
@@ -48,7 +53,6 @@ class RadiusController(PseudoMotorController):
         """
         if name == "PusherOffset":
             return self.pusherOffset
-        
 
     def SetExtraAttributePar(self, axis, name, value):
         """Set Radius pseudomotor extra attribute.
