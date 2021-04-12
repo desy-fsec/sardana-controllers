@@ -97,7 +97,7 @@ class EigerDectrisCtrl(TwoDController):
                 # temp '1.8.0'
                 #
                 temp = getDeviceProperty(name, 'APIVersion')[0]
-                self.APIVersion = [l for l in temp.split('.')]
+                self.APIVersion = [ll for ll in temp.split('.')]
         self.started = False
         self.dft_CountTime = 0
         self.CountTime = []
