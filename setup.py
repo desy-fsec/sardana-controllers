@@ -15,7 +15,7 @@ provides = ['python']
 
 
 setup(name='PoolController',
-      version=1.0,
+      version=release,
       author="Sardana Controller Developers",
       author_email="fs-ec@desy.de",
       maintainer="DESY",
