@@ -2,8 +2,8 @@
 
 import os
 import imp
-import datetime
 from setuptools import setup
+from datetime import datetime
 
 release = datetime.today().strftime('%Y.%m.%d.%H.%M').replace(".0", ".")
 
