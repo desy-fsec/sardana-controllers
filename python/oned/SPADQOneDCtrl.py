@@ -231,9 +231,10 @@ class SPADQOneDCtrl(OneDController):
             elif name == "SpectrumName":
                 self.SpectrumName[ind - 1] = value
 
-    def GetAxisPar(self, axis, par):
+    def GetAxisPar(self, ind, par):
         if par == "shape":
-            return [self.proxy[ind-1].read_attribute("samples_per_record").value]
+            value = self.proxy[ind-1].read_attribute("samples_per_record").value
+            return [value]
 
     def SendToCtrl(self, in_data):
         return "Nothing sent"
