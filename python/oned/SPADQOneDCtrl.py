@@ -233,7 +233,8 @@ class SPADQOneDCtrl(OneDController):
 
     def GetAxisPar(self, ind, par):
         if par == "shape":
-            value = self.proxy[ind-1].read_attribute("samples_per_record").value
+            value = self.proxy[ind-1].read_attribute(
+                "samples_per_record").value
             return [value]
 
     def SendToCtrl(self, in_data):
