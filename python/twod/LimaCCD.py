@@ -4,7 +4,7 @@ import PyTango
 from sardana import DataAccess
 # from sardana import State, DataAccess
 from sardana.pool.controller import TwoDController
-from sardana.pool.controller import Type, Access, Description
+from sardana.pool.controller import Type, Access, Description, DefaultValue
 # from sardana.pool.controller import Type, Access, Description, DefaultValue
 # from sardana.pool import PoolUtil
 
@@ -41,6 +41,11 @@ class LimaCCDCtrl(TwoDController):
         'TangoHost': {
             Type: str,
             Description: 'The tango host where searching the devices'},
+        'FlagMode': {
+            Type: 'PyTango.DevLong',
+            Description:
+            '0 -> one file per image, 1 -> all images in one file',
+            DefaultValue: 0},
     }
 
     MaxDevice = 97
@@ -132,13 +137,16 @@ class LimaCCDCtrl(TwoDController):
 
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:
-            sta = self.proxy[ind - 1].read_attribute("acq_status").value
-            if sta == "Ready":
+            if self.FlagMode == 1:
                 tup = (PyTango.DevState.ON, "Camera ready")
-            elif sta == "Running":
-                tup = (PyTango.DevState.MOVING, "Camera taking images")
-            elif sta == "Fault":
-                tup = (PyTango.DevState.FAULT, "Camera in FAULT state")
+            else:
+                sta = self.proxy[ind - 1].read_attribute("acq_status").value
+                if sta == "Ready":
+                    tup = (PyTango.DevState.ON, "Camera ready")
+                elif sta == "Running":
+                    tup = (PyTango.DevState.MOVING, "Camera taking images")
+                elif sta == "Fault":
+                    tup = (PyTango.DevState.FAULT, "Camera in FAULT state")
             return tup
 
     def PreReadAll(self):
@@ -161,8 +169,10 @@ class LimaCCDCtrl(TwoDController):
         pass
 
     def StartOne(self, ind, value):
-        self.proxy[ind - 1].write_attribute("acq_nb_frames", 1)
-        self.proxy[ind - 1].command_inout("prepareAcq")
+        # +++ 5.7.2021
+        if self.FlagMode != 1:
+            self.proxy[ind - 1].write_attribute("acq_nb_frames", 1)
+            self.proxy[ind - 1].command_inout("prepareAcq")
         self.proxy[ind - 1].command_inout("startAcq")
 
     def AbortOne(self, ind):

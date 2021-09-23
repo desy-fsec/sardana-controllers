@@ -118,7 +118,7 @@ class GreatEyesCtrl(TwoDController):
         pass
 
     def LoadOne(self, ind, value, repetitions, latency_time):
-        self.proxy[ind - 1].write_attribute("ExposureTime")
+        self.proxy[ind - 1].write_attribute("ExposureTime", value)
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
