@@ -3,9 +3,8 @@
 # import os
 # import imp
 from setuptools import setup
-from datetime import datetime
 
-release = datetime.today().strftime('%Y.%m.%d.%H.%M').replace(".0", ".")
+release = "1.0.0"
 
 package_dir = {"sardana.PoolController": "python"}
 
