@@ -4,7 +4,7 @@
 # import imp
 from setuptools import setup
 
-release = "1.0.1"
+release = "1.0.2"
 
 package_dir = {"sardana.PoolController": "python"}
 
