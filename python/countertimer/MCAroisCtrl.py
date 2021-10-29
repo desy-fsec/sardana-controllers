@@ -118,7 +118,7 @@ class MCAroisCtrl(CounterTimerController):
         self.start_time = time.time()
         self.scanning = 1
 
-    def LoadOne(self, ind, value):
+    def LoadOne(self, ind, value, repetitions, latency_time):
         self.exp_time = value
 
     def GetAxisExtraPar(self, ind, name):
