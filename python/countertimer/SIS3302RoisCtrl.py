@@ -81,7 +81,7 @@ class SIS3302RoisCtrl(CounterTimerController):
                 elapsedTime = now - self.acqStartTime
                 if elapsedTime > self.exp_time:
                     self.proxy.command_inout("Stop")
-                    self.acqStartTime is None
+                    self.acqStartTime = None
         sta = self.proxy.command_inout("State")
         if sta == PyTango.DevState.ON:
             status_string = "MCA is in ON state"
