@@ -5,3 +5,6 @@
 *.pyc
 # Compiled C files
 *.o
+compare_files.py
+Update_files.py
+Files.lis
