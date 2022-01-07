@@ -131,7 +131,7 @@ class XMCDCtrl(CounterTimerController):
         if name == "TangoAttribute":
             return self.AttributeNames[ind - 1]
 
-    def SetAxistExtraPar(self, ind, name, value):
+    def SetAxisExtraPar(self, ind, name, value):
         if name == "TangoAttribute":
             self.AttributeNames[ind - 1] = value
 
