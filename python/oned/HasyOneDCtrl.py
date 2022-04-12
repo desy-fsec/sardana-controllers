@@ -66,6 +66,7 @@ class HasyOneDCtrl(OneDController):
         self.tango_device = []
         self.proxy = []
         self.flagIsMCA8715 = []
+        self.flagIsHydraHarp400 = []
         self.flagIsXIA = []
         self.flagIsSIS3302 = []
         self.flagIsKromo = []
@@ -87,6 +88,7 @@ class HasyOneDCtrl(OneDController):
             self.tango_device.append(name)
             self.proxy.append(None)
             self.flagIsMCA8715.append(False)
+            self.flagIsHydraHarp400.append(False)
             self.flagIsXIA.append(False)
             self.flagIsSIS3302.append(False)
             self.flagIsKromo.append(False)
@@ -124,6 +126,8 @@ class HasyOneDCtrl(OneDController):
         self.device_available[ind - 1] = True
         if hasattr(self.proxy[ind - 1], 'BankId'):
             self.flagIsMCA8715[ind - 1] = True
+        if hasattr(self.proxy[ind - 1], 'tAcq'):
+            self.flagIsHydraHarp400[ind - 1] = True
         if hasattr(self.proxy[ind - 1], 'Spectrum') and \
            hasattr(self.proxy[ind - 1], 'McaLength'):
             self.flagIsXIA[ind - 1] = True
@@ -156,11 +160,14 @@ class HasyOneDCtrl(OneDController):
                     self.sta = PyTango.DevState.MOVING
                     self.status = "Acqusition time has not elapsed yet."
                 else:
-                    if self.flagIsKromo[ind - 1] is False and \
-                       self.flagIsAvantes[ind - 1] is False:
-                        self.proxy[ind - 1].command_inout("Stop")
-                        if self.flagIsXIA[ind - 1] == 0:
-                            self.proxy[ind - 1].command_inout("Read")
+                    if self.flagIsHydraHarp400[ind - 1] is True:
+                        self.proxy[ind - 1].command_inout("stopMeas")
+                    else:
+                        if self.flagIsKromo[ind - 1] is False and \
+                           self.flagIsAvantes[ind - 1] is False:
+                            self.proxy[ind - 1].command_inout("Stop")
+                            if self.flagIsXIA[ind - 1] == 0:
+                                self.proxy[ind - 1].command_inout("Read")
                     self.started = False
                     self.acqStartTime = None
                     self.sta = PyTango.DevState.ON
@@ -205,6 +212,11 @@ class HasyOneDCtrl(OneDController):
             data = self.proxy[ind - 1].Spectrum
         elif self.flagIsAvantes[ind - 1]:
             data = self.proxy[ind - 1].spectrum
+        elif self.flagIsHydraHarp400[ind - 1]:
+            if len( self.proxy[ind - 1].histogram) > 16384:
+                data = self.proxy[ind - 1].histogram[:16384]
+            else: 
+                data = self.proxy[ind - 1].histogram
         else:
             data = self.proxy[ind - 1].Data
         self.Counts_RoI1[ind - 1] = data[
@@ -229,6 +241,14 @@ class HasyOneDCtrl(OneDController):
         # the state may be ON but one bank can be active
         sta = self.proxy[ind - 1].command_inout("State")
         if sta == PyTango.DevState.ON:
+            if self.flagIsHydraHarp400[ind - 1] is True:
+                # HydraHarp400 expects millisecs
+                self.proxy[ind - 1].command_inout("clearHistMem")
+                self.proxy[ind - 1].tAcq = value*1000
+                self.proxy[ind - 1].command_inout("startMeas")
+                self.started = True
+                self.acqStartTime = time.time()
+                return 
             if self.flagIsKromo[ind - 1] is False and \
                self.flagIsAvantes[ind - 1] is False:
                 self.proxy[ind - 1].command_inout("Stop")
@@ -243,6 +263,10 @@ class HasyOneDCtrl(OneDController):
             self.acqStartTime = time.time()
 
     def AbortOne(self, ind):
+        if self.flagIsHydraHarp400[ind - 1] is True:
+            self.proxy[ind - 1].command_inout("stopMeas")
+            return 
+            
         if self.flagIsKromo[ind - 1] is False and \
            self.flagIsAvantes[ind - 1] is False:
             self.proxy[ind - 1].command_inout("Stop")
