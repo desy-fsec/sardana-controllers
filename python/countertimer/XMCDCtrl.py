@@ -1,7 +1,7 @@
 import PyTango
 from sardana.pool.controller import CounterTimerController
 # import time
- 
+
 from sardana import DataAccess
 # from sardana import State, DataAccess
 # from sardana.pool.controller import MotorController

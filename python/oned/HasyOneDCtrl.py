@@ -213,9 +213,9 @@ class HasyOneDCtrl(OneDController):
         elif self.flagIsAvantes[ind - 1]:
             data = self.proxy[ind - 1].spectrum
         elif self.flagIsHydraHarp400[ind - 1]:
-            if len( self.proxy[ind - 1].histogram) > 16384:
+            if len(self.proxy[ind - 1].histogram) > 16384:
                 data = self.proxy[ind - 1].histogram[:16384]
-            else: 
+            else:
                 data = self.proxy[ind - 1].histogram
         else:
             data = self.proxy[ind - 1].Data
@@ -248,7 +248,7 @@ class HasyOneDCtrl(OneDController):
                 self.proxy[ind - 1].command_inout("startMeas")
                 self.started = True
                 self.acqStartTime = time.time()
-                return 
+                return
             if self.flagIsKromo[ind - 1] is False and \
                self.flagIsAvantes[ind - 1] is False:
                 self.proxy[ind - 1].command_inout("Stop")
@@ -265,8 +265,8 @@ class HasyOneDCtrl(OneDController):
     def AbortOne(self, ind):
         if self.flagIsHydraHarp400[ind - 1] is True:
             self.proxy[ind - 1].command_inout("stopMeas")
-            return 
-            
+            return
+
         if self.flagIsKromo[ind - 1] is False and \
            self.flagIsAvantes[ind - 1] is False:
             self.proxy[ind - 1].command_inout("Stop")

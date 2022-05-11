@@ -17,6 +17,7 @@ class SPADQOneDCtrl(OneDController):
     "This class is the One D controller for SPADQDigitizer"
 
     axis_attributes = {
+        'DataLength': {Type: 'PyTango.DevLong', Access: ReadWrite},
         'TangoDevice': {Type: 'PyTango.DevString', Access: ReadOnly},
         'SpectrumName': {Type: 'PyTango.DevString', Access: ReadWrite},
         'RoI1Start': {Type: 'PyTango.DevLong', Access: ReadWrite},
@@ -170,12 +171,18 @@ class SPADQOneDCtrl(OneDController):
     def StartOne(self, ind, value):
         sta = self.proxy[ind - 1].command_inout("State")
         if sta == PyTango.DevState.ON:
-            self.proxy[ind - 1].command_inout("StartAcquisition")
+            self.proxy[ind - 1].command_inout("Start")
             self.started = True
             self.acqStartTime = time.time()
 
     def AbortOne(self, ind):
-        self.proxy[ind - 1].command_inout("StopAcquisition")
+        self.proxy[ind - 1].command_inout("Stop")
+
+    def GetAxisAttributes(self, axis):
+        # change the default max shape for 'value'
+        attrs = super().GetAxisAttributes(axis)
+        attrs['Value']['maxdimsize'] = (100000,)
+        return attrs
 
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
@@ -183,6 +190,24 @@ class SPADQOneDCtrl(OneDController):
                 tango_device = self.node + ":" + str(self.port) + \
                     "/" + self.proxy[ind - 1].name()
                 return tango_device
+        elif name == "DataLength":
+            if self.device_available[ind - 1]:
+                if self.flagIsKromo[ind - 1] is False and \
+                   self.flagIsAvantes[ind - 1] is False:
+                    if self.flagIsXIA[ind - 1]:
+                        datalength = int(self.proxy[ind - 1].read_attribute(
+                            "McaLength").value)
+                    elif self.flagIsSPADQ[ind - 1]:
+                        datalength = int(self.proxy[ind - 1].read_attribute(
+                            "ATDRecordLength").value)
+                    else:
+                        datalength = int(self.proxy[ind - 1].read_attribute(
+                            "DataLength").value)
+                elif self.flagIsAvantes[ind - 1] is True:
+                    datalength = 4096
+                else:
+                    datalength = 255
+                return datalength
         elif name == "RoI1Start":
             return self.RoI1_start[ind - 1]
         elif name == "RoI1End":
@@ -212,7 +237,15 @@ class SPADQOneDCtrl(OneDController):
 
     def SetAxisExtraPar(self, ind, name, value):
         if self.device_available[ind - 1]:
-            if name == "RoI1Start":
+            if name == "DataLength":
+                if self.flagIsKromo[ind - 1] is False and \
+                   self.flagIsAvantes[ind - 1] is False:
+                    if self.flagIsXIA[ind - 1]:
+                        self.proxy[ind - 1].write_attribute("McaLength", value)
+                    elif self.flagIsKromo[ind - 1] is True:
+                        self.proxy[ind - 1].write_attribute(
+                            "DataLength", value)
+            elif name == "RoI1Start":
                 self.RoI1_start[ind - 1] = value
             elif name == "RoI1End":
                 self.RoI1_end[ind - 1] = value
@@ -231,11 +264,9 @@ class SPADQOneDCtrl(OneDController):
             elif name == "SpectrumName":
                 self.SpectrumName[ind - 1] = value
 
-    def GetAxisPar(self, ind, par):
+    def GetAxisPar(self, axis, par):
         if par == "shape":
-            value = self.proxy[ind-1].read_attribute(
-                "samples_per_record").value
-            return [value]
+            return [100]
 
     def SendToCtrl(self, in_data):
         return "Nothing sent"
