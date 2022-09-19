@@ -213,10 +213,7 @@ class HasyOneDCtrl(OneDController):
         elif self.flagIsAvantes[ind - 1]:
             data = self.proxy[ind - 1].spectrum
         elif self.flagIsHydraHarp400[ind - 1]:
-            if len( self.proxy[ind - 1].histogram) > 16384:
-                data = self.proxy[ind - 1].histogram[:16384]
-            else: 
-                data = self.proxy[ind - 1].histogram
+            data = self.proxy[ind - 1].histogram
         else:
             data = self.proxy[ind - 1].Data
         self.Counts_RoI1[ind - 1] = data[
@@ -275,6 +272,14 @@ class HasyOneDCtrl(OneDController):
         elif self.flagIsAvantes[ind - 1] is False:
             self.proxy[ind - 1].command_inout("StopAcquisition")
 
+    def GetAxisAttributes(self, axis):
+        #+++ the default max shape for 'value' is (16*1024,)
+        # length adjustment necessary for HydraHarp400
+        #
+        attrs = super().GetAxisAttributes(axis)
+        attrs['Value'][ 'maxdimsize'] = (4 * 16 * 1024,)
+        return attrs
+
     def GetAxisExtraPar(self, ind, name):
         if name == "TangoDevice":
             if self.device_available[ind - 1]:
@@ -283,7 +288,13 @@ class HasyOneDCtrl(OneDController):
                 return tango_device
         elif name == "DataLength":
             if self.device_available[ind - 1]:
-                if self.flagIsKromo[ind - 1] is False and \
+                if self.flagIsHydraHarp400[ind - 1] is True:
+                    ret = int( self.proxy[ind - 1].read_attribute("lenCode").value)
+                    #
+                    # HydraHarp encodes the length like this: 0: 1024, 1: 2048, ..., 6: 65536
+                    #
+                    datalength = 2**(10 + ret)
+                elif self.flagIsKromo[ind - 1] is False and \
                    self.flagIsAvantes[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
                         datalength = int(self.proxy[ind - 1].read_attribute(
