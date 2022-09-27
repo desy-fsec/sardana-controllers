@@ -71,6 +71,7 @@ class HasyOneDCtrl(OneDController):
         self.flagIsSIS3302 = []
         self.flagIsKromo = []
         self.flagIsAvantes = []
+        self.flagIsCobold = []
         self.device_available = []
         self.RoI1_start = []
         self.RoI1_end = []
@@ -93,6 +94,7 @@ class HasyOneDCtrl(OneDController):
             self.flagIsSIS3302.append(False)
             self.flagIsKromo.append(False)
             self.flagIsAvantes.append(False)
+            self.flagIsCobold.append(False)
             self.device_available.append(False)
             self.RoI1_start.append(0)
             self.RoI1_end.append(0)
@@ -141,6 +143,8 @@ class HasyOneDCtrl(OneDController):
             self.flagIsKromo[ind - 1] = True
         if hasattr(self.proxy[ind - 1], 'intTime'):
             self.flagIsAvantes[ind - 1] = True
+        if hasattr(self.proxy[ind - 1], 'BinSize'):
+            self.flagIsCobold[ind - 1] = True
 
     def DeleteDevice(self, ind):
         if self.debugFlag:
@@ -152,29 +156,34 @@ class HasyOneDCtrl(OneDController):
 
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:
-            if self.acqStartTime is not None:  # acquisition was started
-                now = time.time()
-                elapsedTime = now - self.acqStartTime - 0.2
-                # acquisition has probably not finished yet
-                if elapsedTime < self.acqTime:
-                    self.sta = PyTango.DevState.MOVING
-                    self.status = "Acqusition time has not elapsed yet."
-                else:
-                    if self.flagIsHydraHarp400[ind - 1] is True:
-                        self.proxy[ind - 1].command_inout("stopMeas")
+            if self.flagIsCobold[ind - 1] is True:
+                self.sta = self.proxy[ind - 1].command_inout("State")
+                self.status = "Acqusition time has not elapsed yet."
+            else:
+                if self.acqStartTime is not None:  # acquisition was started
+                    now = time.time()
+                    elapsedTime = now - self.acqStartTime - 0.2
+                    # acquisition has probably not finished yet
+                    if elapsedTime < self.acqTime:
+                        self.sta = PyTango.DevState.MOVING
+                        self.status = "Acqusition time has not elapsed yet."
                     else:
-                        if self.flagIsKromo[ind - 1] is False and \
-                           self.flagIsAvantes[ind - 1] is False:
-                            self.proxy[ind - 1].command_inout("Stop")
-                            if self.flagIsXIA[ind - 1] == 0:
-                                self.proxy[ind - 1].command_inout("Read")
-                    self.started = False
-                    self.acqStartTime = None
+                        if self.flagIsHydraHarp400[ind - 1] is True:
+                            self.proxy[ind - 1].command_inout("stopMeas")
+                        else:
+                            if self.flagIsKromo[ind - 1] is False and \
+                               self.flagIsAvantes[ind - 1] is False:
+                                self.proxy[ind - 1].command_inout("Stop")
+                                if self.flagIsXIA[ind - 1] == 0:
+                                    self.proxy[ind - 1].command_inout("Read")
+                        self.started = False
+                        self.acqStartTime = None
+                        self.sta = PyTango.DevState.ON
+                        self.status = "Device is ON"
+                else:
                     self.sta = PyTango.DevState.ON
                     self.status = "Device is ON"
-            else:
-                self.sta = PyTango.DevState.ON
-                self.status = "Device is ON"
+                
         else:
             sta = PyTango.DevState.FAULT
             tup = (sta, "Device not available")
@@ -187,6 +196,8 @@ class HasyOneDCtrl(OneDController):
             self.proxy[ind - 1].write_attribute("ExpositionTime", value)
         if self.flagIsAvantes[ind - 1] is True:
             self.proxy[ind - 1].write_attribute("intTime", value * 1000)
+        if self.flagIsCobold[ind - 1] is True:
+            self.proxy[ind - 1].write_attribute("ExposureTime", value)
         if value > 0:
             self.integ_time = value
             self.monitor_count = None
@@ -217,16 +228,19 @@ class HasyOneDCtrl(OneDController):
                 data = self.proxy[ind - 1].histogram[:16384]
             else:
                 data = self.proxy[ind - 1].histogram
+        elif self.flagIsCobold[ind - 1]:
+            data = [0]
         else:
-            data = self.proxy[ind - 1].Data
-        self.Counts_RoI1[ind - 1] = data[
-            self.RoI1_start[ind - 1]:self.RoI1_end[ind - 1]].sum()
-        self.Counts_RoI2[ind - 1] = data[
-            self.RoI2_start[ind - 1]:self.RoI2_end[ind - 1]].sum()
-        self.Counts_RoI3[ind - 1] = data[
-            self.RoI3_start[ind - 1]:self.RoI3_end[ind - 1]].sum()
-        self.Counts_RoI4[ind - 1] = data[
-            self.RoI4_start[ind - 1]:self.RoI4_end[ind - 1]].sum()
+            data = self.proxy[ind - 1].Data        
+        if self.flagIsCobold[ind - 1] is False:   
+            self.Counts_RoI1[ind - 1] = data[
+                self.RoI1_start[ind - 1]:self.RoI1_end[ind - 1]].sum()
+            self.Counts_RoI2[ind - 1] = data[
+                self.RoI2_start[ind - 1]:self.RoI2_end[ind - 1]].sum()
+            self.Counts_RoI3[ind - 1] = data[
+                self.RoI3_start[ind - 1]:self.RoI3_end[ind - 1]].sum()
+            self.Counts_RoI4[ind - 1] = data[
+                self.RoI4_start[ind - 1]:self.RoI4_end[ind - 1]].sum()
         return data
 
     def PreStartAll(self):
@@ -249,7 +263,10 @@ class HasyOneDCtrl(OneDController):
                 self.started = True
                 self.acqStartTime = time.time()
                 return
-            if self.flagIsKromo[ind - 1] is False and \
+            if self.flagIsCobold[ind - 1] is True:
+                self.proxy[ind - 1].command_inout("ClearAllHistograms")
+                self.proxy[ind - 1].command_inout("StartAcquisition") 
+            elif self.flagIsKromo[ind - 1] is False and \
                self.flagIsAvantes[ind - 1] is False:
                 self.proxy[ind - 1].command_inout("Stop")
                 self.proxy[ind - 1].command_inout("Clear")
@@ -268,7 +285,8 @@ class HasyOneDCtrl(OneDController):
             return
 
         if self.flagIsKromo[ind - 1] is False and \
-           self.flagIsAvantes[ind - 1] is False:
+           self.flagIsAvantes[ind - 1] is False and \
+           self.flagIsCobold[ind - 1] is False:
             self.proxy[ind - 1].command_inout("Stop")
             if self.flagIsXIA[ind - 1] == 0:
                 self.proxy[ind - 1].command_inout("Read")
@@ -298,7 +316,8 @@ class HasyOneDCtrl(OneDController):
                     #
                     datalength = 2**(10 + ret)
                 elif self.flagIsKromo[ind - 1] is False and \
-                   self.flagIsAvantes[ind - 1] is False:
+                   self.flagIsAvantes[ind - 1] is False and \
+                   self.flagIsCobold[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
                         datalength = int(self.proxy[ind - 1].read_attribute(
                             "McaLength").value)
@@ -307,6 +326,8 @@ class HasyOneDCtrl(OneDController):
                             "DataLength").value)
                 elif self.flagIsAvantes[ind - 1] is True:
                     datalength = 4096
+                elif self.flagIsCobold[ind - 1] is True:
+                    datalength = 1
                 else:
                     datalength = 255
                 return datalength
@@ -339,7 +360,8 @@ class HasyOneDCtrl(OneDController):
         if self.device_available[ind - 1]:
             if name == "DataLength":
                 if self.flagIsKromo[ind - 1] is False and \
-                   self.flagIsAvantes[ind - 1] is False:
+                   self.flagIsAvantes[ind - 1] is False and \
+                   self.flagIsCobold[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
                         self.proxy[ind - 1].write_attribute("McaLength", value)
                     elif self.flagIsKromo[ind - 1] is True:
