@@ -156,23 +156,24 @@ class HasyOneDCtrl(OneDController):
 
     def StateOne(self, ind):
         if self.device_available[ind - 1] == 1:
+            colbo_sta = 0
             if self.flagIsCobold[ind - 1] is True:
-                self.sta = self.proxy[ind - 1].command_inout("State")
-                self.status = "Acqusition time has not elapsed yet."
-            else:
+                colbo_sta =  self.proxy[ind - 1].command_inout("State")
+            if 1:
                 if self.acqStartTime is not None:  # acquisition was started
                     now = time.time()
                     elapsedTime = now - self.acqStartTime - 0.2
                     # acquisition has probably not finished yet
-                    if elapsedTime < self.acqTime:
+                    if elapsedTime < self.acqTime or colbo_sta > 0:
                         self.sta = PyTango.DevState.MOVING
-                        self.status = "Acqusition time has not elapsed yet."
+                        self.status = "Acquisition time has not elapsed yet."
                     else:
                         if self.flagIsHydraHarp400[ind - 1] is True:
                             self.proxy[ind - 1].command_inout("stopMeas")
                         else:
                             if self.flagIsKromo[ind - 1] is False and \
-                               self.flagIsAvantes[ind - 1] is False:
+                               self.flagIsAvantes[ind - 1] is False and \
+                               self.flagIsCobold[ind -1] is False:
                                 self.proxy[ind - 1].command_inout("Stop")
                                 if self.flagIsXIA[ind - 1] == 0:
                                     self.proxy[ind - 1].command_inout("Read")
@@ -183,7 +184,7 @@ class HasyOneDCtrl(OneDController):
                 else:
                     self.sta = PyTango.DevState.ON
                     self.status = "Device is ON"
-
+                
         else:
             sta = PyTango.DevState.FAULT
             tup = (sta, "Device not available")
@@ -231,8 +232,8 @@ class HasyOneDCtrl(OneDController):
         elif self.flagIsCobold[ind - 1]:
             data = [0]
         else:
-            data = self.proxy[ind - 1].Data
-        if self.flagIsCobold[ind - 1] is False:
+            data = self.proxy[ind - 1].Data        
+        if self.flagIsCobold[ind - 1] is False:   
             self.Counts_RoI1[ind - 1] = data[
                 self.RoI1_start[ind - 1]:self.RoI1_end[ind - 1]].sum()
             self.Counts_RoI2[ind - 1] = data[
@@ -264,10 +265,10 @@ class HasyOneDCtrl(OneDController):
                 self.acqStartTime = time.time()
                 return
             if self.flagIsCobold[ind - 1] is True:
-                self.proxy[ind - 1].command_inout("ClearAllHistograms")
-                self.proxy[ind - 1].command_inout("StartAcquisition")
+                #self.proxy[ind - 1].command_inout("ClearAllHistograms")
+                self.proxy[ind - 1].command_inout("StartAcquisition") 
             elif self.flagIsKromo[ind - 1] is False and \
-                    self.flagIsAvantes[ind - 1] is False:
+               self.flagIsAvantes[ind - 1] is False:
                 self.proxy[ind - 1].command_inout("Stop")
                 self.proxy[ind - 1].command_inout("Clear")
                 self.proxy[ind - 1].command_inout("Start")
@@ -294,11 +295,11 @@ class HasyOneDCtrl(OneDController):
             self.proxy[ind - 1].command_inout("StopAcquisition")
 
     def GetAxisAttributes(self, axis):
-        # +++ the default max shape for 'value' is (16*1024,)
+        #+++ the default max shape for 'value' is (16*1024,)
         # length adjustment necessary for HydraHarp400
         #
         attrs = super().GetAxisAttributes(axis)
-        attrs['Value']['maxdimsize'] = (4 * 16 * 1024,)
+        attrs['Value'][ 'maxdimsize'] = (4 * 16 * 1024,)
         return attrs
 
     def GetAxisExtraPar(self, ind, name):
@@ -310,16 +311,14 @@ class HasyOneDCtrl(OneDController):
         elif name == "DataLength":
             if self.device_available[ind - 1]:
                 if self.flagIsHydraHarp400[ind - 1] is True:
-                    ret = int(
-                        self.proxy[ind - 1].read_attribute("lenCode").value)
+                    ret = int( self.proxy[ind - 1].read_attribute("lenCode").value)
                     #
-                    # HydraHarp encodes the length like this:
-                    #        0: 1024, 1: 2048, ..., 6: 65536
+                    # HydraHarp encodes the length like this: 0: 1024, 1: 2048, ..., 6: 65536
                     #
                     datalength = 2**(10 + ret)
                 elif self.flagIsKromo[ind - 1] is False and \
-                        self.flagIsAvantes[ind - 1] is False and \
-                        self.flagIsCobold[ind - 1] is False:
+                   self.flagIsAvantes[ind - 1] is False and \
+                   self.flagIsCobold[ind - 1] is False:
                     if self.flagIsXIA[ind - 1]:
                         datalength = int(self.proxy[ind - 1].read_attribute(
                             "McaLength").value)
