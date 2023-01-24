@@ -113,6 +113,7 @@ class HasyMotorCtrl(MotorController):
         self.poolmotor_proxy = []
         self.set_for_memorized_min = []
         self.set_for_memorized_max = []
+        self.flag_standa = []
 
         for name in self.devices.value_string:
             self.tango_device.append(name)
@@ -135,6 +136,7 @@ class HasyMotorCtrl(MotorController):
             self.poolmotor_proxy.append(None)
             self.set_for_memorized_min.append(1)
             self.set_for_memorized_max.append(1)
+            self.flag_standa.append(0)
 
             self.max_device = self.max_device + 1
 
@@ -182,6 +184,9 @@ class HasyMotorCtrl(MotorController):
             if attrName in attrs:
                 self.attrName_Acceleration[ind - 1] = attrName
                 break
+        # Identify Standa8smc4usb motor, not fsec server (cfel)
+        if "gpioFlags" in attrs:
+            self.flag_standa[ind - 1] = 1
         for cmdName in HasyMotorCtrl.cmdNames_Abort:
             if cmdName in cmds:
                 self.cmdName_Abort[ind - 1] = cmdName
@@ -226,6 +231,8 @@ class HasyMotorCtrl(MotorController):
 
     def ReadOne(self, ind):
         if self.device_available[ind - 1] == 1:
+            if self.flag_standa[ind - 1] == 1:
+                return self.proxy[ind - 1].read_attribute("curPosition").value
             return self.proxy[ind - 1].read_attribute("Position").value
 
     def PreStartAll(self):
@@ -236,12 +243,17 @@ class HasyMotorCtrl(MotorController):
 
     def StartOne(self, ind, pos):
         if self.device_available[ind - 1] == 1:
+            if self.flag_standa[ind - 1] == 1:
+                self.proxy[ind - 1].Move(pos)
+                return
             self.proxy[ind - 1].write_attribute("Position", pos)
 
     def GetAxisExtraPar(self, ind, name):
         value = None
         if self.device_available[ind - 1]:
             if name == "UnitLimitMax":
+                if self.flag_standa[ind - 1] == 1:
+                    return 0
                 if self.poolmotor_proxy[ind - 1] is None:
                     self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(
                         self.GetAxisName(ind))
@@ -255,6 +267,8 @@ class HasyMotorCtrl(MotorController):
                 self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
 
             elif name == "UnitLimitMin":
+                if self.flag_standa[ind - 1] == 1:
+                    return 0
                 if self.poolmotor_proxy[ind - 1] is None:
                     self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(
                         self.GetAxisName(ind))
@@ -269,9 +283,13 @@ class HasyMotorCtrl(MotorController):
                 self.poolmotor_proxy[ind - 1].set_attribute_config(cfg)
 
             elif name == "PositionSim":
+                if self.flag_standa[ind - 1] == 1:
+                    return 0
                 value = float(self.proxy[ind - 1].read_attribute(
                     "PositionSim").value)
             elif name == "ResultSim":
+                if self.flag_standa[ind - 1] == 1:
+                    return "None"
                 value = str(self.proxy[ind - 1].read_attribute(
                     "ResultSim").value)
             elif name == "TangoDevice":
@@ -281,12 +299,16 @@ class HasyMotorCtrl(MotorController):
             elif name == "Calibrate":
                 value = -1
             elif name == "Conversion":
+                if self.flag_standa[ind - 1] == 1:
+                    return 0
                 value = float(self.proxy[ind - 1].read_attribute(
                     "Conversion").value)
         return value
 
     def SetAxisExtraPar(self, ind, name, value):
         if self.device_available[ind - 1]:
+            if self.flag_standa[ind - 1] == 1:
+                return
             if name == "UnitLimitMax":
                 if self.poolmotor_proxy[ind - 1] is None:
                     self.poolmotor_proxy[ind - 1] = PyTango.DeviceProxy(
@@ -329,6 +351,21 @@ class HasyMotorCtrl(MotorController):
         if self.device_available[ind - 1]:
             name = name.lower()
             if name == "acceleration" or name == "deceleration":
+                if self.flag_standa[ind - 1] == 1:
+                    try:
+                        velocity = float(self.proxy[ind - 1].read_attribute(
+                            "curSpeed").value)
+                    except Exception:
+                        velocity = 1.0
+                    if value == 0.0:
+                        value = 1
+                    if name == "acceleration":
+                        self.proxy[ind - 1].write_attribute(
+                            "accel", int(velocity / value))
+                    else:
+                        self.proxy[ind - 1].write_attribute(
+                            "decel", int(velocity / value))
+                    return
                 try:
                     velocity = float(self.proxy[ind - 1].read_attribute(
                         self.attrName_Velocity[ind - 1]).value)
@@ -339,8 +376,14 @@ class HasyMotorCtrl(MotorController):
                 self.proxy[ind - 1].write_attribute(
                     self.attrName_Acceleration[ind - 1], int(velocity / value))
             elif name == "base_rate":
+                if self.flag_standa[ind - 1] == 1:
+                    return
                 self.proxy[ind - 1].write_attribute("BaseRate", int(value))
             elif name == "velocity":
+                if self.flag_standa[ind - 1] == 1:
+                    self.proxy[ind - 1].write_attribute(
+                        "speed", value)
+                    return
                 if not self.conversion_included[ind - 1]:
                     try:
                         conversion = abs(
@@ -354,6 +397,8 @@ class HasyMotorCtrl(MotorController):
                     self.proxy[ind - 1].write_attribute(
                         self.attrName_Velocity[ind - 1], value)
             elif name == "step_per_unit":
+                if self.flag_standa[ind - 1] == 1:
+                    return
                 self.proxy[ind - 1].write_attribute("Conversion", value)
 
     def GetAxisPar(self, ind, name):
@@ -361,6 +406,23 @@ class HasyMotorCtrl(MotorController):
         if self.device_available[ind - 1]:
             name = name.lower()
             if name == "acceleration" or name == "deceleration":
+                if self.flag_standa[ind - 1] == 1:
+                    if name == "acceleration":
+                        value = float(self.proxy[ind - 1].read_attribute(
+                            "accel").value)
+                    else:
+                        value = float(self.proxy[ind - 1].read_attribute(
+                            "decel").value)
+
+                    try:
+                        velocity = float(self.proxy[ind - 1].read_attribute(
+                            "curSpeed").value)
+                    except Exception:
+                        velocity = 1.0
+                    if value == 0.0:
+                        value = 1.0
+                    value = velocity / value
+                    return value
                 value = float(self.proxy[ind - 1].read_attribute(
                     self.attrName_Acceleration[ind - 1]).value)
                 try:
@@ -372,6 +434,8 @@ class HasyMotorCtrl(MotorController):
                     value = 1.0
                 value = velocity / value
             elif name == "base_rate":
+                if self.flag_standa[ind - 1] == 1:
+                    return 0.0
                 try:
                     value = float(self.proxy[ind - 1].read_attribute(
                         "BaseRate").value)
@@ -385,6 +449,10 @@ class HasyMotorCtrl(MotorController):
                 except Exception:
                     value = 0.0
             elif name == "velocity":
+                if self.flag_standa[ind - 1] == 1:
+                    value = float(self.proxy[ind - 1].read_attribute(
+                        "curSpeed").value)
+                    return value
                 value = float(self.proxy[ind - 1].read_attribute(
                     self.attrName_Velocity[ind - 1]).value)
                 if not self.conversion_included[ind - 1]:
@@ -396,6 +464,8 @@ class HasyMotorCtrl(MotorController):
                         conversion = 1.0
                     value /= conversion
             elif name == "step_per_unit":
+                if self.flag_standa[ind - 1] == 1:
+                    return 1.0
                 try:
                     value = float(self.proxy[ind - 1].read_attribute(
                         "Conversion").value)
@@ -420,6 +490,8 @@ class HasyMotorCtrl(MotorController):
 
     def DefinePosition(self, ind, position):
         if self.device_available[ind - 1] == 1:
+            if self.flag_standa[ind - 1] == 1:
+                return
             position = float(position)
             self.proxy[ind - 1].Calibrate(position)
 
