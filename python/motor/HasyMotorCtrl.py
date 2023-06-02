@@ -354,7 +354,7 @@ class HasyMotorCtrl(MotorController):
                 if self.flag_standa[ind - 1] == 1:
                     try:
                         velocity = float(self.proxy[ind - 1].read_attribute(
-                            "curSpeed").value)
+                            "speed").value)
                     except Exception:
                         velocity = 1.0
                     if value == 0.0:
@@ -416,7 +416,7 @@ class HasyMotorCtrl(MotorController):
 
                     try:
                         velocity = float(self.proxy[ind - 1].read_attribute(
-                            "curSpeed").value)
+                            "speed").value)
                     except Exception:
                         velocity = 1.0
                     if value == 0.0:
@@ -451,7 +451,7 @@ class HasyMotorCtrl(MotorController):
             elif name == "velocity":
                 if self.flag_standa[ind - 1] == 1:
                     value = float(self.proxy[ind - 1].read_attribute(
-                        "curSpeed").value)
+                        "speed").value)
                     return value
                 value = float(self.proxy[ind - 1].read_attribute(
                     self.attrName_Velocity[ind - 1]).value)
